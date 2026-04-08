@@ -1,23 +1,63 @@
-# STREFA WALK LUBIN MATCHMAKER - DOKUMENTACJA (V15 Final 1)
-*System oparty na Kaskadowych Filtrach Hierarchicznych i 2-Opt Swap.*
+# 🥋 Strefa Walk Lubin - Matchmaker
 
-## UWAGI IMPLEMENTACYJNE:
-- **ZASADA "KAŻDY Z KAŻDYM" (ROUND ROBIN):** Powtórki są traktowane jako absolutna ostateczność. System wybierze w pierwszej kolejności zawodnika o 50 kg lżejszego w innym stroju, niż powtórzy wcześniej odbytą walkę.
-- **ŚCISŁA KONTROLA ŁAWKI:** Zrezygnowano z węzła `DUMMY_BENCH` wchodzącego w interakcje z silnikiem parowania. System przed rozpoczęciem parowania wyciąga z maty osobę o najniższym liczniku odpoczynku i zdejmuje ją z listy. Gwarantuje to absolutną sprawiedliwość w pauzowaniu i całkowicie eliminuje ryzyko posadzenia kilku osób.
+![Version](https://img.shields.io/badge/version-1.0.0--stable-brightgreen)
+![Platform](https://img.shields.io/badge/platform-React%20Native%20%7C%20Expo-blue)
+![License](https://img.shields.io/badge/license-Private-red)
+
+Profesjonalna aplikacja mobilna (zaprojektowana na tablety) do zautomatyzowanego zarządzania matą podczas treningów Brazylijskiego Jiu-Jitsu (BJJ) i Grapplingu w klubie Strefa Walk Lubin.
+
+System opiera się na zaawansowanym algorytmie **V15 Ultimate Parity**, który wykorzystuje kaskadowe filtry hierarchiczne oraz post-processing typu *2-Opt Swap*, aby wygenerować idealne pary sparingowe w formacie zbliżonym do Round Robin.
 
 ---
 
-## HIERARCHIA PAROWANIA ZAWODNIKÓW
+## 🚀 Główne funkcje (Wersja 1.0.0)
 
-System nie odrzuca żadnej pary, lecz punktuje wszystkie możliwe kombinacje na macie według następującej, bezwzględnej hierarchii. Każdy kolejny punkt ma mniejszy wpływ na decyzję algorytmu niż poprzedni.
+* **Inteligentny Matchmaking:** Automatyczne dobieranie par na podstawie wielu zmiennych: wiek (KID/ADULT), sprzęt (GI/NO-GI), waga oraz poziom zaawansowania (POCZ./ŚREDNI/PRO).
+* **Bezwzględna Sprawiedliwość Ławki (Bench Parity):** Algorytm gwarantuje, że na ławce rezerwowych usiądzie zawsze **maksymalnie jedna osoba** z danej grupy wiekowej (tylko w przypadku nieparzystej liczby zawodników). Rotacja odbywa się na podstawie wskaźnika `restDebt`, co całkowicie eliminuje problem pomijania tych samych zawodników.
+* **Priorytet "Każdy z każdym":** System minimalizuje ryzyko powtórek walk. Algorytm w pierwszej kolejności zignoruje różnice wagowe lub sprzętowe, zanim dopuści do ponownego starcia tych samych zawodników.
+* **Ochrona VIP (Tryb "Bez Pauzy"):** Możliwość oznaczenia wybranych zawodników, którzy są wykluczeni z rotacji na ławce rezerwowych.
+* **Wygładzanie 2-Opt:** Po wstępnym zachłannym przypisaniu (Greedy Matching), system skanuje utworzone pary i dokonuje zamian krzyżowych, aby zminimalizować różnice wagowe i uniknąć powtórek.
+* **Tryb "Góra / Dół":** Wizualne oznaczenie ról startowych dla każdej pary.
 
-1. **Wiek (Dziecko z Dorosłym) -> Kara -1 000 000 000 pkt**
-   Mieszanie dzieci i dorosłych jest zablokowane. System nigdy ich nie połączy, ponieważ zawsze zdejmuje na ławkę 1 osobę z nieparzystej grupy, gwarantując parzystość w obu wiekach (KID vs KID, ADULT vs ADULT).
-2. **"Każdy z każdym" (Brak powtórek) -> Kara do -500 000 000 pkt**
-   Jeśli zawodnicy walczyli runda po rundzie, otrzymują karę -500 milionów. Każda inna dotychczasowa powtórka to -100 mln. System zrobi wszystko, włącznie z mieszaniem pasów i ogromnymi różnicami wagi, byle tego uniknąć.
-3. **Ubiór (GI z GI) -> Kara -10 000 000 pkt**
-   Jeśli zawodnicy noszą inny sprzęt (GI vs NO-GI), otrzymują karę 10 milionów. Ponieważ to mniej niż kara za powtórkę, system w pierwszej kolejności ucieknie przed ponowną walką mieszając sprzęt, zanim zdecyduje się na powtórkę.
-4. **Poziom zaawansowania (Tylko dorośli) -> Kara -1 000 000 pkt**
-   Każdy stopień różnicy to 1 milion punktów w dół. Wymusza walki PRO z PRO i POCZ z POCZ, chyba że brakuje im opcji niepowtórzonych.
-5. **Waga -> Kara -10 000 pkt za 1 kg**
-   Najmniejsza ranga ważności. Różnica 40 kg to "tylko" -400 000 punktów, dlatego w ostateczności system bez problemu dobierze 100 kg zawodnika z 60 kg zawodnikiem, aby uratować ich przed walką z dotychczasowym rywalem.
+---
+
+## 🧠 Architektura Algorytmu (System Kar)
+
+System ocenia jakość każdej potencjalnej pary na macie, przyznając punkty karne za łamanie reguł. Hierarchia jest bezwzględna – algorytm zawsze wybierze "mniejsze zło" na podstawie poniższych wartości:
+
+1. **Wiek (KID vs ADULT)** ➔ **Kara: `-1 000 000 000 pkt`**
+   *Absolutna blokada. Dzieci walczą tylko z dziećmi, dorośli z dorosłymi.*
+2. **Walka z rzędu (Back-to-back)** ➔ **Kara: `-500 000 000 pkt`**
+   *System nie dopuści do powtórzenia walki z poprzedniej rundy.*
+3. **Jakakolwiek powtórka** ➔ **Kara: `-100 000 000 pkt`** (za każde spotkanie w historii)
+   *Wymuszenie rotacji "każdy z każdym".*
+4. **Mieszanie sprzętu (GI vs NO-GI)** ➔ **Kara: `-10 000 000 pkt`**
+   *System stara się utrzymać zawodników we własnym sprzęcie, chyba że jedyną alternatywą jest powtórzenie walki.*
+5. **Różnica poziomów (Adult)** ➔ **Kara: `-1 000 000 pkt`** (za każdy stopień różnicy)
+   *Wymusza walki PRO z PRO, chyba że brakuje im świeżych przeciwników.*
+6. **Różnica wagi** ➔ **Kara: `-10 000 pkt`** (za każdy 1 kg)
+   *Najbardziej elastyczna reguła, poświęcana na rzecz uniknięcia powtórek.*
+
+---
+
+## 🛠️ Stack Technologiczny
+
+* **Frontend:** React Native (Expo)
+* **Język:** TypeScript
+* **Baza danych:** AsyncStorage (Local Offline Storage)
+* **Dźwięk:** `expo-av` (Zintegrowane sygnały dźwiękowe dla faz treningu)
+
+---
+
+## 📦 Instrukcja Budowania (Build)
+
+Aby wygenerować produkcyjny plik `.apk` na tablet z systemem Android, upewnij się, że posiadasz zainstalowane narzędzia EAS CLI, a następnie uruchom komendę:
+
+```bash
+eas build -p android --profile preview
+```
+
+Wymagane uprawnienia (Android): `RECORD_AUDIO`, `MODIFY_AUDIO_SETTINGS`.
+
+---
+*Szymon Dróżdż - Strefa Walk Lubin © 2026. All rights reserved.*
