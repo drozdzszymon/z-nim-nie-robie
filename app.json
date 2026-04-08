@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Strefa Walk Matchmaker",
+    "slug": "strefa-walk-matchmaker",
+    "version": "1.0.0",
+    "orientation": "landscape",
+    "icon": "./assets/logo.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#13181f"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logo.png",
+        "backgroundColor": "#13181f"
+      },
+      "package": "com.strefawalk.matchmaker",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/logo.png"
+    },
+    "plugins": [
+      "expo-av"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "7503b2fd-c939-440d-b091-51b36c084c27"
+      }
+    }
+  }
+}
