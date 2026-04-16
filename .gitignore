@@ -35,8 +35,14 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+*.code-workspace
 
 app-example
+
+# Foldery robocze / zrzuty do poprawy
+ZRZUTY EKRANU DO POPRAWY/
+OBRAZKI_APLIKACJA/
+/Screenshots/
 
 # generated native folders
 /ios

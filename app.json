@@ -1,42 +1,62 @@
 {
   "expo": {
-    "name": "Strefa Walk Matchmaker",
-    "slug": "strefa-walk-matchmaker",
+    "name": "Z NIM NIE ROBIĘ",
+    "slug": "z-nim-nie-robie",
+    "owner": "simon_on",
     "version": "1.0.0",
-    "orientation": "landscape",
-    "icon": "./assets/logo.png",
-    "userInterfaceStyle": "dark",
-    "splash": {
-      "image": "./assets/logo.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#13181f"
+    "icon": "./assets/images/icon.png",
+    "orientation": "default",
+    "scheme": "znimnierobie",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "description": "Oficjalna aplikacja treningowa do zarządzania parami, rundami i rotacją zawodników podczas treningów BJJ, grapplingu i zadaniówek.",
+    "platforms": [
+      "android",
+      "ios",
+      "web"
+    ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "enabled": false
     },
     "assetBundlePatterns": [
       "**/*"
     ],
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#07111F",
+          "image": "./assets/images/icon.png",
+          "imageWidth": 260
+        }
+      ]
+    ],
+    "android": {
+      "package": "pl.znimnierobie.app",
+      "versionCode": 1,
+      "edgeToEdgeEnabled": true,
+      "permissions": [],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundColor": "#07111F",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      }
+    },
     "ios": {
+      "bundleIdentifier": "pl.znimnierobie.app",
+      "buildNumber": "1",
       "supportsTablet": true
     },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/logo.png",
-        "backgroundColor": "#13181f"
-      },
-      "package": "com.strefawalk.matchmaker",
-      "permissions": [
-        "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS"
-      ]
-    },
     "web": {
-      "favicon": "./assets/logo.png"
+      "favicon": "./assets/images/favicon.png"
     },
-    "plugins": [
-      "expo-av"
-    ],
     "extra": {
       "eas": {
-        "projectId": "7503b2fd-c939-440d-b091-51b36c084c27"
+        "projectId": "922b6996-f702-43bf-98a4-a3a4d9d25aa7"
       }
     }
   }

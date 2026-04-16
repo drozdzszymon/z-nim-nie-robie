@@ -1,1 +1,8 @@
-{ "recommendations": ["expo.vscode-expo-tools"] }
+{
+    "recommendations": [
+        "expo.vscode-expo-tools",
+        "openai.chatgpt",
+        "google.geminicodeassist",
+        "github.copilot-chat"
+    ]
+}
