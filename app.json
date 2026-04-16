@@ -2,7 +2,6 @@
   "expo": {
     "name": "Z NIM NIE ROBIĘ",
     "slug": "z-nim-nie-robie",
-    "owner": "simon_on",
     "version": "1.0.0",
     "icon": "./assets/images/icon.png",
     "orientation": "default",
@@ -56,7 +55,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "922b6996-f702-43bf-98a4-a3a4d9d25aa7"
+        "projectId": "YOUR_PROJECT_ID"
       }
     }
   }

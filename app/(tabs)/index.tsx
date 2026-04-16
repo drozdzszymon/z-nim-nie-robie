@@ -1613,37 +1613,7 @@ export default function App() {
   };
 
   const handleSecretDevMode = () => {
-    const testPlayers: RealPlayer[] = [
-        { id: "GOSIA", type: "ADULT", weight: 66, skillLevel: 4, gear: "NO", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "HANIA", type: "ADULT", weight: 51, skillLevel: 1, gear: "NO", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "SITO", type: "ADULT", weight: 98, skillLevel: 4, gear: "GI", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "ROMEK", type: "ADULT", weight: 75, skillLevel: 2, gear: "GI", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "TOMEK", type: "ADULT", weight: 60, skillLevel: 3, gear: "NO", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "WERKA", type: "ADULT", weight: 69, skillLevel: 3, gear: "NO", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "SZYMON", type: "ADULT", weight: 92, skillLevel: 4, gear: "GI", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "SZYMONEK", type: "ADULT", weight: 67, skillLevel: 4, gear: "GI", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "MATEUSZ", type: "ADULT", weight: 50, skillLevel: 2, gear: "GI", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "LEGNICA", type: "ADULT", weight: 100, skillLevel: 4, gear: "NO", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "KOPALNIAK", type: "ADULT", weight: 92, skillLevel: 4, gear: "NO", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "WIKTOR", type: "ADULT", weight: 82, skillLevel: 1, gear: "NO", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "LOCZEK", type: "KID", weight: 38, skillLevel: 0, gear: "GI", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "JOZEK", type: "KID", weight: 50, skillLevel: 0, gear: "GI", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "MARCEL", type: "ADULT", weight: 55, skillLevel: 3, gear: "NO", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "ANDRZEJ", type: "ADULT", weight: 70, skillLevel: 2, gear: "NO", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "KEDZIOLEK", type: "KID", weight: 43, skillLevel: 0, gear: "NO", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "DZIADEK", type: "ADULT", weight: 92, skillLevel: 4, gear: "NO", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "GACEK", type: "KID", weight: 47, skillLevel: 0, gear: "NO", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "PEJA", type: "ADULT", weight: 66, skillLevel: 3, gear: "NO", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "NAZAR", type: "ADULT", weight: 83, skillLevel: 1, gear: "NO", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "OLEK", type: "ADULT", weight: 65, skillLevel: 1, gear: "GI", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "WOJTEK", type: "ADULT", weight: 98, skillLevel: 4, gear: "NO", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "MAX", type: "KID", weight: 48, skillLevel: 0, gear: "NO", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "FABIAN", type: "KID", weight: 46, skillLevel: 0, gear: "NO", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
-        { id: "KACPER", type: "KID", weight: 63, skillLevel: 0, gear: "NO", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 }
-    ];
-
-    setRoster(testPlayers);
-    showInfo("Dev Mode Aktywny", "Wgrano 26 zawodników z bazy testowej.");
+    // Dev mode: load test roster (removed from public repo)
   };
 
   const handleDevModeTrigger = () => {
