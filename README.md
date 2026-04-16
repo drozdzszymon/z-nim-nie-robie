@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <a href="https://z-nim-nie-robie.netlify.app/"><b>▶ Wypróbuj wersję webową</b></a>
+  <a href="https://znimnierobie.pl"><b>▶ Wypróbuj wersję webową</b></a>
 </p>
 
 ---
@@ -250,7 +250,7 @@ npx expo export --platform web
 
 Aplikacja jest dostępna online pod adresem:
 
-**https://z-nim-nie-robie.netlify.app/**
+**https://znimnierobie.pl**
 
 Wersja webowa działa w przeglądarce na komputerze, tablecie i telefonie. Nie wymaga instalacji.
 
