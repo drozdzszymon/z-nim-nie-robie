@@ -1,7 +1,7 @@
 # 🥋 Z NIM NIE ROBIĘ
 
 <p align="center">
-  <img src="Images/LOGO.png" alt="Z NIM NIE ROBIĘ — logo" width="260" />
+  <img src="docs/images/LOGO.png" alt="Z NIM NIE ROBIĘ — logo" width="260" />
 </p>
 
 <p align="center">

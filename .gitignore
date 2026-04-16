@@ -39,10 +39,15 @@ yarn-error.*
 
 app-example
 
+# IDE
+.vscode/
+
 # Foldery robocze / zrzuty do poprawy
 ZRZUTY EKRANU DO POPRAWY/
 OBRAZKI_APLIKACJA/
 /Screenshots/
+/Images/
+BUILD/
 
 # generated native folders
 /ios
