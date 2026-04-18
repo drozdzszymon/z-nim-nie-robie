@@ -49,6 +49,12 @@ OBRAZKI_APLIKACJA/
 /Images/
 BUILD/
 
+# Google Play / EAS secrets
+.secrets/
+*-service-account.json
+google-services.json
+plugins/adi-registration.properties
+
 # generated native folders
 /ios
 /android

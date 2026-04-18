@@ -1,0 +1,49 @@
+# PHP handler (zachowany z oryginalnej konfiguracji)
+AddHandler application/x-httpd-php84 php
+
+# ============================================
+# SPA fallback dla aplikacji webowej Expo
+# ============================================
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Nie przekierowuj istniejących plików i folderów
+    # (to obsłuży /privacy/, /favicon.ico, /_expo/..., /assets/... itd.)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Wszystko inne → index.html (SPA routing)
+    RewriteRule ^ index.html [L]
+</IfModule>
+
+# ============================================
+# Kompresja
+# ============================================
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/json image/svg+xml
+</IfModule>
+
+# ============================================
+# Cache headers
+# ============================================
+<IfModule mod_expires.c>
+    ExpiresActive On
+
+    # HTML bez cache (żeby aktualizacje wchodziły od razu)
+    ExpiresByType text/html "access plus 0 seconds"
+
+    # Statyczne assety z hash w nazwie - długi cache
+    <FilesMatch "\.(js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot|ico)$">
+        ExpiresDefault "access plus 1 year"
+    </FilesMatch>
+</IfModule>
+
+# ============================================
+# Bezpieczeństwo - podstawowe nagłówki
+# ============================================
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>

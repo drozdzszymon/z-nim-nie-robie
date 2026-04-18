@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="index, follow">
+<title>Polityka Prywatności — Z NIM NIE ROBIĘ</title>
+<meta name="description" content="Polityka prywatności aplikacji Z NIM NIE ROBIĘ — BJJ Timer. Aplikacja nie zbiera żadnych danych osobowych, działa offline.">
+<style>
+  :root {
+    --bg: #07111F;
+    --bg-2: #0F2541;
+    --text: #E8EEF6;
+    --text-dim: #B8C5D6;
+    --accent: #FFC846;
+    --border: rgba(255,255,255,0.08);
+    --card: rgba(255,255,255,0.03);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.65;
+    font-size: 16px;
+    min-height: 100vh;
+  }
+  .wrap {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+  header {
+    text-align: center;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+  }
+  header .brand {
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-size: 32px;
+    margin: 0 0 12px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .meta {
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+  h2 {
+    font-size: 22px;
+    margin: 40px 0 12px;
+    color: var(--accent);
+    border-left: 3px solid var(--accent);
+    padding-left: 12px;
+  }
+  h3 {
+    font-size: 18px;
+    margin: 24px 0 8px;
+    color: var(--text);
+  }
+  p { margin: 0 0 14px; color: var(--text-dim); }
+  strong { color: var(--text); }
+  ul { padding-left: 22px; color: var(--text-dim); }
+  li { margin-bottom: 6px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    background: var(--card);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  th, td {
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th { background: rgba(255,200,70,0.08); color: var(--accent); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  .lang-switch {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+  .lang-switch button, .lang-switch a {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .lang-switch button.active {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  .lang-switch button:hover:not(.active) { color: var(--text); }
+  .section-en { display: none; }
+  body.en .section-pl { display: none; }
+  body.en .section-en { display: block; }
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+  footer a { margin: 0 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">Z NIM NIE ROBIĘ — BJJ Timer</div>
+    <h1 id="title">Polityka Prywatności</h1>
+    <div class="meta" id="meta">Wersja z dnia 17 kwietnia 2026</div>
+  </header>
+
+  <div class="lang-switch">
+    <button id="btn-pl" class="active" onclick="setLang('pl')">Polski</button>
+    <button id="btn-en" onclick="setLang('en')">English</button>
+  </div>
+
+  <!-- ============ PL ============ -->
+  <section class="section-pl">
+
+    <h2>1. Informacje ogólne</h2>
+    <p>Aplikacja mobilna <strong>„Z NIM NIE ROBIĘ"</strong> (dalej: „Aplikacja") jest narzędziem do zarządzania parami, rundami i rotacją zawodników podczas treningów brazylijskiego jiu-jitsu (BJJ), grapplingu i zadaniówek.</p>
+    <p>Administratorem Aplikacji jest jej autor (dalej: „Administrator"). Kontakt: <strong><a href="mailto:drozdz.szymon@gmail.com">drozdz.szymon@gmail.com</a></strong>.</p>
+    <p>Niniejszy dokument opisuje, jakie dane Aplikacja przetwarza, w jakim celu i w jaki sposób są one chronione.</p>
+
+    <h2>2. Jakie dane zbieramy</h2>
+    <p>Aplikacja <strong>nie zbiera, nie przesyła i nie udostępnia</strong> żadnych danych osobowych użytkownika na zewnętrzne serwery.</p>
+    <p>Wszystkie dane wprowadzone przez użytkownika (imiona zawodników, waga, poziom umiejętności, wiek, ustawienia treningu) są przechowywane <strong>wyłącznie lokalnie</strong>, na urządzeniu użytkownika, w pamięci aplikacji (mechanizm <code>AsyncStorage</code> systemu operacyjnego).</p>
+
+    <h2>3. Dane zbierane automatycznie</h2>
+    <p>Aplikacja <strong>nie korzysta</strong> z:</p>
+    <ul>
+      <li>analityki użytkowania (brak Google Analytics, Firebase Analytics itp.),</li>
+      <li>narzędzi śledzących (trackerów, reklamowych identyfikatorów),</li>
+      <li>raportowania awarii zewnętrznymi usługami (brak Crashlytics, Sentry itp.),</li>
+      <li>reklam,</li>
+      <li>zewnętrznych SDK marketingowych.</li>
+    </ul>
+    <p>Aplikacja <strong>nie wymaga</strong> logowania, rejestracji konta ani połączenia z internetem do pracy.</p>
+
+    <h2>4. Uprawnienia systemowe</h2>
+    <p>Aplikacja może żądać następujących uprawnień systemu Android:</p>
+    <table>
+      <tr><th>Uprawnienie</th><th>Cel</th></tr>
+      <tr><td>Dostęp do pamięci aplikacji</td><td>Zapis lokalnej bazy zawodników i ustawień</td></tr>
+      <tr><td>Odtwarzanie dźwięków</td><td>Sygnały gongów i odliczania</td></tr>
+      <tr><td>Wibracje / haptyka</td><td>Feedback dotykowy</td></tr>
+      <tr><td>Utrzymanie ekranu włączonego</td><td>Aby timer nie gasł w trakcie rundy</td></tr>
+    </table>
+    <p>Aplikacja <strong>nie żąda</strong> dostępu do: lokalizacji, kontaktów, aparatu, mikrofonu, zdjęć, SMS-ów ani żadnych innych danych osobowych.</p>
+
+    <h2>5. Pliki cookies i identyfikatory</h2>
+    <p>Wersja mobilna Aplikacji nie używa plików cookies ani identyfikatorów reklamowych.</p>
+    <p>Wersja webowa (znimnierobie.pl) używa wyłącznie lokalnego magazynu przeglądarki (<code>localStorage</code>) do zapisu ustawień — dane te nie opuszczają urządzenia użytkownika.</p>
+
+    <h2>6. Udostępnianie danych osobom trzecim</h2>
+    <p>Administrator <strong>nie udostępnia</strong> żadnych danych osobom trzecim, ponieważ takich danych <strong>nie zbiera</strong>.</p>
+
+    <h2>7. Dzieci</h2>
+    <p>Aplikacja jest przeznaczona dla instruktorów i trenerów BJJ oraz sportów walki. Nie jest kierowana bezpośrednio do dzieci poniżej 13 roku życia. Choć pozwala zarządzać zawodnikami z kategorii KID (dzieci), dane te są wprowadzane przez dorosłego instruktora i pozostają na jego urządzeniu.</p>
+
+    <h2>8. Prawa użytkownika</h2>
+    <p>Ponieważ Administrator nie posiada ani nie przetwarza danych osobowych użytkownika poza jego urządzeniem:</p>
+    <ul>
+      <li>użytkownik ma pełną kontrolę nad swoimi danymi w każdej chwili,</li>
+      <li>dane można w dowolnym momencie usunąć: przez funkcję „Usuń zawodnika" w Aplikacji lub przez odinstalowanie Aplikacji,</li>
+      <li>odinstalowanie Aplikacji powoduje trwałe usunięcie wszystkich lokalnych danych związanych z Aplikacją.</li>
+    </ul>
+
+    <h2>9. Zmiany Polityki Prywatności</h2>
+    <p>Administrator zastrzega sobie prawo do zmian niniejszej polityki. Aktualna wersja będzie zawsze dostępna pod adresem: <strong><a href="https://znimnierobie.pl/privacy">znimnierobie.pl/privacy</a></strong></p>
+
+    <h2>10. Kontakt</h2>
+    <p>W sprawach dotyczących prywatności prosimy o kontakt pod adresem: <strong><a href="mailto:drozdz.szymon@gmail.com">drozdz.szymon@gmail.com</a></strong></p>
+
+  </section>
+
+  <!-- ============ EN ============ -->
+  <section class="section-en">
+
+    <h2>1. General information</h2>
+    <p>The mobile application <strong>"Z NIM NIE ROBIĘ"</strong> (hereinafter: the "App") is a tool for managing pairs, rounds and rotations during Brazilian jiu-jitsu (BJJ), grappling and drill training.</p>
+    <p>The App is administered by its author (hereinafter: the "Administrator"). Contact: <strong><a href="mailto:drozdz.szymon@gmail.com">drozdz.szymon@gmail.com</a></strong>.</p>
+
+    <h2>2. Data collection</h2>
+    <p>The App <strong>does not collect, transmit or share</strong> any personal data of the user with external servers.</p>
+    <p>All data entered by the user (player names, weight, skill level, age, training settings) is stored <strong>exclusively locally</strong>, on the user's device, in the application storage (<code>AsyncStorage</code> mechanism of the operating system).</p>
+
+    <h2>3. Automatically collected data</h2>
+    <p>The App <strong>does not use</strong>:</p>
+    <ul>
+      <li>usage analytics (no Google Analytics, Firebase Analytics, etc.),</li>
+      <li>tracking tools (trackers, advertising identifiers),</li>
+      <li>third-party crash reporting (no Crashlytics, Sentry, etc.),</li>
+      <li>advertisements,</li>
+      <li>third-party marketing SDKs.</li>
+    </ul>
+    <p>The App <strong>does not require</strong> login, account registration or an internet connection to operate.</p>
+
+    <h2>4. System permissions</h2>
+    <p>The App may request the following Android permissions:</p>
+    <table>
+      <tr><th>Permission</th><th>Purpose</th></tr>
+      <tr><td>Application storage access</td><td>Saving the local player database and settings</td></tr>
+      <tr><td>Audio playback</td><td>Gong and countdown sound signals</td></tr>
+      <tr><td>Vibration / haptics</td><td>Tactile feedback</td></tr>
+      <tr><td>Keep screen on</td><td>Prevents the timer from dimming during a round</td></tr>
+    </table>
+    <p>The App <strong>does not request</strong> access to: location, contacts, camera, microphone, photos, SMS, or any other personal data.</p>
+
+    <h2>5. Cookies and identifiers</h2>
+    <p>The mobile version of the App does not use cookies or advertising identifiers.</p>
+    <p>The web version (znimnierobie.pl) uses only the browser's <code>localStorage</code> to save settings — this data never leaves the user's device.</p>
+
+    <h2>6. Sharing with third parties</h2>
+    <p>The Administrator <strong>does not share</strong> any data with third parties, as no such data is collected.</p>
+
+    <h2>7. Children</h2>
+    <p>The App is intended for BJJ and combat sports instructors and coaches. It is not directed at children under the age of 13. Although it allows managing players in the KID category, this data is entered by an adult instructor and remains on their device.</p>
+
+    <h2>8. User rights</h2>
+    <p>Since the Administrator does not own or process the user's personal data outside of the user's device:</p>
+    <ul>
+      <li>the user has full control over their data at any time,</li>
+      <li>data can be deleted at any moment via the "Delete player" function in the App, or by uninstalling the App,</li>
+      <li>uninstalling the App permanently removes all local data associated with it.</li>
+    </ul>
+
+    <h2>9. Changes to this Privacy Policy</h2>
+    <p>The Administrator reserves the right to modify this policy. The current version will always be available at: <strong><a href="https://znimnierobie.pl/privacy">znimnierobie.pl/privacy</a></strong></p>
+
+    <h2>10. Contact</h2>
+    <p>For privacy-related matters, please contact: <strong><a href="mailto:drozdz.szymon@gmail.com">drozdz.szymon@gmail.com</a></strong></p>
+
+  </section>
+
+  <footer>
+    <a href="https://znimnierobie.pl">znimnierobie.pl</a> ·
+    <a href="https://github.com/drozdzszymon/z-nim-nie-robie">GitHub</a> ·
+    <a href="mailto:drozdz.szymon@gmail.com">Kontakt</a>
+  </footer>
+
+</div>
+
+<script>
+  function setLang(lang) {
+    document.body.classList.toggle('en', lang === 'en');
+    document.getElementById('btn-pl').classList.toggle('active', lang === 'pl');
+    document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+    document.documentElement.lang = lang;
+    document.getElementById('title').textContent = lang === 'en' ? 'Privacy Policy' : 'Polityka Prywatności';
+    document.getElementById('meta').textContent = lang === 'en' ? 'Effective date: April 17, 2026' : 'Wersja z dnia 17 kwietnia 2026';
+    document.title = (lang === 'en' ? 'Privacy Policy' : 'Polityka Prywatności') + ' — Z NIM NIE ROBIĘ';
+    try { localStorage.setItem('privacy-lang', lang); } catch(e) {}
+  }
+  try {
+    var saved = localStorage.getItem('privacy-lang');
+    if (saved === 'en') setLang('en');
+    else if (!saved && (navigator.language || '').toLowerCase().indexOf('pl') !== 0) setLang('en');
+  } catch(e) {}
+</script>
+
+</body>
+</html>

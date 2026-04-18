@@ -1,0 +1,10 @@
+# Google Play - Android Developer Verification token
+#
+# Skopiuj ten plik jako `adi-registration.properties` (bez .example)
+# i wklej token z Play Console → "Weryfikacja dewelopera aplikacji
+# na Androida" → "Podpisz i prześlij pakiet APK".
+#
+# Plik z prawdziwym tokenem jest w .gitignore, ponieważ jest unikalnym
+# identyfikatorem konta dewelopera Google Play.
+
+PLACEHOLDER_REPLACE_ME_WITH_TOKEN_FROM_PLAY_CONSOLE
