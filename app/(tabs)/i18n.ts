@@ -204,6 +204,12 @@ const translations = {
   devModeActive: { PL: 'Dev Mode Aktywny', EN: 'Dev Mode Active', PT: 'Dev Mode Ativo' },
   devModeMsg: { PL: 'Wgrano 46 zawodników z bazy testowej.', EN: 'Loaded 46 players from test database.', PT: 'Carregados 46 lutadores do banco de teste.' },
   devMetricsTitle: { PL: 'PARAMETRY URZĄDZENIA', EN: 'DEVICE PARAMETERS', PT: 'PARÂMETROS DO DISPOSITIVO' },
+
+  // ── SKILL LEVELS ──
+  skillBeginner: { PL: 'POCZ.', EN: 'BEG.', PT: 'INIC.' },
+  skillIntermediate: { PL: 'ŚR.ZAAW.', EN: 'INTERM.', PT: 'INTERM.' },
+  skillAdvanced: { PL: 'ZAAW.', EN: 'ADV.', PT: 'AVANÇ.' },
+  skillPro: { PL: 'PRO', EN: 'PRO', PT: 'PRO' },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

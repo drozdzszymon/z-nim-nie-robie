@@ -23,12 +23,19 @@ import {
   TrainingSession,
   TrainingSessionPair,
 } from './types';
-import { t, Language, LANGUAGE_OPTIONS } from './i18n';
+import { t, Language, LANGUAGE_OPTIONS, TranslationKey } from './i18n';
 
 const APP_LOGOS = {
   PL: require('../../assets/logo_pl.png'),
   EN: require('../../assets/logo_en.png'),
   PT: require('../../assets/logo_pt.png'),
+};
+
+const SKILL_KEYS: Record<number, TranslationKey> = {
+  1: 'skillBeginner',
+  2: 'skillIntermediate',
+  3: 'skillAdvanced',
+  4: 'skillPro',
 };
 
 // --- DESIGN SYSTEM ---
@@ -2019,7 +2026,7 @@ export default function App() {
     }
 
     // Dev mode: show all rounds simulation before starting
-    if (isDevMode && trainingMode === 'SPARING') {
+    if (__DEV__ && isDevMode && trainingMode === 'SPARING') {
       simulateAllRounds();
     }
     
@@ -2661,7 +2668,7 @@ export default function App() {
               </View>
               {newType === 'ADULT' && selectedSkillOption ? (
                 <View style={[styles.controlSummaryBadge, styles.controlSummaryBadgeNeutral, isCompactSettingsUI && styles.controlSummaryBadgeCompact]}>
-                  <Text style={[styles.controlSummaryBadgeText, isCompactSettingsUI && styles.controlSummaryBadgeTextCompact]}>{selectedSkillOption.shortLabel}</Text>
+                  <Text style={[styles.controlSummaryBadgeText, isCompactSettingsUI && styles.controlSummaryBadgeTextCompact]}>{SKILL_KEYS[selectedSkillOption.value] ? t(SKILL_KEYS[selectedSkillOption.value], lang) : selectedSkillOption.shortLabel}</Text>
                 </View>
               ) : null}
               <View
@@ -2976,7 +2983,7 @@ export default function App() {
                     onPress={() => setNewSkillLevel(option.value)}
                   >
                     <Text style={[styles.toggleText, isCompactSettingsUI && styles.toggleTextCompact, newSkillLevel === option.value && { color: optionTone.textColor }]}>
-                      {option.shortLabel}
+                      {SKILL_KEYS[option.value] ? t(SKILL_KEYS[option.value], lang) : option.shortLabel}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -3468,7 +3475,7 @@ export default function App() {
             ) : clubDBAvailablePlayers.map((p) => {
               const isOnMat = roster.some(r => r.id === p.id);
               const isSelected = selectedClubDBPlayerIds.includes(p.id);
-              const skillLabel = p.type === 'ADULT' ? getSkillLevelShortLabel(p.skillLevel) : '';
+              const skillLabel = p.type === 'ADULT' && SKILL_KEYS[p.skillLevel] ? t(SKILL_KEYS[p.skillLevel], lang) : '';
 
               return (
                 <TouchableOpacity
@@ -5944,7 +5951,7 @@ export default function App() {
                     <View style={[styles.rosterGrid, isCompactSettingsUI && styles.rosterGridCompact]}>
                         {filteredSortedRoster.map((p) => {
                           const gearTheme = getGearCardTheme(p.gear);
-                          const skillLabel = p.type === 'ADULT' ? getSkillLevelShortLabel(p.skillLevel) : '';
+                          const skillLabel = p.type === 'ADULT' && SKILL_KEYS[p.skillLevel] ? t(SKILL_KEYS[p.skillLevel], lang) : '';
 
                           return (
                             <TouchableOpacity
@@ -6063,7 +6070,7 @@ export default function App() {
                   <View style={[styles.rosterGrid, isCompactSettingsUI && styles.rosterGridCompact]}>
                     {filteredSortedRoster.map((p) => {
                       const gearTheme = getGearCardTheme(p.gear);
-                      const skillLabel = p.type === 'ADULT' ? getSkillLevelShortLabel(p.skillLevel) : '';
+                      const skillLabel = p.type === 'ADULT' && SKILL_KEYS[p.skillLevel] ? t(SKILL_KEYS[p.skillLevel], lang) : '';
 
                       return (
                         <TouchableOpacity
