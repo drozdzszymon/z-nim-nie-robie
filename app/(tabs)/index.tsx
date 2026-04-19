@@ -6,14 +6,20 @@ import type { LayoutChangeEvent } from 'react-native';
 import { Alert, Dimensions, Image, Linking, Modal, PixelRatio, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { applyRoundResult, generateRound } from './engine/matchmaker';
 import {
-    ADULT_SKILL_LEVEL_OPTIONS,
-    AdultSkillLevel,
-    DEFAULT_ADULT_SKILL_LEVEL,
-    getSkillLevelShortLabel,
-    HistoryRecord,
-    Match,
-    RealPlayer,
-    SkillLevel,
+  ADULT_SKILL_LEVEL_OPTIONS,
+  AdultSkillLevel,
+  DEFAULT_ADULT_SKILL_LEVEL,
+  DEFAULT_SPARRING_OPTIONS,
+  Gender,
+  GenderMatchingMode,
+  getSkillLevelShortLabel,
+  HistoryRecord,
+  IntensityProfile,
+  Match,
+  RealPlayer,
+  SkillLevel,
+  SparringOptions,
+  TrainingMode,
 } from './types';
 
 const APP_LOGO = require('../../assets/logo.png');
@@ -69,6 +75,16 @@ const TOGGLE_TONES = {
     borderColor: 'rgba(215, 222, 232, 0.24)',
     textColor: COLORS.textPrimary,
   },
+  male: {
+    backgroundColor: 'rgba(73, 198, 255, 0.14)',
+    borderColor: 'rgba(73, 198, 255, 0.42)',
+    textColor: COLORS.accentCool,
+  },
+  female: {
+    backgroundColor: 'rgba(255, 77, 109, 0.18)',
+    borderColor: 'rgba(255, 77, 109, 0.5)',
+    textColor: COLORS.accentAlert,
+  },
 } as const;
 
 const PLAYERS_DB_KEY = 'BJJ_PLAYERS_DB';
@@ -107,6 +123,7 @@ const normalizeStoredPlayer = (
   migrateLegacyThreeLevelScale = false
 ): RealPlayer => ({
   ...player,
+  gender: player.gender || 'M',
   skillLevel: getNormalizedPlayerSkillLevel(player, migrateLegacyThreeLevelScale),
 });
 
@@ -610,18 +627,18 @@ const TRIAD_PREP_DUO_ROW_WEIGHT = 0.68;
 const DUO_PREP_MIN_CARD_WIDTH = 205;
 
 const getTriadPrepResponsiveMinHeight = (screenHeight: number) =>
-  clamp(60, screenHeight * 0.11, TRIAD_PREP_MIN_CARD_HEIGHT);
+  clamp(42, screenHeight * 0.08, TRIAD_PREP_MIN_CARD_HEIGHT);
 
 const getTriadPrepResponsiveMinWidths = (
   screenWidth: number,
   playerType: 'KID' | 'ADULT',
 ): { safe: number; hard: number } => {
   if (playerType === 'KID') {
-    if (screenWidth >= 1100) return { safe: 230, hard: 210 };
+    if (screenWidth >= 1100) return { safe: 220, hard: 180 };
     if (screenWidth >= 700) return { safe: 210, hard: 190 };
     return { safe: 180, hard: 170 };
   }
-  if (screenWidth >= 1100) return { safe: 230, hard: 210 };
+  if (screenWidth >= 1100) return { safe: 220, hard: 180 };
   if (screenWidth >= 700) return { safe: 210, hard: 190 };
   return { safe: 185, hard: 170 };
 };
@@ -981,15 +998,15 @@ const ResponsiveTriadPrepCard = ({
   const effectiveCardWidth = Math.max(132, cardWidth - 14);
   const effectiveCardHeight = Math.max(72, cardHeight);
   const horizontalPadding = clamp(9, effectiveCardWidth * 0.038, 15);
-  const verticalPadding = clamp(5, effectiveCardHeight * 0.038, 10);
-  const rowGap = clamp(2, effectiveCardHeight * 0.02, 7);
+  const verticalPadding = clamp(3, effectiveCardHeight * 0.032, 10);
+  const rowGap = clamp(1, effectiveCardHeight * 0.018, 7);
   // Ensure fight area gets at least 55% of the remaining card height.
   // Rest area scales down aggressively on very small cards.
   const innerHeight = Math.max(40, effectiveCardHeight - verticalPadding * 2);
-  const maxRestFraction = effectiveCardHeight < 120 ? 0.40 : 0.46;
+  const maxRestFraction = effectiveCardHeight < 100 ? 0.32 : effectiveCardHeight < 120 ? 0.38 : 0.44;
   const maxRestBudget = innerHeight * maxRestFraction;
-  const rawRestHeadingHeight = hasRestArea ? clamp(9, effectiveCardHeight * 0.055, 16) : 0;
-  const rawRestBoxHeight = hasRestArea ? clamp(30, effectiveCardHeight * 0.22, 58) : 0;
+  const rawRestHeadingHeight = hasRestArea ? clamp(8, effectiveCardHeight * 0.05, 16) : 0;
+  const rawRestBoxHeight = hasRestArea ? clamp(24, effectiveCardHeight * 0.20, 58) : 0;
   const rawRestTotal = rawRestHeadingHeight + rawRestBoxHeight + rowGap * 2;
   const restScale = hasRestArea && rawRestTotal > maxRestBudget ? maxRestBudget / rawRestTotal : 1;
   const restHeadingHeight = hasRestArea ? Math.round(rawRestHeadingHeight * restScale) : 0;
@@ -1012,8 +1029,8 @@ const ResponsiveTriadPrepCard = ({
         : clamp(34, contentWidth * 0.135, 50))
     : 0;
   const nameClusterGap = showRoles ? (isDuoCard ? 3 : 5) : 0;
-  const fighterNameWidth = Math.max(68, contentWidth - rolePillWidth - (showRoles ? (isDuoCard ? 8 : 12) : 0));
-  const restNameWidth = Math.max(76, contentWidth - rolePillWidth - (showRoles ? 12 : 0));
+  const fighterNameWidth = Math.max(68, contentWidth - rolePillWidth * 2 - (showRoles ? (isDuoCard ? 8 : 12) : 0));
+  const restNameWidth = Math.max(60, contentWidth - rolePillWidth * 2 - (showRoles ? 12 : 0));
   const roleLineFont = showRoles
     ? clamp(10, Math.min(fighterRowHeight * 0.34, rolePillWidth * 0.28), 14)
     : 0;
@@ -1025,10 +1042,10 @@ const ResponsiveTriadPrepCard = ({
     fighterNameWidth,
     fighterNameHeight,
     name.length,
-    15,
+    13,
     fighterMaxFont,
     0.76,
-    0.92,
+    0.78,
   );
   const webNoWrapText = Platform.OS === 'web'
     ? ({ whiteSpace: 'nowrap', wordBreak: 'keep-all', overflowWrap: 'normal' } as any)
@@ -1041,14 +1058,14 @@ const ResponsiveTriadPrepCard = ({
   // restBox has paddingVertical:2 → inner height = restBoxHeight - 4
   const restNameHeight = Math.max(20, restBoxHeight - 4);
   const restFont = clamp(
-    13,
+    10,
     getFittedFontSize(
       restNameWidth,
       restNameHeight,
       restName?.length ?? 0,
-      13,
+      10,
       30,
-      0.60,
+      0.62,
       0.88,
     ),
     30,
@@ -1088,7 +1105,7 @@ const ResponsiveTriadPrepCard = ({
     const fighterNameFont = getFighterNameFont(name);
 
     return (
-      <View style={[styles.triadPrepFightRow, { minHeight: fighterRowHeight }]}>
+      <View style={[styles.triadPrepFightRow, { height: fighterRowHeight, overflow: 'hidden' as const }]}>
         {showRoles && renderRolePill(role, roleColor, roleLineFont)}
         <Text
           style={[
@@ -1098,9 +1115,11 @@ const ResponsiveTriadPrepCard = ({
               flex: 1,
               minWidth: 0,
               fontSize: fighterNameFont,
-              lineHeight: Math.round(fighterNameFont * 1.04),
+              lineHeight: Math.min(fighterRowHeight, Math.round(fighterNameFont * 1.18)),
               color: nameColor,
-            },
+              includeFontPadding: false,
+              textAlignVertical: 'center',
+            } as any,
           ]}
           adjustsFontSizeToFit
           minimumFontScale={0.05}
@@ -1158,10 +1177,14 @@ const ResponsiveTriadPrepCard = ({
                   flex: 1,
                   minWidth: 0,
                   fontSize: restFont,
-                  lineHeight: Math.round(restFont * 1.08),
+                  lineHeight: Math.round(restFont * 1.18),
                   color: effectiveRestNameColor,
-                },
+                  includeFontPadding: false,
+                  textAlignVertical: 'center',
+                } as any,
               ]}
+              adjustsFontSizeToFit
+              minimumFontScale={0.4}
               numberOfLines={1}
               ellipsizeMode="clip"
             >
@@ -1245,8 +1268,9 @@ export default function App() {
   const [phase, setPhase] = useState('PREP'); 
   const [currentRound, setCurrentRound] = useState(1); 
   
-  const [trainingMode, setTrainingMode] = useState<'SPARING' | 'ZADANIOWKI'>('SPARING');
+  const [trainingMode, setTrainingMode] = useState<TrainingMode>('SPARING');
   const [zadaniowkiType, setZadaniowkiType] = useState<'TRÓJKI' | 'DWÓJKI'>('TRÓJKI');
+  const [sparringOptions, setSparringOptions] = useState<SparringOptions>({ ...DEFAULT_SPARRING_OPTIONS });
   
   const [zadaniowkiGroups, setZadaniowkiGroups] = useState<RealPlayer[][]>([]);
   const [currentStep, setCurrentStep] = useState(1);
@@ -1258,6 +1282,7 @@ export default function App() {
   const [newWeight, setNewWeight] = useState('');
   const [newType, setNewType] = useState<'ADULT'|'KID'>('ADULT'); 
   const [newGear, setNewGear] = useState<'GI'|'NO'>('NO'); 
+  const [newGender, setNewGender] = useState<Gender>('M');
   const [newSkillLevel, setNewSkillLevel] = useState<AdultSkillLevel>(DEFAULT_ADULT_SKILL_LEVEL); 
   
   const [savedPlayersDB, setSavedPlayersDB] = useState<RealPlayer[]>([]);
@@ -1279,22 +1304,64 @@ export default function App() {
   const handleSetRestTime = (v: string) => setRestTime(v.replace(/[^0-9]/g, ''));
   const handleSetRoundsTotal = (v: string) => setRoundsTotal(v.replace(/[^0-9]/g, ''));
 
+  const calcBestWeightThreshold = (players: RealPlayer[]): number => {
+    if (players.length < 4) return 80;
+    const weights = players.map(p => p.weight).sort((a, b) => a - b);
+    let bestThreshold = weights[Math.floor(weights.length / 2)];
+    let bestDiff = Infinity;
+    for (let i = 0; i < weights.length - 1; i++) {
+      const threshold = Math.floor((weights[i] + weights[i + 1]) / 2);
+      const countA = weights.filter(w => w <= threshold).length;
+      const countB = weights.filter(w => w > threshold).length;
+      if (countA < 2 || countB < 2) continue;
+      const pairsA = Math.floor(countA / 2);
+      const pairsB = Math.floor(countB / 2);
+      const diff = Math.abs(pairsA - pairsB);
+      if (diff < bestDiff || (diff === bestDiff && Math.abs(countA - countB) < Math.abs(
+        weights.filter(w => w <= bestThreshold).length - weights.filter(w => w > bestThreshold).length
+      ))) {
+        bestDiff = diff;
+        bestThreshold = threshold;
+      }
+    }
+    return bestThreshold;
+  };
+
   const [activePlayers, setActivePlayers] = useState<RealPlayer[]>([]);
   const [currentMatches, setCurrentMatches] = useState<Match[]>([]);
   const [currentResting, setCurrentResting] = useState<RealPlayer[]>([]);
+  
+  // Weight division state
+  const [currentWeightGroup, setCurrentWeightGroup] = useState<'A' | 'B'>('A');
+  const [weightGroupMatchesA, setWeightGroupMatchesA] = useState<Match[]>([]);
+  const [weightGroupMatchesB, setWeightGroupMatchesB] = useState<Match[]>([]);
+  const [weightGroupRestingA, setWeightGroupRestingA] = useState<RealPlayer[]>([]);
+  const [weightGroupRestingB, setWeightGroupRestingB] = useState<RealPlayer[]>([]);
+  
   const [isDropoutModalVisible, setIsDropoutModalVisible] = useState(false);
   const [selectedDropoutPlayerIds, setSelectedDropoutPlayerIds] = useState<string[]>([]);
+
+  const [isClubDBModalVisible, setIsClubDBModalVisible] = useState(false);
+  const [selectedClubDBPlayerIds, setSelectedClubDBPlayerIds] = useState<string[]>([]);
+  const [clubDBSearchText, setClubDBSearchText] = useState('');
 
   const [noRestPlayers, setNoRestPlayers] = useState<string[]>([]);
   const [isVipModalVisible, setIsVipModalVisible] = useState(false);
   const [isAboutModalVisible, setIsAboutModalVisible] = useState(false);
   const [isDevMetricsVisible, setIsDevMetricsVisible] = useState(false);
   const [devMetricsSections, setDevMetricsSections] = useState<{ title: string; lines: string[] }[]>([]);
+  const [isDevMode, setIsDevMode] = useState(false);
+  const [activeInfoTooltip, setActiveInfoTooltip] = useState<string | null>(null);
 
   const historyRef = useRef<Map<string, HistoryRecord>>(new Map());
   const currentMatchesRef = useRef<Match[]>([]);
   const currentRestingRef = useRef<RealPlayer[]>([]);
   const activePlayersRef = useRef<RealPlayer[]>([]);
+  const sparringOptionsRef = useRef<SparringOptions>({ ...DEFAULT_SPARRING_OPTIONS });
+  const prioritySliderWidthRef = useRef(0);
+  const currentWeightGroupRef = useRef<'A' | 'B'>('A');
+  const weightGroupMatchesARef = useRef<Match[]>([]);
+  const weightGroupMatchesBRef = useRef<Match[]>([]);
   const noRestPlayersRef = useRef<string[]>([]);
   const soundsRef = useRef<any>({});
   const audioDuckHoldRef = useRef<Audio.Sound | null>(null);
@@ -1302,6 +1369,7 @@ export default function App() {
   const dropoutShouldResumeRef = useRef(false);
   
   const devModeClickCount = useRef(0);
+  const savedTimerValuesRef = useRef({ roundTime: '6', prepTime: '60', restTime: '75', roundsTotal: '5' });
 
   const updateCurrentResting = useCallback((resting: RealPlayer[]) => {
     currentRestingRef.current = resting;
@@ -1311,6 +1379,10 @@ export default function App() {
   useEffect(() => {
     noRestPlayersRef.current = noRestPlayers;
   }, [noRestPlayers]);
+
+  useEffect(() => {
+    sparringOptionsRef.current = sparringOptions;
+  }, [sparringOptions]);
 
   const showInfo = (title: string, message?: string) => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -1517,6 +1589,7 @@ export default function App() {
     setNewWeight(player.weight.toString());
     setNewType(player.type);
     setNewGear(player.gear);
+    setNewGender(player.gender || 'M');
     const selectedSkillLevel = getNormalizedPlayerSkillLevel(player);
     if (selectedSkillLevel !== 0) setNewSkillLevel(selectedSkillLevel);
     setShowSuggestions(false);
@@ -1527,6 +1600,7 @@ export default function App() {
     setNewWeight(p.weight.toString());
     setNewType(p.type);
     setNewGear(p.gear);
+    setNewGender(p.gender || 'M');
     const selectedSkillLevel = getNormalizedPlayerSkillLevel(p);
     if (selectedSkillLevel !== 0) setNewSkillLevel(selectedSkillLevel);
     setEditingPlayerId(p.id);
@@ -1542,6 +1616,7 @@ export default function App() {
         id: newName.trim().toUpperCase(),
         type: newType,
         gear: newGear,
+        gender: newGender,
         weight: parseFloat(newWeight),
         skillLevel: newType === 'ADULT' ? newSkillLevel : 0,
         restDebt: 0,
@@ -1585,6 +1660,26 @@ export default function App() {
     setShowSuggestions(false);
   };
 
+  const handleOpenClubDB = () => {
+    setSelectedClubDBPlayerIds([]);
+    setClubDBSearchText('');
+    setIsClubDBModalVisible(true);
+  };
+
+  const handleConfirmClubDBSelection = () => {
+    if (selectedClubDBPlayerIds.length === 0) return;
+    const playersToAdd = savedPlayersDB
+      .filter(p => selectedClubDBPlayerIds.includes(p.id))
+      .filter(p => !roster.find(r => r.id === p.id))
+      .map(p => ({ ...p, restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 }));
+    if (playersToAdd.length > 0) {
+      setRoster(prev => [...prev, ...playersToAdd]);
+    }
+    setIsClubDBModalVisible(false);
+    setSelectedClubDBPlayerIds([]);
+    setClubDBSearchText('');
+  };
+
   const handleRemoveFromRoster = (id: string) => {
     const player = roster.find(p => p.id === id);
     const playerName = player ? player.id : id;
@@ -1613,7 +1708,58 @@ export default function App() {
   };
 
   const handleSecretDevMode = () => {
-    // Dev mode: load test roster (removed from public repo)
+    const testPlayers: RealPlayer[] = [
+        { id: "GOSIA", type: "ADULT", weight: 66, skillLevel: 4, gear: "NO", gender: "F", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "HANIA", type: "ADULT", weight: 51, skillLevel: 1, gear: "NO", gender: "F", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "SITO", type: "ADULT", weight: 98, skillLevel: 4, gear: "GI", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "ROMEK", type: "ADULT", weight: 75, skillLevel: 2, gear: "GI", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "TOMEK", type: "ADULT", weight: 60, skillLevel: 3, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "WERKA", type: "ADULT", weight: 69, skillLevel: 3, gear: "NO", gender: "F", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "SZYMON", type: "ADULT", weight: 92, skillLevel: 4, gear: "GI", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "SZYMONEK", type: "ADULT", weight: 67, skillLevel: 4, gear: "GI", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "MATEUSZ", type: "ADULT", weight: 50, skillLevel: 2, gear: "GI", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "LEGNICA", type: "ADULT", weight: 100, skillLevel: 4, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "KOPALNIAK", type: "ADULT", weight: 92, skillLevel: 4, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "WIKTOR", type: "ADULT", weight: 82, skillLevel: 1, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "LOCZEK", type: "KID", weight: 38, skillLevel: 0, gear: "GI", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "JOZEK", type: "KID", weight: 50, skillLevel: 0, gear: "GI", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "MARCEL", type: "ADULT", weight: 55, skillLevel: 3, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "ANDRZEJ", type: "ADULT", weight: 70, skillLevel: 2, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "KEDZIOLEK", type: "KID", weight: 43, skillLevel: 0, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "DZIADEK", type: "ADULT", weight: 92, skillLevel: 4, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "GACEK", type: "KID", weight: 47, skillLevel: 0, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "PEJA", type: "ADULT", weight: 66, skillLevel: 3, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "NAZAR", type: "ADULT", weight: 83, skillLevel: 1, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "OLEK", type: "ADULT", weight: 65, skillLevel: 1, gear: "GI", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "WOJTEK", type: "ADULT", weight: 98, skillLevel: 4, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "MAX", type: "KID", weight: 48, skillLevel: 0, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "FABIAN", type: "KID", weight: 46, skillLevel: 0, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "KACPER", type: "KID", weight: 63, skillLevel: 0, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "BARTEK", type: "ADULT", weight: 78, skillLevel: 3, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "KAMIL", type: "ADULT", weight: 82, skillLevel: 1, gear: "GI", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "DAWID", type: "ADULT", weight: 76, skillLevel: 4, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "RAFAL", type: "ADULT", weight: 85, skillLevel: 2, gear: "GI", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "LUKASZ", type: "ADULT", weight: 74, skillLevel: 3, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "PATRYK", type: "ADULT", weight: 88, skillLevel: 1, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "JAKUB", type: "ADULT", weight: 79, skillLevel: 4, gear: "GI", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "MICHAL", type: "ADULT", weight: 83, skillLevel: 2, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "ADAM", type: "ADULT", weight: 77, skillLevel: 3, gear: "GI", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "KRZYSZTOF", type: "ADULT", weight: 86, skillLevel: 1, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "DOMINIK", type: "ADULT", weight: 73, skillLevel: 4, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "MACIEK", type: "ADULT", weight: 81, skillLevel: 2, gear: "GI", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "FILIP", type: "ADULT", weight: 84, skillLevel: 3, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "HUBERT", type: "ADULT", weight: 75, skillLevel: 1, gear: "GI", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "IGOR", type: "ADULT", weight: 87, skillLevel: 4, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "NORBERT", type: "ADULT", weight: 80, skillLevel: 2, gear: "GI", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "OSKAR", type: "ADULT", weight: 72, skillLevel: 3, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "PAWEL", type: "ADULT", weight: 89, skillLevel: 1, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "ROBERT", type: "ADULT", weight: 76, skillLevel: 4, gear: "GI", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 },
+        { id: "SEBASTIAN", type: "ADULT", weight: 82, skillLevel: 2, gear: "NO", gender: "M", restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 }
+    ];
+
+    setRoster(testPlayers);
+    setIsDevMode(true);
+    showInfo("Dev Mode Aktywny", "Wgrano 46 zawodników z bazy testowej.");
   };
 
   const handleDevModeTrigger = () => {
@@ -1737,17 +1883,76 @@ export default function App() {
     else setNoRestPlayers([...noRestPlayers, playerId]);
   };
 
+  const simulateAllRounds = () => {
+    const rds = parseInt(roundsTotal, 10) || 5;
+    const simHistory = new Map<string, HistoryRecord>();
+    let simPlayers = roster.map(p => ({ ...p, restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 }));
+    const textParts: string[] = [];
+
+    // Lista uczestników
+    textParts.push(`=== UCZESTNICY (${simPlayers.length}) ===`);
+    const kids = simPlayers.filter(p => p.type === 'KID');
+    const adults = simPlayers.filter(p => p.type === 'ADULT');
+    if (kids.length > 0) {
+      textParts.push(`KID (${kids.length}):`);
+      kids.forEach(p => textParts.push(`  ${p.id} - ${p.weight}kg ${p.gear} ${(p.gender || 'M') === 'F' ? '♀' : '♂'}`));
+    }
+    if (adults.length > 0) {
+      textParts.push(`ADULT (${adults.length}):`);
+      adults.forEach(p => textParts.push(`  ${p.id} - ${p.weight}kg ${getSkillLevelShortLabel(p.skillLevel)} ${p.gear} ${(p.gender || 'M') === 'F' ? '♀' : '♂'}`));
+    }
+    textParts.push('');
+
+    for (let r = 1; r <= rds; r++) {
+      const { matches, resting } = generateRound(simPlayers, simHistory, r, noRestPlayers, sparringOptions, rds);
+      textParts.push(`=== RUNDA ${r} ===`);
+      matches.forEach((m) => {
+        const wDiff = Math.abs(m.p1.weight - m.p2.weight);
+        const sL1 = getSkillLevelShortLabel(m.p1.skillLevel);
+        const sL2 = getSkillLevelShortLabel(m.p2.skillLevel);
+        textParts.push(`${m.p1.id} (${m.p1.weight}kg ${sL1 || 'KID'}) vs ${m.p2.id} (${m.p2.weight}kg ${sL2 || 'KID'}) Δ${wDiff}kg`);
+      });
+      if (resting.length > 0) {
+        textParts.push(`PAUZA: ${resting.map(r2 => r2.id).join(', ')}`);
+      }
+      textParts.push('');
+      const updated = applyRoundResult(matches, resting, r, simHistory, simPlayers);
+      simPlayers = updated;
+    }
+
+    const fullText = textParts.join('\n');
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(fullText).then(() => {
+        showInfo('Skopiowano!', `Symulacja ${rds} rund skopiowana do schowka.`);
+      }).catch(() => {
+        showInfo('Symulacja rund', fullText);
+      });
+    } else {
+      showInfo('Symulacja rund', fullText);
+    }
+  };
+
   const handleStartTraining = async () => {
     if (roster.length < 2) return showInfo("Musisz dodać przynajmniej dwóch zawodników!");
     
     const rt = parseFloat(roundTime);
-    const pt = parseInt(prepTime, 10);
-    const rst = parseInt(restTime, 10);
     const rds = parseInt(roundsTotal, 10);
     if (!rt || rt <= 0) return showInfo("Czas rundy musi być większy od 0!");
-    if (!pt || pt <= 0) return showInfo("Czas przygotowania musi być większy od 0!");
-    if (!rst || rst <= 0) return showInfo("Czas przerwy musi być większy od 0!");
     if (!rds || rds <= 0) return showInfo("Liczba rund musi być większa od 0!");
+    
+    const isWeightDivision = trainingMode === 'SPARING' && sparringOptions.weightDivisionEnabled;
+
+    if (!isWeightDivision) {
+      const pt = parseInt(prepTime, 10);
+      const rst = parseInt(restTime, 10);
+      if (!pt || pt <= 0) return showInfo("Czas przygotowania musi być większy od 0!");
+      if (!rst || rst <= 0) return showInfo("Czas przerwy musi być większy od 0!");
+    }
+
+    // Dev mode: show all rounds simulation before starting
+    if (isDevMode && trainingMode === 'SPARING') {
+      simulateAllRounds();
+    }
     
     await initAudio();
 
@@ -1762,7 +1967,7 @@ export default function App() {
             setZadaniowkiGroups(buildTriadZadaniowkiGroups(freshRoster));
         } else {
             historyRef.current.clear(); 
-            const { matches, resting } = generateRound(freshRoster, historyRef.current, 1, noRestPlayers);
+            const { matches, resting } = generateRound(freshRoster, historyRef.current, 1, noRestPlayers, sparringOptions, parseInt(roundsTotal));
             setCurrentMatches(matches);
             currentMatchesRef.current = matches;
             updateCurrentResting(resting);
@@ -1771,6 +1976,48 @@ export default function App() {
         setPhase('PREP');
         setTimeLeft(Math.floor(parseFloat(prepTime)));
         setIsActive(true);
+    } else if (isWeightDivision) {
+        // Weight division mode: split roster, generate matches for both groups
+        historyRef.current.clear();
+        const threshold = sparringOptions.weightDivisionThreshold;
+        const groupA = freshRoster.filter(p => p.weight <= threshold);
+        const groupB = freshRoster.filter(p => p.weight > threshold);
+
+        if (groupA.length < 2 || groupB.length < 2) {
+            return showInfo("Podział wagowy wymaga min. 2 zawodników w każdej grupie wagowej!");
+        }
+
+        const resultA = generateRound(groupA, historyRef.current, 1, noRestPlayers, sparringOptions, rds);
+        const resultB = generateRound(groupB, historyRef.current, 1, noRestPlayers, sparringOptions, rds);
+
+        setWeightGroupMatchesA(resultA.matches);
+        setWeightGroupMatchesB(resultB.matches);
+        setWeightGroupRestingA(resultA.resting);
+        setWeightGroupRestingB(resultB.resting);
+        weightGroupMatchesARef.current = resultA.matches;
+        weightGroupMatchesBRef.current = resultB.matches;
+
+        setCurrentWeightGroup('A');
+        currentWeightGroupRef.current = 'A';
+        setCurrentMatches(resultA.matches);
+        currentMatchesRef.current = resultA.matches;
+        updateCurrentResting(resultA.resting);
+
+        setCurrentScreen('timer');
+        setPhase('PREP');
+        setTimeLeft(20); // Fixed 20s prep for weight division
+        setIsActive(true);
+    } else if (trainingMode === 'DRILLE') {
+        // Drille: pary jak w zadaniówkach dwójkowych, ale się nie zmieniają
+        historyRef.current.clear();
+        const { matches, resting } = generateRound(freshRoster, historyRef.current, 1, noRestPlayers, sparringOptions, parseInt(roundsTotal));
+        setCurrentMatches(matches);
+        currentMatchesRef.current = matches;
+        updateCurrentResting(resting);
+        setCurrentScreen('zadaniowki_timer');
+        setPhase('PREP');
+        setTimeLeft(60); // 60s prep for drille
+        setIsActive(true);
     } else {
         historyRef.current.clear(); 
         setCurrentScreen('timer');
@@ -1778,7 +2025,7 @@ export default function App() {
         setTimeLeft(Math.floor(parseFloat(prepTime))); 
         setIsActive(true);
 
-        const { matches, resting } = generateRound(freshRoster, historyRef.current, 1, noRestPlayers);
+        const { matches, resting } = generateRound(freshRoster, historyRef.current, 1, noRestPlayers, sparringOptions, parseInt(roundsTotal));
         setCurrentMatches(matches);
         currentMatchesRef.current = matches;
         updateCurrentResting(resting);
@@ -1819,14 +2066,46 @@ export default function App() {
         if (zadaniowkiType === 'TRÓJKI') {
             setZadaniowkiGroups(buildTriadZadaniowkiGroups(updatedPlayers));
         } else {
-            const { matches, resting } = generateRound(updatedPlayers, historyRef.current, currentRound, noRestPlayers);
+            const { matches, resting } = generateRound(updatedPlayers, historyRef.current, currentRound, noRestPlayers, sparringOptionsRef.current, parseInt(roundsTotal));
             setCurrentMatches(matches);
             currentMatchesRef.current = matches;
             updateCurrentResting(resting);
         }
+    } else if (trainingMode === 'DRILLE') {
+        // Drille: regenerate pairs (they stay fixed for remaining rounds)
+        const { matches, resting } = generateRound(updatedPlayers, historyRef.current, currentRound, noRestPlayers, sparringOptionsRef.current, parseInt(roundsTotal));
+        setCurrentMatches(matches);
+        currentMatchesRef.current = matches;
+        updateCurrentResting(resting);
+    } else if (sparringOptionsRef.current.weightDivisionEnabled) {
+        // Weight division: regenerate both groups
+        const threshold = sparringOptionsRef.current.weightDivisionThreshold;
+        const groupAPlayers = updatedPlayers.filter(p => p.weight <= threshold);
+        const groupBPlayers = updatedPlayers.filter(p => p.weight > threshold);
+        const rds = parseInt(roundsTotal);
+
+        const resultA = groupAPlayers.length >= 2
+          ? generateRound(groupAPlayers, historyRef.current, currentRound, noRestPlayers, sparringOptionsRef.current, rds)
+          : { matches: [] as Match[], resting: groupAPlayers };
+        const resultB = groupBPlayers.length >= 2
+          ? generateRound(groupBPlayers, historyRef.current, currentRound, noRestPlayers, sparringOptionsRef.current, rds)
+          : { matches: [] as Match[], resting: groupBPlayers };
+
+        setWeightGroupMatchesA(resultA.matches);
+        setWeightGroupMatchesB(resultB.matches);
+        setWeightGroupRestingA(resultA.resting);
+        setWeightGroupRestingB(resultB.resting);
+        weightGroupMatchesARef.current = resultA.matches;
+        weightGroupMatchesBRef.current = resultB.matches;
+
+        const curGroup = currentWeightGroupRef.current;
+        const curResult = curGroup === 'A' ? resultA : resultB;
+        setCurrentMatches(curResult.matches);
+        currentMatchesRef.current = curResult.matches;
+        updateCurrentResting(curResult.resting);
     } else {
         const targetRoundNum = phase === 'PREP' ? currentRound : currentRound + 1;
-        const { matches, resting } = generateRound(updatedPlayers, historyRef.current, targetRoundNum, noRestPlayers);
+        const { matches, resting } = generateRound(updatedPlayers, historyRef.current, targetRoundNum, noRestPlayers, sparringOptionsRef.current, parseInt(roundsTotal));
         setCurrentMatches(matches);
         currentMatchesRef.current = matches;
         updateCurrentResting(resting);
@@ -1891,13 +2170,103 @@ export default function App() {
                           setTimeLeft(Math.floor(parseFloat(prepTime))); 
                           setCurrentRound(prev => prev + 1);
                           setCurrentStep(1);
-                          const { matches, resting } = generateRound(activePlayersRef.current, historyRef.current, currentRound + 1, noRestPlayersRef.current);
+                          const { matches, resting } = generateRound(activePlayersRef.current, historyRef.current, currentRound + 1, noRestPlayersRef.current, sparringOptionsRef.current, parseInt(roundsTotal));
                           setCurrentMatches(matches); currentMatchesRef.current = matches; updateCurrentResting(resting);
                       } else {
                           playSound('finish'); setIsActive(false); setCurrentScreen('finished'); 
                       }
                   }
               }
+          }
+      } else if (trainingMode === 'DRILLE') {
+          // Drille: PREP(60s) → WORK → REST → WORK → REST → ... (pairs don't change, roles A↔B swap)
+          if (phase === 'PREP') {
+              playSound('start'); setPhase('WORK'); setTimeLeft(Math.floor(parseFloat(roundTime) * 60));
+          } else if (phase === 'WORK') {
+              if (currentRound < parseInt(roundsTotal)) {
+                  playSound('end'); setPhase('REST'); setTimeLeft(Math.floor(parseFloat(restTime)));
+              } else {
+                  playSound('finish'); setIsActive(false); setCurrentScreen('finished');
+              }
+          } else if (phase === 'REST') {
+              playSound('start'); setPhase('WORK');
+              setCurrentRound(prev => prev + 1);
+              setCurrentStep(prev => prev === 1 ? 2 : 1); // swap A↔B roles
+              setTimeLeft(Math.floor(parseFloat(roundTime) * 60));
+          }
+      } else if (sparringOptionsRef.current.weightDivisionEnabled) {
+          // Weight division mode: PREP(20s) → WORK_A → PREP(20s) → WORK_B → ...
+          const threshold = sparringOptionsRef.current.weightDivisionThreshold;
+          const rds = parseInt(roundsTotal);
+          const totalWeightRounds = rds * 2; // each configured round = 2 actual rounds (A+B)
+          
+          if (phase === 'PREP') {
+            playSound('start');
+            setPhase('WORK');
+            setTimeLeft(Math.floor(parseFloat(roundTime) * 60));
+            // Apply history from previous round
+            const curGroup = currentWeightGroupRef.current;
+            const curMatches = curGroup === 'A' ? weightGroupMatchesARef.current : weightGroupMatchesBRef.current;
+            setCurrentMatches(curMatches);
+            currentMatchesRef.current = curMatches;
+          } else if (phase === 'WORK') {
+            const curGroup = currentWeightGroupRef.current;
+            // Apply round result for current group
+            const curMatches = curGroup === 'A' ? weightGroupMatchesARef.current : weightGroupMatchesBRef.current;
+            const curResting = curGroup === 'A' ? weightGroupRestingA : weightGroupRestingB;
+            const updated = applyRoundResult(curMatches, curResting, currentRound, historyRef.current, activePlayersRef.current);
+            activePlayersRef.current = updated;
+            setActivePlayers(updated);
+
+            // Calculate actual round number (each A+B = 1 configured round)
+            const actualRoundIndex = (currentRound - 1) * 2 + (curGroup === 'A' ? 1 : 2);
+            
+            if (actualRoundIndex >= totalWeightRounds) {
+              // All rounds done
+              playSound('finish');
+              setIsActive(false);
+              setCurrentScreen('finished');
+            } else {
+              // Switch to next group or next round
+              playSound('end');
+              setPhase('PREP');
+              setTimeLeft(20); // Fixed 20s transition
+
+              if (curGroup === 'A') {
+                // Switch to group B
+                const nextGroup = 'B';
+                setCurrentWeightGroup(nextGroup);
+                currentWeightGroupRef.current = nextGroup;
+                setCurrentMatches(weightGroupMatchesBRef.current);
+                currentMatchesRef.current = weightGroupMatchesBRef.current;
+                updateCurrentResting(weightGroupRestingB);
+              } else {
+                // Switch to group A + advance round + generate new matches
+                const nextRound = currentRound + 1;
+                setCurrentRound(nextRound);
+                const nextGroup = 'A';
+                setCurrentWeightGroup(nextGroup);
+                currentWeightGroupRef.current = nextGroup;
+
+                const allPlayers = activePlayersRef.current;
+                const groupAPlayers = allPlayers.filter(p => p.weight <= threshold);
+                const groupBPlayers = allPlayers.filter(p => p.weight > threshold);
+
+                const resultA = generateRound(groupAPlayers, historyRef.current, nextRound, noRestPlayersRef.current, sparringOptionsRef.current, rds);
+                const resultB = generateRound(groupBPlayers, historyRef.current, nextRound, noRestPlayersRef.current, sparringOptionsRef.current, rds);
+
+                setWeightGroupMatchesA(resultA.matches);
+                setWeightGroupMatchesB(resultB.matches);
+                setWeightGroupRestingA(resultA.resting);
+                setWeightGroupRestingB(resultB.resting);
+                weightGroupMatchesARef.current = resultA.matches;
+                weightGroupMatchesBRef.current = resultB.matches;
+
+                setCurrentMatches(resultA.matches);
+                currentMatchesRef.current = resultA.matches;
+                updateCurrentResting(resultA.resting);
+              }
+            }
           }
       } else { 
           if (phase === 'PREP') {
@@ -1908,7 +2277,7 @@ export default function App() {
           } else if (phase === 'WORK') {
             if (currentRound < parseInt(roundsTotal)) {
               playSound('end'); setPhase('REST'); setTimeLeft(Math.floor(parseFloat(restTime))); 
-              const { matches, resting } = generateRound(activePlayersRef.current, historyRef.current, currentRound + 1, noRestPlayersRef.current);
+              const { matches, resting } = generateRound(activePlayersRef.current, historyRef.current, currentRound + 1, noRestPlayersRef.current, sparringOptionsRef.current, parseInt(roundsTotal));
               setCurrentMatches(matches); currentMatchesRef.current = matches; updateCurrentResting(resting);
             } else {
               playSound('finish'); 
@@ -1925,7 +2294,7 @@ export default function App() {
       }
     }
     return () => { if (interval) clearInterval(interval); };
-  }, [isActive, timeLeft, phase, currentRound, roundsTotal, roundTime, restTime, prepTime, trainingMode, zadaniowkiType, currentStep, playSound, updateCurrentResting]);
+  }, [isActive, timeLeft, phase, currentRound, roundsTotal, roundTime, restTime, prepTime, trainingMode, zadaniowkiType, currentStep, currentWeightGroup, weightGroupRestingA, weightGroupRestingB, playSound, updateCurrentResting]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -2065,9 +2434,27 @@ export default function App() {
   const startTrainingLabel =
     trainingMode === 'SPARING'
       ? 'START SPARINGÓW'
-      : zadaniowkiType === 'TRÓJKI'
-        ? 'START ZADANIÓWKI W TRÓJKACH'
-        : 'START ZADANIÓWKI W PARACH';
+      : trainingMode === 'ZADANIOWKI'
+        ? (zadaniowkiType === 'TRÓJKI'
+          ? 'START ZADANIÓWKI W TRÓJKACH'
+          : 'START ZADANIÓWKI W PARACH')
+        : 'START DRILLI';
+  const topBarWatermarkLabel =
+    trainingMode === 'SPARING' ? 'SPARINGI'
+    : trainingMode === 'ZADANIOWKI' ? 'ZADANIÓWKI'
+    : 'DRILLE';
+  const topBarWatermark = (
+    <View style={{ position: 'absolute', left: 0, width: screenWidth, height: topBarMetrics.estimatedHeight, justifyContent: 'center', alignItems: 'center', pointerEvents: 'none', zIndex: 0 } as any}>
+      <Text style={{
+        fontSize: topBarMetrics.estimatedHeight * 0.55,
+        fontWeight: '900', color: COLORS.textPrimary, opacity: 0.04,
+        letterSpacing: 8,
+        textAlign: 'center',
+      }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
+        {topBarWatermarkLabel}
+      </Text>
+    </View>
+  );
   const sortedDropoutPlayers = [...activePlayers].sort((a, b) =>
     a.id.localeCompare(b.id, 'pl', { sensitivity: 'base' })
   );
@@ -2193,9 +2580,23 @@ export default function App() {
                   <Text style={[styles.controlSummaryBadgeText, isCompactSettingsUI && styles.controlSummaryBadgeTextCompact]}>{selectedSkillOption.shortLabel}</Text>
                 </View>
               ) : null}
+              <View
+                style={[
+                  styles.controlSummaryBadge,
+                  isCompactSettingsUI && styles.controlSummaryBadgeCompact,
+                  {
+                    backgroundColor: newGender === 'M' ? TOGGLE_TONES.male.backgroundColor : TOGGLE_TONES.female.backgroundColor,
+                    borderColor: newGender === 'M' ? TOGGLE_TONES.male.borderColor : TOGGLE_TONES.female.borderColor,
+                  },
+                ]}
+              >
+                <Text style={[styles.controlSummaryBadgeText, isCompactSettingsUI && styles.controlSummaryBadgeTextCompact, { color: newGender === 'M' ? TOGGLE_TONES.male.textColor : TOGGLE_TONES.female.textColor }]}>
+                  {newGender === 'M' ? '♂' : '♀'}
+                </Text>
+              </View>
             </View>
           </View>
-          <TouchableOpacity activeOpacity={1.0} style={{ width: isCompactSettingsUI ? 100 : 140, justifyContent: 'center' }}>
+          <TouchableOpacity activeOpacity={1.0} style={{ width: isCompactSettingsUI ? 100 : 140, justifyContent: 'center' }} onPress={handleDevModeTrigger}>
             <Image source={APP_LOGO} style={{ width: '100%', height: undefined, aspectRatio: 1, maxHeight: isCompactSettingsUI ? 110 : 140, borderRadius: 16 }} resizeMode="contain" />
           </TouchableOpacity>
         </View>
@@ -2302,6 +2703,40 @@ export default function App() {
                 </View>
               </View>
             </View>
+
+            <View style={styles.compactFormRow}>
+              <View style={[styles.optionGroup, styles.optionGroupCompact, { flex: 1 }]}>
+                <Text style={styles.optionGroupLabel}>PŁEĆ</Text>
+                <View style={styles.togglesRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.toggleBtn,
+                      styles.toggleBtnCompact,
+                      newGender === 'M' && {
+                        backgroundColor: TOGGLE_TONES.male.backgroundColor,
+                        borderColor: TOGGLE_TONES.male.borderColor,
+                      },
+                    ]}
+                    onPress={() => setNewGender('M')}
+                  >
+                    <Text style={[styles.toggleText, styles.toggleTextCompact, newGender === 'M' && { color: TOGGLE_TONES.male.textColor }]}>♂ M</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.toggleBtn,
+                      styles.toggleBtnCompact,
+                      newGender === 'F' && {
+                        backgroundColor: TOGGLE_TONES.female.backgroundColor,
+                        borderColor: TOGGLE_TONES.female.borderColor,
+                      },
+                    ]}
+                    onPress={() => setNewGender('F')}
+                  >
+                    <Text style={[styles.toggleText, styles.toggleTextCompact, newGender === 'F' && { color: TOGGLE_TONES.female.textColor }]}>♀ K</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
           </>
         ) : (
           <>
@@ -2401,6 +2836,38 @@ export default function App() {
                 </TouchableOpacity>
               </View>
             </View>
+
+            <View style={[styles.optionGroup, isCompactSettingsUI && styles.optionGroupCompact]}>
+              <Text style={styles.optionGroupLabel}>PŁEĆ</Text>
+              <View style={styles.togglesRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.toggleBtn,
+                    isCompactSettingsUI && styles.toggleBtnCompact,
+                    newGender === 'M' && {
+                      backgroundColor: TOGGLE_TONES.male.backgroundColor,
+                      borderColor: TOGGLE_TONES.male.borderColor,
+                    },
+                  ]}
+                  onPress={() => setNewGender('M')}
+                >
+                  <Text style={[styles.toggleText, isCompactSettingsUI && styles.toggleTextCompact, newGender === 'M' && { color: TOGGLE_TONES.male.textColor }]}>♂ M</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.toggleBtn,
+                    isCompactSettingsUI && styles.toggleBtnCompact,
+                    newGender === 'F' && {
+                      backgroundColor: TOGGLE_TONES.female.backgroundColor,
+                      borderColor: TOGGLE_TONES.female.borderColor,
+                    },
+                  ]}
+                  onPress={() => setNewGender('F')}
+                >
+                  <Text style={[styles.toggleText, isCompactSettingsUI && styles.toggleTextCompact, newGender === 'F' && { color: TOGGLE_TONES.female.textColor }]}>♀ K</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </>
         )}
 
@@ -2434,9 +2901,16 @@ export default function App() {
           </View>
         )}
 
-        <TouchableOpacity style={[styles.addButton, isCompactSettingsUI && styles.addButtonCompact]} onPress={handleAddPlayer}>
-            <Text style={[styles.addButtonText, isCompactSettingsUI && styles.addButtonTextCompact]}>{editingPlayerId ? 'ZAPISZ ZMIANY' : 'DODAJ ZAWODNIKA'}</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: isCompactSettingsUI ? 8 : 10 }}>
+          <TouchableOpacity style={[styles.addButton, isCompactSettingsUI && styles.addButtonCompact, { flex: 1 }]} onPress={handleAddPlayer}>
+              <Text style={[styles.addButtonText, isCompactSettingsUI && styles.addButtonTextCompact]}>{editingPlayerId ? 'ZAPISZ ZMIANY' : 'DODAJ ZAWODNIKA'}</Text>
+          </TouchableOpacity>
+          {savedPlayersDB.length > 0 && !editingPlayerId && (
+            <TouchableOpacity style={[styles.addButton, isCompactSettingsUI && styles.addButtonCompact, styles.clubDBButton]} onPress={handleOpenClubDB}>
+                <Text style={[styles.addButtonText, isCompactSettingsUI && styles.addButtonTextCompact, styles.clubDBButtonText]}>DODAJ Z BAZY</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <View style={[styles.controlPanel, isCompactSettingsUI && styles.controlPanelCompact]}>
@@ -2457,15 +2931,21 @@ export default function App() {
               <Text style={[styles.timeCardLabel, isCompactSettingsUI && styles.timeCardLabelCompact]}>RUNDA (MIN)</Text>
               <TextInput style={[styles.timeCardInput, isCompactSettingsUI && styles.timeCardInputCompact]} keyboardType="numeric" value={roundTime} onChangeText={handleSetRoundTime} />
             </View>
-            <View style={[styles.timeCard, isCompactSettingsUI && styles.timeCardCompact, stackTimeCards && styles.timeCardStacked]}>
+            <View style={[styles.timeCard, isCompactSettingsUI && styles.timeCardCompact, stackTimeCards && styles.timeCardStacked, sparringOptions.weightDivisionEnabled && { opacity: 0.35 }]}>
               <Text style={[styles.timeCardLabel, isCompactSettingsUI && styles.timeCardLabelCompact]}>PRZYGOT. (S)</Text>
-              <TextInput style={[styles.timeCardInput, isCompactSettingsUI && styles.timeCardInputCompact]} keyboardType="numeric" value={prepTime} onChangeText={handleSetPrepTime} />
+              {sparringOptions.weightDivisionEnabled
+                ? <Text style={[styles.timeCardInput, isCompactSettingsUI && styles.timeCardInputCompact, { textAlign: 'center' }]}>90</Text>
+                : <TextInput style={[styles.timeCardInput, isCompactSettingsUI && styles.timeCardInputCompact]} keyboardType="numeric" value={prepTime} onChangeText={handleSetPrepTime} />
+              }
             </View>
           </View>
           <View style={[styles.timeGridRow, isCompactSettingsUI && styles.timeGridRowCompact, stackTimeCards && styles.timeGridRowStacked]}>
-            <View style={[styles.timeCard, isCompactSettingsUI && styles.timeCardCompact, stackTimeCards && styles.timeCardStacked]}>
+            <View style={[styles.timeCard, isCompactSettingsUI && styles.timeCardCompact, stackTimeCards && styles.timeCardStacked, sparringOptions.weightDivisionEnabled && { opacity: 0.35 }]}>
               <Text style={[styles.timeCardLabel, isCompactSettingsUI && styles.timeCardLabelCompact]}>PRZERWA (S)</Text>
-              <TextInput style={[styles.timeCardInput, isCompactSettingsUI && styles.timeCardInputCompact]} keyboardType="numeric" value={restTime} onChangeText={handleSetRestTime} />
+              {sparringOptions.weightDivisionEnabled
+                ? <Text style={[styles.timeCardInput, isCompactSettingsUI && styles.timeCardInputCompact, { textAlign: 'center' }]}>20</Text>
+                : <TextInput style={[styles.timeCardInput, isCompactSettingsUI && styles.timeCardInputCompact]} keyboardType="numeric" value={restTime} onChangeText={handleSetRestTime} />
+              }
             </View>
             <View style={[styles.timeCard, isCompactSettingsUI && styles.timeCardCompact, stackTimeCards && styles.timeCardStacked]}>
               <Text style={[styles.timeCardLabel, isCompactSettingsUI && styles.timeCardLabelCompact]}>RUNDY</Text>
@@ -2475,24 +2955,306 @@ export default function App() {
         </View>
       </View>
       
-      <View style={[styles.leftActionStack, isCompactSettingsUI && styles.leftActionStackCompact]}>
-        <View style={[styles.optionsRow, isCompactSettingsUI && styles.optionsRowCompact, stackSettingsActionRows && styles.optionsRowStacked]}>
-          <TouchableOpacity style={[styles.vipButton, isCompactSettingsUI && styles.vipButtonCompact]} onPress={() => setIsVipModalVisible(true)}><Text style={[styles.vipButtonText, isCompactSettingsUI && styles.vipButtonTextCompact]}>BEZ PAUZY (SPARING)</Text></TouchableOpacity>
-          <TouchableOpacity style={[styles.vipButton, isCompactSettingsUI && styles.vipButtonCompact, trainingMode === 'ZADANIOWKI' && styles.vipButtonActive]} onPress={() => setTrainingMode(trainingMode === 'SPARING' ? 'ZADANIOWKI' : 'SPARING')}><Text style={[styles.vipButtonText, isCompactSettingsUI && styles.vipButtonTextCompact, trainingMode === 'ZADANIOWKI' && {color: COLORS.bgMain}]}>TRYB: ZADANIÓWKI</Text></TouchableOpacity>
+      <View style={[styles.controlPanel, isCompactSettingsUI && styles.controlPanelCompact]}>
+        <View style={[styles.controlPanelAccent, { backgroundColor: COLORS.accentMain }]} />
+        <View style={[styles.controlPanelHeader, isCompactSettingsUI && styles.controlPanelHeaderCompact]}>
+          <Text style={styles.controlPanelEyebrow}>TRYB TRENINGU</Text>
+          <Text style={[styles.controlPanelTitle, isCompactSettingsUI && styles.controlPanelTitleCompact]}>Wybierz tryb i dostosuj</Text>
         </View>
-      
-        {trainingMode === 'ZADANIOWKI' && (
-          <View style={[styles.optionsRow, isCompactSettingsUI && styles.optionsRowCompact, stackSettingsActionRows && styles.optionsRowStacked, {marginTop: 0}]}>
-            <TouchableOpacity style={[styles.vipButton, isCompactSettingsUI && styles.vipButtonCompact, zadaniowkiType === 'TRÓJKI' && styles.vipButtonActive]} onPress={() => setZadaniowkiType('TRÓJKI')}>
-              <Text style={[styles.vipButtonText, isCompactSettingsUI && styles.vipButtonTextCompact, zadaniowkiType === 'TRÓJKI' && {color: COLORS.bgMain}]}>TRÓJKI</Text>
+
+        <View style={[styles.optionsRow, isCompactSettingsUI && styles.optionsRowCompact, { marginBottom: 10 }]}>
+          {(['SPARING', 'ZADANIOWKI', 'DRILLE'] as TrainingMode[]).map((mode) => {
+            const isSelected = trainingMode === mode;
+            const label = mode === 'SPARING' ? 'SPARINGI' : mode === 'ZADANIOWKI' ? 'ZADANIÓWKI' : 'DRILLE';
+            return (
+              <TouchableOpacity
+                key={mode}
+                style={[
+                  styles.vipButton,
+                  isCompactSettingsUI && styles.vipButtonCompact,
+                  isSelected && styles.vipButtonActive,
+                  { flex: 1 },
+                ]}
+                onPress={() => {
+                  const prevMode = trainingMode;
+                  // Save current values when leaving non-DRILLE mode
+                  if (prevMode !== 'DRILLE') {
+                    savedTimerValuesRef.current = { roundTime, prepTime, restTime, roundsTotal };
+                  }
+                  if (mode === 'DRILLE') {
+                    setRoundTime('3');
+                    setPrepTime('60');
+                    setRestTime('10');
+                    setRoundsTotal('4');
+                  } else if (prevMode === 'DRILLE') {
+                    // Restore previous values when leaving DRILLE
+                    setRoundTime(savedTimerValuesRef.current.roundTime);
+                    setPrepTime(savedTimerValuesRef.current.prepTime);
+                    setRestTime(savedTimerValuesRef.current.restTime);
+                    setRoundsTotal(savedTimerValuesRef.current.roundsTotal);
+                  }
+                  setTrainingMode(mode);
+                }}
+              >
+                <Text style={[styles.vipButtonText, isCompactSettingsUI && styles.vipButtonTextCompact, isSelected && { color: COLORS.bgMain }]}>{label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {trainingMode === 'SPARING' && (
+          <View style={{ gap: isCompactSettingsUI ? 8 : 10 }}>
+            <TouchableOpacity style={[styles.vipButton, isCompactSettingsUI && styles.vipButtonCompact]} onPress={() => setIsVipModalVisible(true)}>
+              <Text style={[styles.vipButtonText, isCompactSettingsUI && styles.vipButtonTextCompact]}>BEZ PAUZY (VIP)</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.vipButton, isCompactSettingsUI && styles.vipButtonCompact, zadaniowkiType === 'DWÓJKI' && styles.vipButtonActive]} onPress={() => setZadaniowkiType('DWÓJKI')}>
-              <Text style={[styles.vipButtonText, isCompactSettingsUI && styles.vipButtonTextCompact, zadaniowkiType === 'DWÓJKI' && {color: COLORS.bgMain}]}>DWÓJKI</Text>
-            </TouchableOpacity>
+
+            <View style={{ gap: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 2 }}>
+                <TouchableOpacity onPress={() => setActiveInfoTooltip(activeInfoTooltip === 'priority' ? null : 'priority')} style={{ width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: activeInfoTooltip === 'priority' ? COLORS.accentMain : COLORS.borderStrong, backgroundColor: activeInfoTooltip === 'priority' ? withAlpha(COLORS.accentMain, 0.15) : 'transparent', justifyContent: 'center', alignItems: 'center' }}>
+                  <Text style={{ color: activeInfoTooltip === 'priority' ? COLORS.accentMain : COLORS.textMuted, fontSize: 8, fontWeight: '800' }}>i</Text>
+                </TouchableOpacity>
+                <Text style={styles.optionGroupLabel}>PRIORYTET DOBORU</Text>
+              </View>
+              {activeInfoTooltip === 'priority' && (
+                <Text style={{ color: COLORS.textMuted, fontSize: isCompactSettingsUI ? 10 : 11, marginBottom: 6, lineHeight: isCompactSettingsUI ? 14 : 16 }}>
+                  Określa co jest ważniejsze przy dobieraniu par. UMIEJĘTNOŚCI — pary o zbliżonym poziomie. WAGA — pary o zbliżonej masie ciała. Pozycje pośrednie łączą oba kryteria.
+                </Text>
+              )}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Text style={{ color: sparringOptions.prioritySlider <= 16 ? COLORS.accentCool : COLORS.textMuted, fontSize: isCompactSettingsUI ? 12 : 13, fontWeight: '700' }}>UMIEJĘTNOŚCI</Text>
+                <View
+                  style={{ flex: 1, height: 32, justifyContent: 'center' }}
+                  onLayout={(e) => { prioritySliderWidthRef.current = e.nativeEvent.layout.width; }}
+                  onStartShouldSetResponder={() => true}
+                  onMoveShouldSetResponder={() => true}
+                  onResponderGrant={(e) => {
+                    const x = e.nativeEvent.locationX;
+                    const w = prioritySliderWidthRef.current;
+                    if (w > 0) {
+                      const pct = (x / w) * 100;
+                      const snaps = [0, 33, 67, 100];
+                      const snapped = snaps.reduce((best, s) => Math.abs(pct - s) < Math.abs(pct - best) ? s : best, snaps[0]);
+                      setSparringOptions(prev => ({ ...prev, prioritySlider: snapped }));
+                    }
+                  }}
+                  onResponderMove={(e) => {
+                    const x = e.nativeEvent.locationX;
+                    const w = prioritySliderWidthRef.current;
+                    if (w > 0) {
+                      const pct = (x / w) * 100;
+                      const snaps = [0, 33, 67, 100];
+                      const snapped = snaps.reduce((best, s) => Math.abs(pct - s) < Math.abs(pct - best) ? s : best, snaps[0]);
+                      setSparringOptions(prev => ({ ...prev, prioritySlider: snapped }));
+                    }
+                  }}
+                >
+                  {/* Track */}
+                  <View style={{ height: 4, backgroundColor: COLORS.bgPanel2, borderRadius: 2 }}>
+                    <View style={{ height: 4, width: `${sparringOptions.prioritySlider}%`, backgroundColor: COLORS.accentMain, borderRadius: 2 }} />
+                  </View>
+                  {/* Snap dots */}
+                  {[0, 33, 67, 100].map((snap) => (
+                    <View
+                      key={snap}
+                      style={{
+                        position: 'absolute',
+                        left: `${snap}%`,
+                        marginLeft: -4,
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: sparringOptions.prioritySlider >= snap ? COLORS.accentMain : COLORS.borderStrong,
+                        top: 12,
+                      }}
+                    />
+                  ))}
+                  {/* Thumb */}
+                  <View
+                    style={{
+                      position: 'absolute',
+                      left: `${sparringOptions.prioritySlider}%`,
+                      marginLeft: -10,
+                      width: 20,
+                      height: 20,
+                      borderRadius: 10,
+                      backgroundColor: COLORS.accentMainStrong,
+                      top: 6,
+                      borderWidth: 2,
+                      borderColor: COLORS.bgPanel,
+                      elevation: 3,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.25,
+                      shadowRadius: 2,
+                    }}
+                  />
+                </View>
+                <Text style={{ color: sparringOptions.prioritySlider >= 84 ? COLORS.accentMain : COLORS.textMuted, fontSize: isCompactSettingsUI ? 12 : 13, fontWeight: '700' }}>WAGA</Text>
+              </View>
+            </View>
+
+            <View style={{ gap: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 2 }}>
+                <TouchableOpacity onPress={() => setActiveInfoTooltip(activeInfoTooltip === 'order' ? null : 'order')} style={{ width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: activeInfoTooltip === 'order' ? COLORS.accentMain : COLORS.borderStrong, backgroundColor: activeInfoTooltip === 'order' ? withAlpha(COLORS.accentMain, 0.15) : 'transparent', justifyContent: 'center', alignItems: 'center' }}>
+                  <Text style={{ color: activeInfoTooltip === 'order' ? COLORS.accentMain : COLORS.textMuted, fontSize: 8, fontWeight: '800' }}>i</Text>
+                </TouchableOpacity>
+                <Text style={styles.optionGroupLabel}>KOLEJNOŚĆ WALK</Text>
+              </View>
+              {activeInfoTooltip === 'order' && (
+                <Text style={{ color: COLORS.textMuted, fontSize: isCompactSettingsUI ? 10 : 11, marginBottom: 6, lineHeight: isCompactSettingsUI ? 14 : 16 }}>
+                  ZBLIŻONE — najbardziej wyrównane walki na początku, z rundami coraz bardziej zróżnicowane. RÓŻNE — odwrotnie, najlepsze pary na koniec. LOSOWO — kolejność losowa.
+                </Text>
+              )}
+              <View style={[styles.optionsRow, isCompactSettingsUI && styles.optionsRowCompact]}>
+                {([
+                  { value: 'BEST_FIRST' as IntensityProfile, label: 'ZBLIŻONE' },
+                  { value: 'BEST_LAST' as IntensityProfile, label: 'RÓŻNE' },
+                  { value: 'RANDOM' as IntensityProfile, label: 'LOSOWO' },
+                ]).map((opt) => {
+                  const isActive = sparringOptions.intensityProfile === opt.value;
+                  return (
+                    <TouchableOpacity
+                      key={opt.value}
+                      style={[
+                        styles.vipButton,
+                        isCompactSettingsUI && styles.vipButtonCompact,
+                        isActive && styles.vipButtonActive,
+                      ]}
+                      onPress={() => setSparringOptions(prev => ({ ...prev, intensityProfile: opt.value }))}
+                    >
+                      <Text style={[styles.vipButtonText, isCompactSettingsUI && styles.vipButtonTextCompact, isActive && { color: COLORS.bgMain }]}>{opt.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={{ gap: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 2 }}>
+                <TouchableOpacity onPress={() => setActiveInfoTooltip(activeInfoTooltip === 'weight' ? null : 'weight')} style={{ width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: activeInfoTooltip === 'weight' ? COLORS.accentMain : COLORS.borderStrong, backgroundColor: activeInfoTooltip === 'weight' ? withAlpha(COLORS.accentMain, 0.15) : 'transparent', justifyContent: 'center', alignItems: 'center' }}>
+                  <Text style={{ color: activeInfoTooltip === 'weight' ? COLORS.accentMain : COLORS.textMuted, fontSize: 8, fontWeight: '800' }}>i</Text>
+                </TouchableOpacity>
+                <Text style={styles.optionGroupLabel}>PODZIAŁ WAGOWY</Text>
+              </View>
+              {activeInfoTooltip === 'weight' && (
+                <Text style={{ color: COLORS.textMuted, fontSize: isCompactSettingsUI ? 10 : 11, marginBottom: 6, lineHeight: isCompactSettingsUI ? 14 : 16 }}>
+                  Dzieli matę na dwie grupy wagowe. Walczy jedna grupa, druga odpoczywa — potem zamiana. Brak przerwy między rundami (20s na zmianę grup). Próg wagowy obliczany automatycznie dla równej liczby par.
+                </Text>
+              )}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <TouchableOpacity
+                  style={[
+                    styles.vipButton,
+                    isCompactSettingsUI && styles.vipButtonCompact,
+                    sparringOptions.weightDivisionEnabled && styles.vipButtonActive,
+                  ]}
+                  onPress={() => {
+                    const enabling = !sparringOptions.weightDivisionEnabled;
+                    if (enabling) {
+                      const autoThreshold = calcBestWeightThreshold(roster);
+                      setSparringOptions(prev => ({ ...prev, weightDivisionEnabled: true, weightDivisionThreshold: autoThreshold }));
+                    } else {
+                      setSparringOptions(prev => ({ ...prev, weightDivisionEnabled: false }));
+                    }
+                  }}
+                >
+                  <Text style={[styles.vipButtonText, isCompactSettingsUI && styles.vipButtonTextCompact, sparringOptions.weightDivisionEnabled && { color: COLORS.bgMain }]}>
+                    {sparringOptions.weightDivisionEnabled ? 'WŁ.' : 'WYŁ.'}
+                  </Text>
+                </TouchableOpacity>
+                {sparringOptions.weightDivisionEnabled && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Text style={{ color: COLORS.textSecondary, fontSize: isCompactSettingsUI ? 11 : 12 }}>PRÓG:</Text>
+                    <TextInput
+                      style={[styles.timeCardInput, isCompactSettingsUI && styles.timeCardInputCompact, { width: 50, textAlign: 'center', paddingVertical: 4 }]}
+                      keyboardType="numeric"
+                      value={String(sparringOptions.weightDivisionThreshold)}
+                      onChangeText={(v) => {
+                        const num = parseInt(v.replace(/[^0-9]/g, ''), 10);
+                        if (!isNaN(num)) setSparringOptions(prev => ({ ...prev, weightDivisionThreshold: num }));
+                      }}
+                    />
+                    <Text style={{ color: COLORS.textSecondary, fontSize: isCompactSettingsUI ? 11 : 12 }}>KG</Text>
+                  </View>
+                )}
+              </View>
+              {sparringOptions.weightDivisionEnabled && roster.length >= 2 && (() => {
+                const t = sparringOptions.weightDivisionThreshold;
+                const cA = roster.filter(p => p.weight <= t).length;
+                const cB = roster.filter(p => p.weight > t).length;
+                return (
+                  <Text style={{ color: COLORS.textMuted, fontSize: isCompactSettingsUI ? 10 : 11, marginTop: 2 }}>
+                    ≤{t} kg: {cA} zawod. ({Math.floor(cA / 2)} par) — {'>'}{t} kg: {cB} zawod. ({Math.floor(cB / 2)} par)
+                  </Text>
+                );
+              })()}
+            </View>
+
+            <View style={{ gap: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 2 }}>
+                <TouchableOpacity onPress={() => setActiveInfoTooltip(activeInfoTooltip === 'gender' ? null : 'gender')} style={{ width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: activeInfoTooltip === 'gender' ? COLORS.accentMain : COLORS.borderStrong, backgroundColor: activeInfoTooltip === 'gender' ? withAlpha(COLORS.accentMain, 0.15) : 'transparent', justifyContent: 'center', alignItems: 'center' }}>
+                  <Text style={{ color: activeInfoTooltip === 'gender' ? COLORS.accentMain : COLORS.textMuted, fontSize: 8, fontWeight: '800' }}>i</Text>
+                </TouchableOpacity>
+                <Text style={styles.optionGroupLabel}>WALKI WG PŁCI</Text>
+              </View>
+              {activeInfoTooltip === 'gender' && (
+                <Text style={{ color: COLORS.textMuted, fontSize: isCompactSettingsUI ? 10 : 11, marginBottom: 6, lineHeight: isCompactSettingsUI ? 14 : 16 }}>
+                  WYŁ. — mieszane walki bez podziału. PRIORYTET — kobiety walczą najpierw ze sobą (aż każda z każdą), potem dołączają do mężczyzn. ZAWSZE — kobiety tylko z kobietami przez cały trening.
+                </Text>
+              )}
+              <View style={[styles.optionsRow, isCompactSettingsUI && styles.optionsRowCompact]}>
+                {([
+                  { value: 'OFF' as GenderMatchingMode, label: 'WYŁ.' },
+                  { value: 'PREFER' as GenderMatchingMode, label: 'PRIORYTET' },
+                  { value: 'STRICT' as GenderMatchingMode, label: 'ZAWSZE' },
+                ]).map((opt) => {
+                  const isActive = sparringOptions.genderMatching === opt.value;
+                  return (
+                    <TouchableOpacity
+                      key={opt.value}
+                      style={[
+                        styles.vipButton,
+                        isCompactSettingsUI && styles.vipButtonCompact,
+                        isActive && styles.vipButtonActive,
+                      ]}
+                      onPress={() => setSparringOptions(prev => ({ ...prev, genderMatching: opt.value }))}
+                    >
+                      <Text style={[styles.vipButtonText, isCompactSettingsUI && styles.vipButtonTextCompact, isActive && { color: COLORS.bgMain }]}>{opt.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
           </View>
         )}
-      
-        <TouchableOpacity style={[styles.startButton, isCompactSettingsUI && styles.startButtonCompact]} onPress={handleStartTraining}>
+
+        {trainingMode === 'ZADANIOWKI' && (
+          <View style={{ gap: isCompactSettingsUI ? 8 : 10 }}>
+            <View style={[styles.optionsRow, isCompactSettingsUI && styles.optionsRowCompact]}>
+              <TouchableOpacity style={[styles.vipButton, isCompactSettingsUI && styles.vipButtonCompact, zadaniowkiType === 'TRÓJKI' && styles.vipButtonActive, { flex: 1 }]} onPress={() => setZadaniowkiType('TRÓJKI')}>
+                <Text style={[styles.vipButtonText, isCompactSettingsUI && styles.vipButtonTextCompact, zadaniowkiType === 'TRÓJKI' && { color: COLORS.bgMain }]}>TRÓJKI</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.vipButton, isCompactSettingsUI && styles.vipButtonCompact, zadaniowkiType === 'DWÓJKI' && styles.vipButtonActive, { flex: 1 }]} onPress={() => setZadaniowkiType('DWÓJKI')}>
+                <Text style={[styles.vipButtonText, isCompactSettingsUI && styles.vipButtonTextCompact, zadaniowkiType === 'DWÓJKI' && { color: COLORS.bgMain }]}>DWÓJKI</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {trainingMode === 'DRILLE' && (
+          <View style={{ paddingVertical: 8, gap: 6 }}>
+            <Text style={{ color: COLORS.textSecondary, fontSize: isCompactSettingsUI ? 11 : 13, lineHeight: isCompactSettingsUI ? 16 : 19, paddingHorizontal: 4 }}>
+              Pary dobierane raz. Role A/B zamieniają się co rundę.
+            </Text>
+          </View>
+        )}
+      </View>
+
+      <View style={[styles.leftActionStack, isCompactSettingsUI && styles.leftActionStackCompact]}>
+        <TouchableOpacity
+          style={[styles.startButton, isCompactSettingsUI && styles.startButtonCompact]}
+          onPress={handleStartTraining}
+        >
           <Text
             style={[styles.startButtonText, isCompactSettingsUI && styles.startButtonTextCompact]}
             adjustsFontSizeToFit
@@ -2570,6 +3332,98 @@ export default function App() {
     </Modal>
   );
 
+  const clubDBAvailablePlayers = savedPlayersDB
+    .filter(p => !clubDBSearchText || p.id.toLowerCase().includes(clubDBSearchText.toLowerCase()))
+    .sort((a, b) => {
+      const aOnMat = roster.some(r => r.id === a.id);
+      const bOnMat = roster.some(r => r.id === b.id);
+      if (aOnMat !== bOnMat) return aOnMat ? 1 : -1;
+      return a.id.localeCompare(b.id);
+    });
+  const selectedClubDBCount = selectedClubDBPlayerIds.length;
+
+  const clubDBModal = (
+    <Modal visible={isClubDBModalVisible} transparent={true} animationType="fade" onRequestClose={() => setIsClubDBModalVisible(false)}>
+      <View style={styles.modalOverlay}>
+        <View style={[styles.modalContent, styles.dropoutModalContent]}>
+          <Text style={styles.modalTitle}>BAZA KLUBOWA</Text>
+          <Text style={styles.dropoutModalSubtitle}>
+            Wybierz zawodników z bazy i dodaj ich na matę jednym kliknięciem.
+          </Text>
+          <View style={styles.clubDBSearchWrap}>
+            <TextInput
+              style={styles.clubDBSearchInput}
+              value={clubDBSearchText}
+              onChangeText={setClubDBSearchText}
+              placeholder="Szukaj po imieniu..."
+              placeholderTextColor={COLORS.textMuted}
+              autoCorrect={false}
+            />
+          </View>
+          <ScrollView style={{ width: '100%' }} contentContainerStyle={styles.dropoutList} keyboardShouldPersistTaps="handled">
+            {clubDBAvailablePlayers.length === 0 ? (
+              <Text style={[styles.dropoutModalSubtitle, { marginTop: 20, marginBottom: 20 }]}>
+                {clubDBSearchText ? 'Brak wyników wyszukiwania.' : 'Baza klubowa jest pusta.'}
+              </Text>
+            ) : clubDBAvailablePlayers.map((p) => {
+              const isOnMat = roster.some(r => r.id === p.id);
+              const isSelected = selectedClubDBPlayerIds.includes(p.id);
+              const skillLabel = p.type === 'ADULT' ? getSkillLevelShortLabel(p.skillLevel) : '';
+
+              return (
+                <TouchableOpacity
+                  key={p.id}
+                  style={[styles.dropoutRow, isSelected && styles.dropoutRowActive, isOnMat && styles.clubDBRowDisabled]}
+                  disabled={isOnMat}
+                  onPress={() =>
+                    setSelectedClubDBPlayerIds((prev) =>
+                      prev.includes(p.id) ? prev.filter((id) => id !== p.id) : [...prev, p.id]
+                    )
+                  }
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.dropoutPlayerInfo}>
+                    <View style={[styles.dropoutDot, isSelected && styles.dropoutDotActive, isOnMat && styles.clubDBDotOnMat]} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.dropoutPlayerName, isSelected && styles.dropoutPlayerNameActive, isOnMat && styles.clubDBNameOnMat]}>{p.id}</Text>
+                      <Text style={[styles.clubDBPlayerDetail, isOnMat && styles.clubDBNameOnMat]}>
+                        {p.weight} kg · {p.type} · {p.gear === 'GI' ? 'GI' : 'NO-GI'}{skillLabel ? ` · ${skillLabel}` : ''} · {p.gender === 'M' ? '♂' : '♀'}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={[styles.dropoutBadge, isSelected && styles.dropoutBadgeActive, isOnMat && styles.clubDBBadgeOnMat]}>
+                    <Text style={[styles.dropoutBadgeText, isSelected && styles.dropoutBadgeTextActive, isOnMat && styles.clubDBBadgeTextOnMat]}>
+                      {isOnMat ? 'NA MACIE' : isSelected ? 'ZAZNACZONY' : 'WYBIERZ'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+          <View style={styles.dropoutActionsRow}>
+            <TouchableOpacity style={[styles.closeModalButton, styles.dropoutCancelButton]} onPress={() => setIsClubDBModalVisible(false)}>
+              <Text style={styles.closeModalButtonText}>ANULUJ</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.removeButton,
+                styles.dropoutConfirmButton,
+                { backgroundColor: COLORS.accentCool },
+                selectedClubDBCount === 0 && styles.dropoutConfirmButtonDisabled,
+              ]}
+              disabled={selectedClubDBCount === 0}
+              onPress={handleConfirmClubDBSelection}
+            >
+              <Text style={styles.removeButtonText}>
+                {selectedClubDBCount > 0 ? `DODAJ (${selectedClubDBCount})` : 'DODAJ'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
 
   if (currentScreen === 'finished') {
     const finishedLogoSize = Math.round(Math.min(screenWidth * 0.38, screenHeight * 0.28, 400));
@@ -2598,7 +3452,8 @@ export default function App() {
       const isEnding = timeLeft <= 15 && phase === 'WORK';
       let timerColor = isEnding ? COLORS.accentAlert : (isPrep ? COLORS.accentMain : COLORS.textPrimary);
       
-      const isDwojki = zadaniowkiType === 'DWÓJKI';
+      const isDrille = trainingMode === 'DRILLE';
+      const isDwojki = isDrille || zadaniowkiType === 'DWÓJKI';
       const step = isDwojki ? currentStep : ((currentStep - 1) % 6) + 1;
       const stepsTotal = isDwojki ? 2 : 6;
 
@@ -2651,11 +3506,21 @@ export default function App() {
         && hasBothSections
         && splitAreaWidth < minSideKidWidth + minSideAdultWidth + responsiveSectionGap + responsiveSectionPadding * 4;
       const gridWidthBudget = splitAreaWidth - (hasBothSections && !stackPrepSections ? responsiveSectionGap : 0);
-      const kidSideTargetWidth = kData.length > 3
-        ? clamp(500, gridWidthBudget * 0.36, 620)
-        : clamp(280, gridWidthBudget * 0.27, 320);
+      // Size KID section by what it actually needs (min card width × col count + padding),
+      // then give EVERYTHING else to ADULT. Avoids reserving 36% for KID when it only has
+      // a couple of duos.
+      const kidPreferredCols = kData.length > 3 ? 2 : 1;
+      const kidIntrinsicWidth = hasKidSection
+        ? (kidPreferredCols * responsiveKidMinW
+          + responsiveCellPadding * kidPreferredCols * 2
+          + responsiveSectionPadding * 2)
+        : 0;
+      // Cap KID at 42% of grid budget so we never starve ADULT, but also don't oversize when KID is small.
+      const kidSideTargetWidth = hasKidSection
+        ? clamp(240, kidIntrinsicWidth, gridWidthBudget * 0.42)
+        : 0;
       let kidsSectionWidth = hasKidSection
-        ? (stackPrepSections || !hasAdultSection ? gridWidthBudget : Math.min(kidSideTargetWidth, gridWidthBudget * 0.42))
+        ? (stackPrepSections || !hasAdultSection ? gridWidthBudget : kidSideTargetWidth)
         : 0;
       let adultsSectionWidth = hasAdultSection
         ? (stackPrepSections || !hasKidSection ? gridWidthBudget : Math.max(0, gridWidthBudget - kidsSectionWidth))
@@ -2701,6 +3566,15 @@ export default function App() {
       let adultsCols = isTriadPrepGrid
         ? getResponsiveTriadPrepCols(adultsSectionWidth, preliminaryGridHeightBudget, Math.max(aTriadData.length, aDuoData.length), 'ADULT', responsiveCellPadding, responsiveMinCardHeight, adultsMinWidths.safe, adultsMinWidths.hard)
         : Math.ceil(aData.length / MAX_ROWS) || 1;
+
+      // Force more columns on tablet when many triads to prevent overflow.
+      // Only do this in the no-scroll envelope (true wall-tablet); when scrolling
+      // is allowed we prefer fewer, wider columns so names aren't truncated.
+      const isWallTabletEnvelope = screenWidth >= 1000 && screenHeight >= 600;
+      if (isTriadPrepGrid && isWallTabletEnvelope && aTriadData.length > 9 && adultsCols < 4) {
+        const testCardWidth = adultsSectionWidth / 4 - responsiveCellPadding * 2;
+        if (testCardWidth >= 140) adultsCols = 4;
+      }
 
       if (isDwojki) {
         kidsCols = keepColsWithinMinWidth(kidsSectionWidth, kidsCols, responsiveCellPadding, DUO_PREP_MIN_CARD_WIDTH);
@@ -2760,40 +3634,16 @@ export default function App() {
         : [];
 
       // On wide screens (tablet on wall), everything MUST fit without scrolling.
-      // On narrow screens, allow scrolling.
-      const forceNoScroll = screenWidth >= 1100;
+      // On narrow screens (or short viewports such as laptops in landscape with
+      // a small visible height), allow scrolling so cards aren't cut off.
+      const forceNoScroll = screenWidth >= 1000 && screenHeight >= 600;
 
       const shouldScrollTriadGrid = (() => {
         if (!isTriadPrepGrid) return false;
         if (forceNoScroll) return false;
-        if (kidsComputedCardHeight < responsiveMinCardHeight ||
-            adultsComputedCardHeight < responsiveMinCardHeight) return true;
-        if (stackedTotalMinNeeded > 0 && stackedTotalMinNeeded > preliminarySectionHeightBudget) return true;
-
-        // Check if merged grid pixel heights would overflow the available space
-        const tryTriadH = Math.max(60, kidsComputedCardHeight);
-        const tryDuoH = Math.max(40, tryTriadH * TRIAD_PREP_DUO_ROW_WEIGHT);
-        const tryATriadH = Math.max(60, adultsComputedCardHeight);
-        const tryADuoH = Math.max(40, tryATriadH * TRIAD_PREP_DUO_ROW_WEIGHT);
-        const kCols = Math.max(1, kidsCols);
-        const aCols = Math.max(1, adultsCols);
-        let kTotalH = 0;
-        for (let i = 0; i < kMergedData.length; i += kCols) {
-          const rowMax = Math.max(...kMergedData.slice(i, i + kCols).map(it => it.isDuo ? tryDuoH : tryTriadH));
-          kTotalH += rowMax + responsiveCellPadding * 2;
-        }
-        let aTotalH = 0;
-        for (let i = 0; i < aMergedData.length; i += aCols) {
-          const rowMax = Math.max(...aMergedData.slice(i, i + aCols).map(it => it.isDuo ? tryADuoH : tryATriadH));
-          aTotalH += rowMax + responsiveCellPadding * 2;
-        }
-        if (!stackPrepSections) {
-          const maxGridH = Math.max(kTotalH, aTotalH);
-          if (maxGridH > gridHeightBudget) return true;
-        } else if (hasBothSections) {
-          if (kTotalH > kidsHeightBudget || aTotalH > adultsHeightBudget) return true;
-        }
-        return false;
+        // Outside the safe "wall tablet" envelope, always allow scrolling so
+        // cards keep a readable, fixed height instead of being squashed/cut.
+        return true;
       })();
 
       // For forceNoScroll: compute card heights that fit the grid budget exactly.
@@ -2813,12 +3663,12 @@ export default function App() {
           else duoRowCount++;
         }
         const totalRows = triadRowCount + duoRowCount;
-        if (totalRows === 0) return { triadH: 60, duoH: 48 };
+        if (totalRows === 0) return { triadH: 50, duoH: 36 };
         const totalPadding = totalRows * responsiveCellPadding * 2;
         const availableForCards = Math.max(0, heightBudget - totalPadding);
         const weightedTotal = triadRowCount + duoRowCount * TRIAD_PREP_DUO_ROW_WEIGHT;
-        const triadH = Math.max(60, availableForCards / weightedTotal);
-        const duoH = Math.max(40, triadH * TRIAD_PREP_DUO_ROW_WEIGHT);
+        const triadH = availableForCards / Math.max(1, weightedTotal);
+        const duoH = triadH * TRIAD_PREP_DUO_ROW_WEIGHT;
         return { triadH, duoH };
       };
 
@@ -2843,10 +3693,10 @@ export default function App() {
         kidsDuoCardHeight = kFitted.duoH;
         adultsDuoCardHeight = aFitted.duoH;
       } else {
-        kidsCardHeight = Math.max(60, kidsComputedCardHeight);
-        adultsCardHeight = Math.max(60, adultsComputedCardHeight);
-        kidsDuoCardHeight = Math.max(40, kidsCardHeight * TRIAD_PREP_DUO_ROW_WEIGHT);
-        adultsDuoCardHeight = Math.max(40, adultsCardHeight * TRIAD_PREP_DUO_ROW_WEIGHT);
+        kidsCardHeight = Math.max(42, kidsComputedCardHeight);
+        adultsCardHeight = Math.max(42, adultsComputedCardHeight);
+        kidsDuoCardHeight = Math.max(30, kidsCardHeight * TRIAD_PREP_DUO_ROW_WEIGHT);
+        adultsDuoCardHeight = Math.max(30, adultsCardHeight * TRIAD_PREP_DUO_ROW_WEIGHT);
       }
 
       const kidsDuoCardWidth = kidsDuoCols > 0 ? Math.max(130, kidsSectionWidth / kidsDuoCols - responsiveCellPadding * 2) : 0;
@@ -2965,13 +3815,14 @@ export default function App() {
         }
       }
 
+      const dwGridMinCardHeight = screenWidth >= 1000 ? 36 : 68;
       const dwKidsGridSpec = isDwojkiPrepGrid ? getBestPairGridSpec({
         count: kidsPairs.length,
         sectionWidth: dwKidsBodyWidth,
         sectionHeight: dwSectionBodyHeight,
         cellPadding: dwPairCellPadding,
         minCardWidth: isDwojkiPhoneView ? dwKidsBodyWidth : 180,
-        minCardHeight: isDwojkiPhoneView ? dwPhonePairCardHeight : 68,
+        minCardHeight: isDwojkiPhoneView ? dwPhonePairCardHeight : dwGridMinCardHeight,
         preferredCardWidth: isDwojkiPhoneView ? dwKidsBodyWidth : 240,
         maxCols: isDwojkiPhoneView ? 1 : Math.min(kidsPairs.length || 1, 2),
         allowScroll: isDwojkiPhoneView,
@@ -2982,11 +3833,11 @@ export default function App() {
         sectionHeight: dwSectionBodyHeight,
         cellPadding: dwPairCellPadding,
         minCardWidth: isDwojkiPhoneView ? dwAdultsBodyWidth : 180,
-        minCardHeight: isDwojkiPhoneView ? dwPhonePairCardHeight : 68,
+        minCardHeight: isDwojkiPhoneView ? dwPhonePairCardHeight : dwGridMinCardHeight,
         preferredCardWidth: isDwojkiPhoneView ? dwAdultsBodyWidth : 300,
         maxCols: isDwojkiPhoneView
           ? 1
-          : Math.min(adultsPairs.length || 1, dwAdultsBodyWidth >= 1380 ? 4 : dwAdultsBodyWidth >= 700 ? 3 : 2),
+          : Math.min(adultsPairs.length || 1, dwAdultsBodyWidth >= 600 ? 4 : dwAdultsBodyWidth >= 400 ? 3 : 2),
         allowScroll: isDwojkiPhoneView,
       }) : { cols: 1, rows: 0, cardWidth: 0, cardHeight: 0 };
 
@@ -3044,8 +3895,8 @@ export default function App() {
         : [];
       const dwojkiLegendItems = isDwojki
         ? (step === 1
-          ? [{ role: '[A]', label: 'DÓŁ' }, { role: '[B]', label: 'GÓRA' }]
-          : [{ role: '[B]', label: 'DÓŁ' }, { role: '[A]', label: 'GÓRA' }])
+          ? [{ role: '[A]', label: isDrille ? 'PRACA' : 'DÓŁ' }, { role: '[B]', label: isDrille ? 'ASYSTA' : 'GÓRA' }]
+          : [{ role: '[B]', label: isDrille ? 'PRACA' : 'DÓŁ' }, { role: '[A]', label: isDrille ? 'ASYSTA' : 'GÓRA' }])
         : [];
 
       const showGrid = phase === 'PREP' && currentStep === 1 && (currentRound === 1 || isDwojki);
@@ -3140,7 +3991,7 @@ export default function App() {
                   </Text>
                 </View>
 
-                <View style={[styles.clockBoxGigantic, {flex: 1, justifyContent: 'center', overflow: 'visible', paddingBottom: 0}]}>
+                <View style={[styles.clockBoxGigantic, {flex: 1, justifyContent: 'center', overflow: 'hidden', paddingBottom: 0}]}>
                     <View style={styles.hugeTimerDigitsRow}>
                       <View style={styles.hugeTimerDigitBlock}>
                         <Text
@@ -3362,6 +4213,7 @@ export default function App() {
         return items.map((item, index) => {
           const cw = item.isDuo ? duoCardWidth : triadCardWidth;
           const ch = item.isDuo ? duoCardHeight : triadCardHeight;
+          const totalRows = Math.ceil(items.length / safeCols);
           return (
             <View
               key={`${keyPrefix}-${index}`}
@@ -3369,6 +4221,7 @@ export default function App() {
                 width: `${100 / safeCols}%` as any,
                 height: ch + responsiveCellPadding * 2,
                 padding: responsiveCellPadding,
+                overflow: 'hidden' as const,
               }}
             >
               {renderZadaniowkiCardPrep(item.group, cw, ch)}
@@ -3457,7 +4310,7 @@ export default function App() {
                 paddingTop: dwPairSectionPadding,
                 paddingBottom: dwPairSectionPadding,
               },
-              !isDwojkiPhoneView && { height: dwSplitAreaHeight },
+              !isDwojkiPhoneView && (screenWidth >= 1000 ? {} : { height: dwSplitAreaHeight }),
             ]}
           >
             <View style={[styles.matchSectionAccent, { backgroundColor: color }]} />
@@ -3494,7 +4347,7 @@ export default function App() {
               </>
             ) : (
               (hasKidSection || hasAdultSection) && (
-                <View style={[styles.splitMainArea, { gap: dwPairSectionGap, minHeight: dwSplitAreaHeight }]}>
+                <View style={[styles.splitMainArea, { gap: dwPairSectionGap, ...(screenWidth >= 1000 ? { flex: 1 } : { minHeight: dwSplitAreaHeight }) }]}>
                   {hasKidSection &&
                     renderDwMatchSection('KID', COLORS.accentCool, kidsPairs, dwKidsGridSpec, dwKidsSectionStyle, 'dw-kid')}
                   {hasAdultSection &&
@@ -3514,7 +4367,7 @@ export default function App() {
                     paddingTop: dwPairSectionPadding,
                     paddingBottom: dwPairSectionPadding,
                   },
-                  !isDwojkiPhoneView && { minHeight: dwRestingPanelHeight, height: dwRestingPanelHeight },
+                  !isDwojkiPhoneView && (screenWidth >= 1000 ? { flexShrink: 1 } : { minHeight: dwRestingPanelHeight, height: dwRestingPanelHeight }),
                 ]}
               >
                 <View style={[styles.matchSectionAccent, { backgroundColor: COLORS.accentAlert }]} />
@@ -3541,9 +4394,10 @@ export default function App() {
               style={[
                 styles.topBar,
                 dwStackTopBar && styles.topBarStacked,
-                { paddingHorizontal: topBarMetrics.paddingHorizontal, paddingVertical: topBarMetrics.paddingVertical },
+                { paddingHorizontal: topBarMetrics.paddingHorizontal, paddingVertical: topBarMetrics.paddingVertical, overflow: 'hidden' },
               ]}
             >
+              {topBarWatermark}
               <View style={{ flex: dwStackTopBar ? 0 : 1, width: dwStackTopBar ? '100%' : undefined, paddingRight: dwStackTopBar ? 0 : 12 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   {!isDwojkiPhoneView && <Image source={APP_LOGO} style={{ width: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), height: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), borderRadius: 12 }} resizeMode="contain" />}
@@ -3635,7 +4489,8 @@ export default function App() {
       
       return (
         <SafeAreaView style={styles.safeArea}>
-          <View style={[styles.topBar, { paddingHorizontal: topBarMetrics.paddingHorizontal, paddingVertical: topBarMetrics.paddingVertical }]}>
+          <View style={[styles.topBar, { paddingHorizontal: topBarMetrics.paddingHorizontal, paddingVertical: topBarMetrics.paddingVertical, overflow: 'hidden' }]}>
+            {topBarWatermark}
             <View style={{ flex: 1, paddingRight: 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 {screenWidth >= 760 && <Image source={APP_LOGO} style={{ width: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), height: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), borderRadius: 12 }} resizeMode="contain" />}
@@ -3706,11 +4561,15 @@ export default function App() {
               style={[
                 styles.splitMainArea,
                 (shouldScrollTriadGrid || isTriadPrepGrid) && {
-                  flexGrow: 0,
-                  flexShrink: 0,
-                  minHeight: stackPrepSections
-                    ? (kidsSectionExplicitHeight ?? 0) + (adultsSectionExplicitHeight ?? 0) + responsiveSectionGap
-                    : Math.max(kidsSectionExplicitHeight ?? 0, adultsSectionExplicitHeight ?? 0),
+                  flexGrow: forceNoScroll ? 1 : 0,
+                  flexShrink: forceNoScroll ? 1 : 0,
+                  ...(forceNoScroll
+                    ? {}
+                    : {
+                        minHeight: stackPrepSections
+                          ? (kidsSectionExplicitHeight ?? 0) + (adultsSectionExplicitHeight ?? 0) + responsiveSectionGap
+                          : Math.max(kidsSectionExplicitHeight ?? 0, adultsSectionExplicitHeight ?? 0),
+                      }),
                 },
                 isTriadPrepGrid && {
                   flexDirection: stackPrepSections ? 'column' : 'row',
@@ -3725,8 +4584,12 @@ export default function App() {
                     styles.sideSection,
                     isTriadPrepGrid
                       ? (stackPrepSections
-                        ? { flexGrow: 0, flexShrink: 0, height: kidsSectionExplicitHeight }
-                        : { flex: kidsFlex, height: kidsSectionExplicitHeight })
+                        ? (forceNoScroll
+                          ? { flex: kidsRows, flexShrink: 1 }
+                          : { flexGrow: 0, flexShrink: 0, height: kidsSectionExplicitHeight })
+                        : (forceNoScroll
+                          ? { flex: kidsFlex }
+                          : { flex: kidsFlex, height: kidsSectionExplicitHeight }))
                       : shouldScrollTriadGrid
                         ? { flexGrow: 0, flexShrink: 0, height: kidsSectionScrollHeight }
                         : { flex: stackPrepSections ? kidsRows : kidsFlex },
@@ -3742,7 +4605,7 @@ export default function App() {
                     <Text style={[styles.matchSectionTitle, { color: COLORS.accentCool }]}>KID</Text>
                   </View>
                   {isTriadPrepGrid ? (
-                    <View style={[styles.gridWrap, { flex: 0, flexGrow: 0, flexShrink: 0, height: kidsMergedGridHeight }]}>
+                    <View style={[styles.gridWrap, forceNoScroll ? { flex: 1 } : { flex: 0, flexGrow: 0, flexShrink: 0, height: kidsMergedGridHeight }]}>
                       {renderMergedGridCells(kMergedData, kidsCols, kidsCardWidth, kidsCardHeight, kidsDuoCardWidth, kidsDuoCardHeight, 'dz')}
                     </View>
                   ) : (
@@ -3772,8 +4635,12 @@ export default function App() {
                     styles.sideSection,
                     isTriadPrepGrid
                       ? (stackPrepSections
-                        ? { flexGrow: 0, flexShrink: 0, height: adultsSectionExplicitHeight }
-                        : { flex: adultsFlex, height: adultsSectionExplicitHeight })
+                        ? (forceNoScroll
+                          ? { flex: adultsRows, flexShrink: 1 }
+                          : { flexGrow: 0, flexShrink: 0, height: adultsSectionExplicitHeight })
+                        : (forceNoScroll
+                          ? { flex: adultsFlex }
+                          : { flex: adultsFlex, height: adultsSectionExplicitHeight }))
                       : shouldScrollTriadGrid
                         ? { flexGrow: 0, flexShrink: 0, height: adultsSectionScrollHeight }
                         : { flex: stackPrepSections ? adultsRows : adultsFlex },
@@ -3789,7 +4656,7 @@ export default function App() {
                     <Text style={[styles.matchSectionTitle, { color: COLORS.accentMain }]}>ADULT</Text>
                   </View>
                   {isTriadPrepGrid ? (
-                    <View style={[styles.gridWrap, { flex: 0, flexGrow: 0, flexShrink: 0, height: adultsMergedGridHeight }]}>
+                    <View style={[styles.gridWrap, forceNoScroll ? { flex: 1 } : { flex: 0, flexGrow: 0, flexShrink: 0, height: adultsMergedGridHeight }]}>
                       {renderMergedGridCells(aMergedData, adultsCols, adultsCardWidth, adultsCardHeight, adultsDuoCardWidth, adultsDuoCardHeight, 'do')}
                     </View>
                   ) : (
@@ -3846,6 +4713,7 @@ export default function App() {
   }
 
   if (currentScreen === 'timer') {
+    const isWeightDivisionActive = sparringOptions.weightDivisionEnabled;
     let isPrep = phase === 'PREP';
     const isEnding = timeLeft <= 15 && phase === 'WORK';
     let timerColor = isEnding ? COLORS.accentAlert : (isPrep ? COLORS.accentMain : COLORS.textPrimary);
@@ -3856,6 +4724,127 @@ export default function App() {
     const kidsPairs = currentMatches.filter(m => m.p1.type === 'KID' && m.p2.type === 'KID');
     const adultsPairs = currentMatches.filter(m => m.p1.type === 'ADULT' && m.p2.type === 'ADULT');
     const mixedPairs = currentMatches.filter(m => m.p1.type !== m.p2.type);
+
+    // Weight division: render split-screen layout
+    if (isWeightDivisionActive) {
+      const wdThreshold = sparringOptions.weightDivisionThreshold;
+      const wdRounds = parseInt(roundsTotal);
+      const wdGroupLabel = currentWeightGroup === 'A' ? `≤${wdThreshold} KG` : `>${wdThreshold} KG`;
+      const wdNextGroupLabel = currentWeightGroup === 'A' ? `>${wdThreshold} KG` : `≤${wdThreshold} KG`;
+      const wdActiveMatches = currentWeightGroup === 'A' ? weightGroupMatchesA : weightGroupMatchesB;
+      const wdNextMatches = currentWeightGroup === 'A' ? weightGroupMatchesB : weightGroupMatchesA;
+      const wdActiveResting = currentWeightGroup === 'A' ? weightGroupRestingA : weightGroupRestingB;
+      const wdNextResting = currentWeightGroup === 'A' ? weightGroupRestingB : weightGroupRestingA;
+      const wdTimerLabel = formatTime(timeLeft);
+      const wdIsEnding = timeLeft <= 15 && phase === 'WORK';
+      const wdAccent = wdIsEnding ? COLORS.accentAlert : (phase === 'PREP' ? COLORS.accentMain : COLORS.textPrimary);
+      const wdTimerFontSize = clamp(80, Math.min(screenWidth * 0.22, screenHeight * 0.35), 300);
+      const wdButtonFont = clamp(14, screenWidth * 0.014, 18);
+      // Dynamic pair row sizing: estimate available height for pairs panel
+      const wdHeaderHeight = 40;
+      const wdBottomBarHeight = 50;
+      const wdAvailableHeight = screenHeight - wdHeaderHeight - wdBottomBarHeight;
+      // Only show one group at a time: during PREP show the group about to fight, during WORK show next group
+      const wdDisplayMatches = phase === 'WORK' ? wdNextMatches : wdActiveMatches;
+      const wdDisplayResting = phase === 'WORK' ? wdNextResting : wdActiveResting;
+      const wdDisplayLabel = phase === 'WORK' ? wdNextGroupLabel : wdGroupLabel;
+      const wdDisplayTitle = phase === 'WORK' ? `⏳ ${wdDisplayLabel} — NASTĘPNI` : `🥊 ${wdDisplayLabel} — WCHODZĄ`;
+      const wdTotalRows = wdDisplayMatches.length + 1 + (wdDisplayResting.length > 0 ? 1 : 0);
+      const wdRowHeight = Math.max(20, Math.floor(wdAvailableHeight / wdTotalRows) - 3);
+      const wdPairNameFont = clamp(11, wdRowHeight * 0.55, 22);
+
+      return (
+        <SafeAreaView style={styles.safeArea}>
+          <View style={{ flex: 1, backgroundColor: COLORS.bgMain }}>
+            {/* Header */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: COLORS.bgPanel }}>
+              <Text style={{ color: COLORS.textPrimary, fontSize: clamp(14, screenWidth * 0.016, 20), fontWeight: '700' }}>
+                RUNDA {currentRound} / {wdRounds}
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View style={{ backgroundColor: withAlpha(COLORS.accentMain, 0.2), borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4 }}>
+                  <Text style={{ color: COLORS.accentMain, fontSize: clamp(11, screenWidth * 0.013, 15), fontWeight: '800' }}>
+                    {phase === 'WORK' ? `WALCZY: ${wdGroupLabel}` : `ZMIANA GRUP`}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Main content: Timer left + Pairs right */}
+            <View style={{ flex: 1, flexDirection: 'row' }}>
+              {/* Left: Timer */}
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 12 }}>
+                <Text style={{ color: COLORS.textMuted, fontSize: clamp(14, screenWidth * 0.016, 20), fontWeight: '600', marginBottom: 4 }}>
+                  {phase === 'PREP' ? 'PRZYGOTOWANIE' : wdGroupLabel}
+                </Text>
+                <Text
+                  style={{
+                    color: wdAccent,
+                    fontSize: wdTimerFontSize,
+                    fontWeight: '800',
+                    fontVariant: ['tabular-nums'],
+                    letterSpacing: 2,
+                  }}
+                >
+                  {wdTimerLabel}
+                </Text>
+              </View>
+
+              {/* Right: Pairs — only one group at a time */}
+              <View style={{ flex: 1, borderLeftWidth: 1, borderLeftColor: COLORS.borderSoft, overflow: 'hidden' }}>
+                <View style={{ flex: 1, padding: 4, justifyContent: 'center' }}>
+                  <Text style={{ color: phase === 'WORK' ? COLORS.textMuted : COLORS.accentMain, fontSize: clamp(10, wdPairNameFont * 0.8, 16), fontWeight: '800', height: wdRowHeight, lineHeight: wdRowHeight, paddingHorizontal: 4 }}>
+                    {wdDisplayTitle}
+                  </Text>
+                  {wdDisplayMatches.map((m, i) => (
+                    <View key={`p-${i}`} style={{
+                      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                      backgroundColor: phase === 'WORK' ? COLORS.bgPanel2 : withAlpha(COLORS.accentMain, 0.08),
+                      borderRadius: 6, paddingHorizontal: 10, height: wdRowHeight, marginBottom: 2,
+                      borderWidth: phase === 'PREP' ? 1 : 0, borderColor: withAlpha(COLORS.accentMain, 0.25),
+                      opacity: phase === 'WORK' ? 0.6 : 1,
+                    }}>
+                      <Text style={{ color: COLORS.textPrimary, fontSize: wdPairNameFont, fontWeight: '700', flex: 1 }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{m.p1.id}</Text>
+                      <Text style={{ color: COLORS.textMuted, fontSize: wdPairNameFont - 3, marginHorizontal: 6 }}>vs</Text>
+                      <Text style={{ color: COLORS.textPrimary, fontSize: wdPairNameFont, fontWeight: '700', flex: 1, textAlign: 'right' }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{m.p2.id}</Text>
+                    </View>
+                  ))}
+                  {wdDisplayResting.length > 0 && (
+                    <Text style={{ color: COLORS.textMuted, fontSize: wdPairNameFont - 2, paddingHorizontal: 4, height: wdRowHeight, lineHeight: wdRowHeight }} numberOfLines={1}>
+                      Pauza: {wdDisplayResting.map(r => r.id).join(', ')}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            </View>
+
+            {/* Bottom buttons */}
+            <View style={{ flexDirection: 'row', gap: 8, padding: 8, backgroundColor: COLORS.bgPanel }}>
+              <TouchableOpacity
+                style={[styles.controlButtonSmall, isActive ? styles.btnStandard : styles.btnImportant, { flex: 1, paddingVertical: 10 }]}
+                onPress={() => setIsActive(!isActive)}
+              >
+                <Text style={[styles.controlButtonTextSmall, { fontSize: wdButtonFont }, isActive ? { color: COLORS.textPrimary } : { color: COLORS.bgMain }]}>
+                  {isActive ? 'PAUZA' : 'WZNÓW'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.controlButtonSmall, styles.btnStop, { flex: 1, paddingVertical: 10 }]}
+                onPress={handleStopTraining}
+              >
+                <Text style={[styles.controlButtonTextSmall, { fontSize: wdButtonFont }]}>ZAKOŃCZ</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.controlButtonSmall, styles.btnStandard, { flex: 1, paddingVertical: 10 }]}
+                onPress={handleOpenDropoutModal}
+              >
+                <Text style={[styles.controlButtonTextSmall, { fontSize: wdButtonFont, color: COLORS.textPrimary }]}>KTO WYPADŁ?</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </SafeAreaView>
+      );
+    }
 
     if (phase === 'WORK') {
       const workTimerLabel = formatTime(timeLeft);
@@ -4020,7 +5009,7 @@ export default function App() {
     const hasBothSections = hasKidSection && hasAdultSection;
 
     // Dynamic check: can pairs actually fit at readable size in grid mode?
-    // On tablet (>=1000px) never switch to phone view — cards shrink to fit.
+    // On tablet (>=1000px) never switch to phone view — cards shrink to fit (no scroll).
     if (!isPhonePairsView && screenWidth < 1000 && (kidsPairs.length > 0 || adultsPairs.length > 0)) {
       const estContentHeight = screenHeight - topBarMetrics.estimatedHeight - bottomBarMetrics.estimatedHeight - 48;
       const estMixedReserve = mixedPairs.length > 0 ? 140 : 0;
@@ -4122,7 +5111,7 @@ export default function App() {
         : pairContentWidth;
     const phoneSectionWidth = Math.max(240, pairContentWidth);
     const kidsWidthRatio = hasBothSections
-      ? clamp(0.22, kidsPairs.length / totalSplitPairs, kidsPairs.length >= 5 ? 0.42 : 0.34)
+      ? clamp(embedMixedInSide ? 0.28 : 0.22, kidsPairs.length / totalSplitPairs, kidsPairs.length >= 5 ? 0.42 : 0.34)
       : 1;
     const kidsPreferredWidth = hasBothSections
       ? clamp(240, splitAreaWidth * kidsWidthRatio, kidsPairs.length >= 5 ? 480 : 360)
@@ -4148,13 +5137,14 @@ export default function App() {
     const adultsBodyWidth = isPhonePairsView
       ? Math.max(220, phoneSectionWidth - pairSectionPadding * 2)
       : Math.max(220, adultsSectionWidth - pairSectionPadding * 2);
+    const sparringGridMinCardHeight = screenWidth >= 1000 ? 36 : 68;
     const kidsGridSpec = getBestPairGridSpec({
       count: kidsPairs.length,
       sectionWidth: kidsBodyWidth,
       sectionHeight: kidsSectionBodyHeight,
       cellPadding: pairCellPadding,
       minCardWidth: isPhonePairsView ? kidsBodyWidth : 180,
-      minCardHeight: isPhonePairsView ? phonePairCardHeight : 68,
+      minCardHeight: isPhonePairsView ? phonePairCardHeight : sparringGridMinCardHeight,
       preferredCardWidth: isPhonePairsView ? kidsBodyWidth : 240,
       maxCols: isPhonePairsView ? 1 : Math.min(kidsPairs.length || 1, 2),
       allowScroll: isPhonePairsView,
@@ -4165,13 +5155,13 @@ export default function App() {
       sectionHeight: sectionBodyHeight,
       cellPadding: pairCellPadding,
       minCardWidth: isPhonePairsView ? adultsBodyWidth : 180,
-      minCardHeight: isPhonePairsView ? phonePairCardHeight : 68,
+      minCardHeight: isPhonePairsView ? phonePairCardHeight : sparringGridMinCardHeight,
       preferredCardWidth: isPhonePairsView ? adultsBodyWidth : 300,
       maxCols: isPhonePairsView
         ? 1
         : Math.min(
             adultsPairs.length || 1,
-            adultsBodyWidth >= 1100 ? 4 : adultsBodyWidth >= 650 ? 3 : 2,
+            adultsBodyWidth >= 600 ? 4 : adultsBodyWidth >= 400 ? 3 : 2,
           ),
       allowScroll: isPhonePairsView,
     });
@@ -4183,7 +5173,7 @@ export default function App() {
           width: kidsSectionWidth,
           maxWidth: kidsSectionWidth,
           flexGrow: 0,
-          flexShrink: 0,
+          flexShrink: screenWidth >= 1000 ? 1 : 0,
         }
       : { flex: 1 };
     const adultsSectionStyle = hasBothSections
@@ -4192,7 +5182,7 @@ export default function App() {
           width: adultsSectionWidth,
           maxWidth: adultsSectionWidth,
           flexGrow: 0,
-          flexShrink: 0,
+          flexShrink: screenWidth >= 1000 ? 1 : 0,
         }
       : { flex: 1 };
 
@@ -4331,7 +5321,7 @@ export default function App() {
             paddingTop: pairSectionPadding,
             paddingBottom: pairSectionPadding,
           },
-          !isPhonePairsView && useFixedHeight && { height: splitAreaHeight },
+          !isPhonePairsView && useFixedHeight && (screenWidth >= 1000 ? {} : { height: splitAreaHeight }),
         ]}
         >
           <View style={[styles.matchSectionAccent, { backgroundColor: color }]} />
@@ -4459,7 +5449,7 @@ export default function App() {
             <View
               style={[
                 styles.splitMainArea,
-                { gap: pairSectionGap, minHeight: splitAreaHeight },
+                { gap: pairSectionGap, ...(screenWidth >= 1000 ? { flex: 1 } : { minHeight: splitAreaHeight }) },
               ]}
             >
               {hasKidSection && (
@@ -4492,7 +5482,7 @@ export default function App() {
                 paddingTop: pairSectionPadding,
                 paddingBottom: pairSectionPadding,
               },
-              !isPhonePairsView && { minHeight: mixedPanelHeight, height: mixedPanelHeight },
+              !isPhonePairsView && (screenWidth >= 1000 ? { flexShrink: 1 } : { minHeight: mixedPanelHeight, height: mixedPanelHeight }),
             ]}
           >
             <View style={[styles.matchSectionAccent, { backgroundColor: COLORS.accentMain }]} />
@@ -4529,7 +5519,7 @@ export default function App() {
                 paddingTop: pairSectionPadding,
                 paddingBottom: pairSectionPadding,
               },
-              !isPhonePairsView && { minHeight: restingPanelHeight, height: restingPanelHeight },
+              !isPhonePairsView && (screenWidth >= 1000 ? { flexShrink: 1 } : { minHeight: restingPanelHeight, height: restingPanelHeight }),
             ]}
           >
             <View style={[styles.matchSectionAccent, { backgroundColor: COLORS.accentAlert }]} />
@@ -4655,9 +5645,11 @@ export default function App() {
             {
               paddingHorizontal: topBarMetrics.paddingHorizontal,
               paddingVertical: topBarMetrics.paddingVertical,
+              overflow: 'hidden',
             },
           ]}
         >
+          {topBarWatermark}
           <View
             style={{
               flex: stackTimerTopBar ? 0 : 1,
@@ -4840,6 +5832,9 @@ export default function App() {
                                       <View style={[styles.rosterTypeBadge, isCompactSettingsUI && styles.rosterTypeBadgeCompact]}>
                                         <Text style={[styles.rosterTypeBadgeText, isCompactSettingsUI && styles.rosterTypeBadgeTextCompact]}>{p.type}</Text>
                                       </View>
+                                      <View style={[styles.rosterTypeBadge, isCompactSettingsUI && styles.rosterTypeBadgeCompact, { backgroundColor: (p.gender || 'M') === 'M' ? TOGGLE_TONES.male.backgroundColor : TOGGLE_TONES.female.backgroundColor, borderColor: (p.gender || 'M') === 'M' ? TOGGLE_TONES.male.borderColor : TOGGLE_TONES.female.borderColor }]}>
+                                        <Text style={[styles.rosterTypeBadgeText, isCompactSettingsUI && styles.rosterTypeBadgeTextCompact, { color: (p.gender || 'M') === 'M' ? TOGGLE_TONES.male.textColor : TOGGLE_TONES.female.textColor }]}>{(p.gender || 'M') === 'M' ? '♂' : '♀'}</Text>
+                                      </View>
                                     </View>
                                     <TouchableOpacity
                                       style={[styles.rosterCardDeleteBtn, isCompactSettingsUI && styles.rosterCardDeleteBtnCompact]}
@@ -4955,6 +5950,9 @@ export default function App() {
                               </View>
                               <View style={[styles.rosterTypeBadge, isCompactSettingsUI && styles.rosterTypeBadgeCompact]}>
                                 <Text style={[styles.rosterTypeBadgeText, isCompactSettingsUI && styles.rosterTypeBadgeTextCompact]}>{p.type}</Text>
+                              </View>
+                              <View style={[styles.rosterTypeBadge, isCompactSettingsUI && styles.rosterTypeBadgeCompact, { backgroundColor: (p.gender || 'M') === 'M' ? TOGGLE_TONES.male.backgroundColor : TOGGLE_TONES.female.backgroundColor, borderColor: (p.gender || 'M') === 'M' ? TOGGLE_TONES.male.borderColor : TOGGLE_TONES.female.borderColor }]}>
+                                <Text style={[styles.rosterTypeBadgeText, isCompactSettingsUI && styles.rosterTypeBadgeTextCompact, { color: (p.gender || 'M') === 'M' ? TOGGLE_TONES.male.textColor : TOGGLE_TONES.female.textColor }]}>{(p.gender || 'M') === 'M' ? '♂' : '♀'}</Text>
                               </View>
                             </View>
                             <TouchableOpacity
@@ -5100,6 +6098,7 @@ export default function App() {
           </TouchableOpacity>
         </View>
       </Modal>
+    {clubDBModal}
     </SafeAreaView>
   );
 }
@@ -6071,4 +7070,33 @@ const styles = StyleSheet.create({
   removeButtonText: { color: COLORS.textPrimary, fontSize: 18, fontWeight: '900' },
   closeModalButton: { backgroundColor: COLORS.borderSoft, paddingVertical: 15, paddingHorizontal: 40, borderRadius: 15, marginTop: 20 },
   closeModalButtonText: { color: COLORS.textPrimary, fontSize: 20, fontWeight: '900' },
+
+  clubDBButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: COLORS.accentCool,
+    shadowOpacity: 0,
+    elevation: 0,
+    flex: 0,
+    paddingHorizontal: 16,
+  },
+  clubDBButtonText: { color: COLORS.accentCool },
+  clubDBSearchWrap: { width: '100%', marginBottom: 12 },
+  clubDBSearchInput: {
+    backgroundColor: COLORS.bgPanel2,
+    color: COLORS.textPrimary,
+    fontSize: 16,
+    fontWeight: '700',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+  },
+  clubDBRowDisabled: { opacity: 0.4 },
+  clubDBDotOnMat: { backgroundColor: COLORS.textMuted },
+  clubDBNameOnMat: { color: COLORS.textMuted },
+  clubDBBadgeOnMat: { backgroundColor: 'rgba(255,255,255,0.04)', borderColor: COLORS.borderSoft },
+  clubDBBadgeTextOnMat: { color: COLORS.textMuted },
+  clubDBPlayerDetail: { color: COLORS.textSecondary, fontSize: 12, fontWeight: '600', marginTop: 2 },
 });
