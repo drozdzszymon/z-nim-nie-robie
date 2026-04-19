@@ -1827,6 +1827,7 @@ export default function App() {
   };
 
   const handleDevModeTrigger = () => {
+    if (!__DEV__) return;
     devModeClickCount.current += 1;
     setTimeout(() => { devModeClickCount.current = 0; }, 2000);
     if (devModeClickCount.current >= 5) {
