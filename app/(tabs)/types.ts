@@ -18,10 +18,33 @@ export const getSkillLevelShortLabel = (skillLevel: SkillLevel) => {
   return ADULT_SKILL_LEVEL_OPTIONS.find(option => option.value === skillLevel)?.shortLabel || '';
 };
 
+export type Gender = 'M' | 'F';
+export type TrainingMode = 'SPARING' | 'ZADANIOWKI' | 'DRILLE';
+export type IntensityProfile = 'BEST_FIRST' | 'BEST_LAST' | 'RANDOM';
+
+export type GenderMatchingMode = 'OFF' | 'PREFER' | 'STRICT';
+
+export interface SparringOptions {
+  prioritySlider: number;          // 0 = umiejętności, 100 = waga, 50 = domyślne/równe
+  intensityProfile: IntensityProfile;
+  weightDivisionEnabled: boolean;
+  weightDivisionThreshold: number; // kg
+  genderMatching: GenderMatchingMode;
+}
+
+export const DEFAULT_SPARRING_OPTIONS: SparringOptions = {
+  prioritySlider: 0,
+  intensityProfile: 'BEST_FIRST',
+  weightDivisionEnabled: false,
+  weightDivisionThreshold: 80,
+  genderMatching: 'OFF',
+};
+
 export interface RealPlayer {
   id: string;
   type: 'KID' | 'ADULT';
   gear: 'GI' | 'NO';
+  gender: Gender;
   weight: number;
   skillLevel: SkillLevel;
   restDebt: number;        // Pozostawione dla spójności stanu App, choć silnik używa byeHistory

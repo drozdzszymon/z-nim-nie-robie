@@ -1,4 +1,4 @@
-import { RealPlayer, Match, HistoryRecord } from '../types';
+import { RealPlayer, Match, HistoryRecord, SparringOptions, DEFAULT_SPARRING_OPTIONS } from '../types';
 
 type GroupType = 'KID' | 'ADULT';
 type BucketType = 'A' | 'B' | 'C' | 'D';
@@ -68,6 +68,10 @@ const ADULT_EXACT_LIMIT = 10;
 const ADULT_BEAM_WIDTH = 32;
 const ADULT_CANDIDATE_LIMIT = 4;
 const FREE_OUTFIT = 'FREE';
+
+// --- RUNTIME CONFIG (set before each generateRound call) ---
+let _sparringPrioritySlider = 0;
+let _intensityProfile: 'BEST_FIRST' | 'BEST_LAST' | 'RANDOM' = 'BEST_FIRST';
 
 // --- FUNKCJE POMOCNICZE DO HISTORII ---
 
@@ -516,9 +520,31 @@ const compareAdultMatchingScores = (
         return a.promotedKidAdultWeightTotal - b.promotedKidAdultWeightTotal;
     }
 
-    // Po stroju: umiejętności, potem waga.
-    if (a.totalSkillDiff !== b.totalSkillDiff) return a.totalSkillDiff - b.totalSkillDiff;
-    if (a.totalWeightDiff !== b.totalWeightDiff) return a.totalWeightDiff - b.totalWeightDiff;
+    // Dynamiczny priorytet: 4 snap points
+    // 0 = czyste umiejętności, 33 = umiejętności+waga, 67 = waga+umiejętności, 100 = czysta waga
+    // Kolejność doboru: BEST_LAST odwraca kierunek, RANDOM pomija ten blok
+    if (_intensityProfile === 'RANDOM') {
+        // Losowy dobór — pomijamy scoring skill/waga, pary będą losowe
+        // (recentPenalty i outfit matching nadal działają powyżej)
+    } else {
+        const direction = _intensityProfile === 'BEST_LAST' ? -1 : 1;
+
+        if (_sparringPrioritySlider <= 16) {
+            if (a.totalSkillDiff !== b.totalSkillDiff) return (a.totalSkillDiff - b.totalSkillDiff) * direction;
+            if (a.totalWeightDiff !== b.totalWeightDiff) return (a.totalWeightDiff - b.totalWeightDiff) * direction;
+        } else if (_sparringPrioritySlider <= 50) {
+            const aScore = a.totalSkillDiff * 10 + a.totalWeightDiff * 2;
+            const bScore = b.totalSkillDiff * 10 + b.totalWeightDiff * 2;
+            if (aScore !== bScore) return (aScore - bScore) * direction;
+        } else if (_sparringPrioritySlider <= 83) {
+            const aScore = a.totalWeightDiff * 10 + a.totalSkillDiff * 2;
+            const bScore = b.totalWeightDiff * 10 + b.totalSkillDiff * 2;
+            if (aScore !== bScore) return (aScore - bScore) * direction;
+        } else {
+            if (a.totalWeightDiff !== b.totalWeightDiff) return (a.totalWeightDiff - b.totalWeightDiff) * direction;
+            if (a.totalSkillDiff !== b.totalSkillDiff) return (a.totalSkillDiff - b.totalSkillDiff) * direction;
+        }
+    }
     if (a.totalLastMetRound !== b.totalLastMetRound) return a.totalLastMetRound - b.totalLastMetRound;
     if (a.bucketA !== b.bucketA) return b.bucketA - a.bucketA;
     if (a.bucketC !== b.bucketC) return b.bucketC - a.bucketC;
@@ -1086,7 +1112,90 @@ export const generateRound = (
     players: RealPlayer[],
     history: Map<string, HistoryRecord>,
     roundNum: number,
-    noRestPlayers: string[]
+    noRestPlayers: string[],
+    sparringOptions: SparringOptions = DEFAULT_SPARRING_OPTIONS,
+    totalRounds: number = 1
+): { matches: Match[]; resting: RealPlayer[] } => {
+    _sparringPrioritySlider = sparringOptions.prioritySlider;
+    _intensityProfile = sparringOptions.intensityProfile;
+
+    const activePlayers = [...players];
+
+    // Gender matching
+    if (sparringOptions.genderMatching !== 'OFF') {
+        let males = activePlayers.filter(p => (p.gender || 'M') === 'M');
+        let females = activePlayers.filter(p => (p.gender || 'M') === 'F');
+
+        if (females.length >= 2) {
+            if (sparringOptions.genderMatching === 'STRICT') {
+                // STRICT: kobiety TYLKO z kobietami, zawsze osobna pula, nawet jeśli ktoś siedzi
+                const maleResult = generateRoundInternal(males, history, roundNum, noRestPlayers, sparringOptions, totalRounds);
+                const femaleResult = generateRoundInternal(females, history, roundNum, noRestPlayers, sparringOptions, totalRounds);
+                return {
+                    matches: [...maleResult.matches, ...femaleResult.matches],
+                    resting: [...maleResult.resting, ...femaleResult.resting],
+                };
+            } else {
+                // PREFER: kobiety z kobietami dopóki nie wyczerpią round-robin, potem mieszane
+                const femaleRoundRobinDone = females.length < 2 || females.every(f =>
+                    females.filter(f2 => f2.id !== f.id).every(f2 => getTimesMet(f, f2, history) > 0)
+                );
+
+                if (!femaleRoundRobinDone) {
+                    // Nieparzysta liczba kobiet — nadmiarowa idzie do mężczyzn
+                    let femalesToMatch = [...females];
+                    let malesPool = [...males];
+                    if (femalesToMatch.length % 2 !== 0) {
+                        // Znajdź kobietę która walczyła z największą liczbą kobiet (najbliżej ukończenia round-robin)
+                        femalesToMatch.sort((a, b) => {
+                            const aMet = femalesToMatch.filter(f => f.id !== a.id && getTimesMet(a, f, history) > 0).length;
+                            const bMet = femalesToMatch.filter(f => f.id !== b.id && getTimesMet(b, f, history) > 0).length;
+                            return bMet - aMet; // ta co walczyła z największą liczbą idzie do mężczyzn
+                        });
+                        const moved = femalesToMatch.shift()!;
+                        malesPool.push(moved);
+                    }
+
+                    const maleResult = generateRoundInternal(malesPool, history, roundNum, noRestPlayers, sparringOptions, totalRounds);
+                    const femaleResult = generateRoundInternal(femalesToMatch, history, roundNum, noRestPlayers, sparringOptions, totalRounds);
+                    return {
+                        matches: [...maleResult.matches, ...femaleResult.matches],
+                        resting: [...maleResult.resting, ...femaleResult.resting],
+                    };
+                }
+                // Female round-robin complete — fall through to mixed matching
+            }
+        }
+        // If less than 2 females, fall through to mixed matching
+    }
+
+    // Weight division: split into weight groups if enabled
+    if (sparringOptions.weightDivisionEnabled) {
+        const threshold = sparringOptions.weightDivisionThreshold;
+        const lightGroup = activePlayers.filter(p => p.weight <= threshold);
+        const heavyGroup = activePlayers.filter(p => p.weight > threshold);
+
+        if (lightGroup.length >= 2 && heavyGroup.length >= 2) {
+            const lightResult = generateRoundInternal(lightGroup, history, roundNum, noRestPlayers, sparringOptions, totalRounds);
+            const heavyResult = generateRoundInternal(heavyGroup, history, roundNum, noRestPlayers, sparringOptions, totalRounds);
+            return {
+                matches: [...lightResult.matches, ...heavyResult.matches],
+                resting: [...lightResult.resting, ...heavyResult.resting],
+            };
+        }
+        // If one group too small, fall through to combined matching
+    }
+
+    return generateRoundInternal(activePlayers, history, roundNum, noRestPlayers, sparringOptions, totalRounds);
+};
+
+const generateRoundInternal = (
+    players: RealPlayer[],
+    history: Map<string, HistoryRecord>,
+    roundNum: number,
+    noRestPlayers: string[],
+    sparringOptions: SparringOptions = DEFAULT_SPARRING_OPTIONS,
+    totalRounds: number = 1
 ): { matches: Match[]; resting: RealPlayer[] } => {
     const activePlayers = [...players];
 
