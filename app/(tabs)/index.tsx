@@ -25,7 +25,11 @@ import {
 } from './types';
 import { t, Language, LANGUAGE_OPTIONS } from './i18n';
 
-const APP_LOGO = require('../../assets/logo.png');
+const APP_LOGOS = {
+  PL: require('../../assets/logo_pl.png'),
+  EN: require('../../assets/logo_en.png'),
+  PT: require('../../assets/logo_pt.png'),
+};
 
 // --- DESIGN SYSTEM ---
 const COLORS = {
@@ -2677,7 +2681,7 @@ export default function App() {
             </View>
           </View>
           <TouchableOpacity activeOpacity={1.0} style={{ width: isCompactSettingsUI ? 100 : 140, justifyContent: 'center' }} onPress={handleDevModeTrigger}>
-            <Image source={APP_LOGO} style={{ width: '100%', height: undefined, aspectRatio: 1, maxHeight: isCompactSettingsUI ? 110 : 140, borderRadius: 16 }} resizeMode="contain" />
+            <Image source={APP_LOGOS[lang]} style={{ width: '100%', height: undefined, aspectRatio: 1, maxHeight: isCompactSettingsUI ? 110 : 140, borderRadius: 16 }} resizeMode="contain" />
           </TouchableOpacity>
         </View>
 
@@ -3525,7 +3529,7 @@ export default function App() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Image source={APP_LOGO} style={{ width: 120, height: 120, borderRadius: 24 }} resizeMode="contain" />
+          <Image source={APP_LOGOS[lang]} style={{ width: 120, height: 120, borderRadius: 24 }} resizeMode="contain" />
         </View>
       </SafeAreaView>
     );
@@ -3542,7 +3546,7 @@ export default function App() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.langPickerContainer}>
-          <Image source={APP_LOGO} style={{ width: logoSize, height: logoSize, borderRadius: Math.round(logoSize * 0.12), marginBottom: 28 }} resizeMode="contain" />
+          <Image source={APP_LOGOS[lang]} style={{ width: logoSize, height: logoSize, borderRadius: Math.round(logoSize * 0.12), marginBottom: 28 }} resizeMode="contain" />
           <Text style={styles.langPickerTitle}>Z NIM NIE ROBIĘ</Text>
           <View style={styles.langPickerDivider} />
           <View style={styles.langPickerOptions}>
@@ -3581,7 +3585,7 @@ export default function App() {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.finishedContainer}>
           <View style={[styles.finishedTextWrap, { gap: finishedGap }]}>
-            <Image source={APP_LOGO} style={{ width: finishedLogoSize, height: finishedLogoSize, borderRadius: Math.round(finishedLogoSize * 0.08), marginBottom: finishedGap / 2 }} resizeMode="contain" />
+            <Image source={APP_LOGOS[lang]} style={{ width: finishedLogoSize, height: finishedLogoSize, borderRadius: Math.round(finishedLogoSize * 0.08), marginBottom: finishedGap / 2 }} resizeMode="contain" />
             <Text style={[styles.finishedTextBig, { fontSize: finishedBigFont, lineHeight: Math.round(finishedBigFont * 1.05) }]} adjustsFontSizeToFit={true} numberOfLines={1}>{t('thanks', lang)}</Text>
             <Text style={[styles.finishedTextSmall, { fontSize: finishedSmallFont, lineHeight: Math.round(finishedSmallFont * 1.1) }]} adjustsFontSizeToFit={true} numberOfLines={1}>{t('goodJob', lang)}</Text>
           </View>
@@ -4546,7 +4550,7 @@ export default function App() {
               {topBarWatermark}
               <View style={{ flex: dwStackTopBar ? 0 : 1, width: dwStackTopBar ? '100%' : undefined, paddingRight: dwStackTopBar ? 0 : 12 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  {!isDwojkiPhoneView && <Image source={APP_LOGO} style={{ width: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), height: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), borderRadius: 12 }} resizeMode="contain" />}
+                  {!isDwojkiPhoneView && <Image source={APP_LOGOS[lang]} style={{ width: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), height: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), borderRadius: 12 }} resizeMode="contain" />}
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.topBarRound, { fontSize: topBarMetrics.roundFont }]}>RUNDA {currentRound} / {roundsTotal}</Text>
                     <Text style={[styles.topBarPhase, { color: COLORS.accentMain, fontSize: topBarMetrics.phaseFont }]}>PRZYGOTOWANIE</Text>
@@ -4639,7 +4643,7 @@ export default function App() {
             {topBarWatermark}
             <View style={{ flex: 1, paddingRight: 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                {screenWidth >= 760 && <Image source={APP_LOGO} style={{ width: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), height: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), borderRadius: 12 }} resizeMode="contain" />}
+                {screenWidth >= 760 && <Image source={APP_LOGOS[lang]} style={{ width: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), height: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), borderRadius: 12 }} resizeMode="contain" />}
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.topBarRound, { fontSize: topBarMetrics.roundFont }]}>RUNDA {currentRound} / {roundsTotal}</Text>
                   <Text style={[styles.topBarPhase, { color: COLORS.accentMain, fontSize: topBarMetrics.phaseFont }]}>PRZYGOTOWANIE</Text>
@@ -5804,7 +5808,7 @@ export default function App() {
             }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              {isPrep && !isPhonePairsView && <Image source={APP_LOGO} style={{ width: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), height: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), borderRadius: 12 }} resizeMode="contain" />}
+              {isPrep && !isPhonePairsView && <Image source={APP_LOGOS[lang]} style={{ width: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), height: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), borderRadius: 12 }} resizeMode="contain" />}
               <View>
                 <Text style={[styles.topBarRound, { fontSize: topBarMetrics.roundFont }]}>RUNDA {displayRound} / {roundsTotal}</Text>
                 <Text
@@ -6151,7 +6155,7 @@ export default function App() {
         <Modal visible={isAboutModalVisible} transparent={true} animationType="fade" onRequestClose={() => setIsAboutModalVisible(false)}>
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { maxWidth: 420, width: '88%' }]}>
-              <Image source={APP_LOGO} style={{ width: 100, height: 100, borderRadius: 20, marginBottom: 16 }} resizeMode="contain" />
+              <Image source={APP_LOGOS[lang]} style={{ width: 100, height: 100, borderRadius: 20, marginBottom: 16 }} resizeMode="contain" />
               <Text style={[styles.modalTitle, { marginBottom: 4 }]}>Z NIM NIE ROBIĘ</Text>
               <Text style={{ color: COLORS.textMuted, fontSize: 15, fontWeight: '700', marginBottom: 20 }}>{t('aboutVersion', lang)}</Text>
 
