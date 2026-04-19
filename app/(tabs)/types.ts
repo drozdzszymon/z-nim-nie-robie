@@ -66,3 +66,18 @@ export interface HistoryRecord {
   byeHistory: number;
   lastByeRound: number;
 }
+
+export interface TrainingSessionPair {
+  p1: string;
+  p2: string;
+}
+
+export interface TrainingSession {
+  id: string;
+  date: string; // ISO string
+  mode: TrainingMode;
+  rounds: number;
+  roundTimeMin: number;
+  players: string[];
+  pairs: TrainingSessionPair[][]; // pairs per round
+}

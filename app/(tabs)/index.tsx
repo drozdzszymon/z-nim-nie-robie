@@ -20,7 +20,10 @@ import {
   SkillLevel,
   SparringOptions,
   TrainingMode,
+  TrainingSession,
+  TrainingSessionPair,
 } from './types';
+import { t, Language, LANGUAGE_OPTIONS } from './i18n';
 
 const APP_LOGO = require('../../assets/logo.png');
 
@@ -90,6 +93,8 @@ const TOGGLE_TONES = {
 const PLAYERS_DB_KEY = 'BJJ_PLAYERS_DB';
 const SKILL_LEVEL_SCHEMA_KEY = 'BJJ_SKILL_LEVEL_SCHEMA_VERSION';
 const SKILL_LEVEL_SCHEMA_VERSION = '2';
+const TRAINING_HISTORY_KEY = 'BJJ_TRAINING_HISTORY';
+const LANGUAGE_KEY = 'BJJ_LANGUAGE';
 
 const normalizeAdultSkillLevel = (skillLevel: number): AdultSkillLevel => {
   const parsedSkillLevel = Number.isFinite(skillLevel)
@@ -1263,6 +1268,13 @@ export default function App() {
   const [pairsMainLayout, setPairsMainLayout] = useState({ width: 0, height: 0 });
 
   const [currentScreen, setCurrentScreen] = useState('settings'); 
+  const [lang, setLang] = useState<Language>('PL');
+  const [langLoaded, setLangLoaded] = useState(false);
+  const [isStatsModalVisible, setIsStatsModalVisible] = useState(false);
+  const [trainingHistory, setTrainingHistory] = useState<TrainingSession[]>([]);
+  const [statsTab, setStatsTab] = useState<'TRENINGI' | 'FREKWENCJA' | 'PARY'>('TRENINGI');
+  const [statsFilter, setStatsFilter] = useState<'TYDZIEŃ' | 'MIESIĄC' | 'WSZYSTKO'>('WSZYSTKO');
+  const trainingPairsLog = useRef<TrainingSessionPair[][]>([]);
   const [timeLeft, setTimeLeft] = useState(0); 
   const [isActive, setIsActive] = useState(false); 
   const [phase, setPhase] = useState('PREP'); 
@@ -1473,6 +1485,36 @@ export default function App() {
     loadDatabase();
   }, []);
 
+  useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(TRAINING_HISTORY_KEY);
+        if (stored) setTrainingHistory(JSON.parse(stored));
+      } catch {}
+    };
+    loadHistory();
+  }, []);
+
+  useEffect(() => {
+    const loadLang = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(LANGUAGE_KEY);
+        if (stored && (stored === 'PL' || stored === 'EN' || stored === 'PT')) {
+          setLang(stored as Language);
+        } else {
+          setCurrentScreen('langPicker');
+        }
+      } catch {}
+      setLangLoaded(true);
+    };
+    loadLang();
+  }, []);
+
+  const handleSelectLanguage = async (l: Language) => {
+    setLang(l);
+    try { await AsyncStorage.setItem(LANGUAGE_KEY, l); } catch {}
+  };
+
   // Set audio mode globally on mount so ducking works from the start
   useEffect(() => {
     ensureAudioFocus();
@@ -1607,10 +1649,10 @@ export default function App() {
   };
 
   const handleAddPlayer = async () => {
-    if (!newName.trim()) return showInfo("Podaj pseudonim zawodnika!");
-    if (!newWeight.trim() || isNaN(Number(newWeight))) return showInfo("Podaj prawidłową wagę!");
+    if (!newName.trim()) return showInfo(t('errNoName', lang));
+    if (!newWeight.trim() || isNaN(Number(newWeight))) return showInfo(t('errNoWeight', lang));
     
-    if (!editingPlayerId && roster.find(p => p.id.toLowerCase() === newName.trim().toLowerCase())) return showInfo("Zawodnik już dodany!");
+    if (!editingPlayerId && roster.find(p => p.id.toLowerCase() === newName.trim().toLowerCase())) return showInfo(t('errDuplicate', lang));
 
     const newPlayer: RealPlayer = {
         id: newName.trim().toUpperCase(),
@@ -1680,12 +1722,34 @@ export default function App() {
     setClubDBSearchText('');
   };
 
+  const saveTrainingSession = async () => {
+    const session: TrainingSession = {
+      id: Date.now().toString(36),
+      date: new Date().toISOString(),
+      mode: trainingMode,
+      rounds: parseInt(roundsTotal) || 0,
+      roundTimeMin: parseFloat(roundTime) || 0,
+      players: roster.map(p => p.id),
+      pairs: trainingPairsLog.current,
+    };
+    const updated = [session, ...trainingHistory];
+    setTrainingHistory(updated);
+    trainingPairsLog.current = [];
+    try { await AsyncStorage.setItem(TRAINING_HISTORY_KEY, JSON.stringify(updated)); } catch {}
+  };
+
+  const handleDeleteTrainingSession = (sessionId: string) => {
+    const updated = trainingHistory.filter(s => s.id !== sessionId);
+    setTrainingHistory(updated);
+    AsyncStorage.setItem(TRAINING_HISTORY_KEY, JSON.stringify(updated)).catch(() => {});
+  };
+
   const handleRemoveFromRoster = (id: string) => {
     const player = roster.find(p => p.id === id);
     const playerName = player ? player.id : id;
     showConfirm(
-      'Usuń zawodnika',
-      `Czy na pewno chcesz usunąć ${playerName} z maty?`,
+      t('confirmDeleteTitle', lang),
+      `${t('confirmDeleteMsg', lang)} ${playerName} ${t('confirmDeleteFromMat', lang)}`,
       () => {
         setRoster(roster.filter(p => p.id !== id));
         setNoRestPlayers(noRestPlayers.filter(pid => pid !== id));
@@ -1694,12 +1758,12 @@ export default function App() {
           setNewName('');
         }
       },
-      'Usuń'
+      t('delete', lang)
     );
   };
 
   const handleClearRoster = () => {
-    showConfirm("Nowy Trening", "Czy na pewno chcesz wyczyścić matę z zawodników?", () => {
+    showConfirm(t('confirmNewTraining', lang), t('confirmClearMat', lang), () => {
         setRoster([]);
         setNoRestPlayers([]);
         setEditingPlayerId(null);
@@ -1759,7 +1823,7 @@ export default function App() {
 
     setRoster(testPlayers);
     setIsDevMode(true);
-    showInfo("Dev Mode Aktywny", "Wgrano 46 zawodników z bazy testowej.");
+    showInfo(t('devModeActive', lang), t('devModeMsg', lang));
   };
 
   const handleDevModeTrigger = () => {
@@ -1923,30 +1987,30 @@ export default function App() {
     const fullText = textParts.join('\n');
     if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(fullText).then(() => {
-        showInfo('Skopiowano!', `Symulacja ${rds} rund skopiowana do schowka.`);
+        showInfo(t('simCopied', lang), `${t('simTitle', lang)} ${rds} ${t('simCopiedMsg', lang)}`);
       }).catch(() => {
-        showInfo('Symulacja rund', fullText);
+        showInfo(t('simTitle', lang), fullText);
       });
     } else {
-      showInfo('Symulacja rund', fullText);
+      showInfo(t('simTitle', lang), fullText);
     }
   };
 
   const handleStartTraining = async () => {
-    if (roster.length < 2) return showInfo("Musisz dodać przynajmniej dwóch zawodników!");
+    if (roster.length < 2) return showInfo(t('errMinPlayers', lang));
     
     const rt = parseFloat(roundTime);
     const rds = parseInt(roundsTotal, 10);
-    if (!rt || rt <= 0) return showInfo("Czas rundy musi być większy od 0!");
-    if (!rds || rds <= 0) return showInfo("Liczba rund musi być większa od 0!");
+    if (!rt || rt <= 0) return showInfo(t('errRoundTime', lang));
+    if (!rds || rds <= 0) return showInfo(t('errRoundsTotal', lang));
     
     const isWeightDivision = trainingMode === 'SPARING' && sparringOptions.weightDivisionEnabled;
 
     if (!isWeightDivision) {
       const pt = parseInt(prepTime, 10);
       const rst = parseInt(restTime, 10);
-      if (!pt || pt <= 0) return showInfo("Czas przygotowania musi być większy od 0!");
-      if (!rst || rst <= 0) return showInfo("Czas przerwy musi być większy od 0!");
+      if (!pt || pt <= 0) return showInfo(t('errPrepTime', lang));
+      if (!rst || rst <= 0) return showInfo(t('errRestTime', lang));
     }
 
     // Dev mode: show all rounds simulation before starting
@@ -1984,7 +2048,7 @@ export default function App() {
         const groupB = freshRoster.filter(p => p.weight > threshold);
 
         if (groupA.length < 2 || groupB.length < 2) {
-            return showInfo("Podział wagowy wymaga min. 2 zawodników w każdej grupie wagowej!");
+            return showInfo(t('errWeightDivision', lang));
         }
 
         const resultA = generateRound(groupA, historyRef.current, 1, noRestPlayers, sparringOptions, rds);
@@ -2121,7 +2185,7 @@ export default function App() {
 
   const handleConfirmDropoutSelection = () => {
     if (selectedDropoutPlayerIds.length === 0) {
-      showInfo('Wybierz przynajmniej jednego zawodnika, który wypadł z treningu.');
+      showInfo(t('errSelectDropout', lang));
       return;
     }
 
@@ -2302,6 +2366,21 @@ export default function App() {
     return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  // Log pairs when a WORK phase starts
+  useEffect(() => {
+    if (phase === 'WORK' && currentScreen !== 'settings' && currentScreen !== 'finished') {
+      const pairs: TrainingSessionPair[] = currentMatchesRef.current.map(m => ({ p1: m.p1.id, p2: m.p2.id }));
+      if (pairs.length > 0) trainingPairsLog.current.push(pairs);
+    }
+  }, [phase, currentRound, currentStep]);
+
+  // Save training session when training finishes
+  useEffect(() => {
+    if (currentScreen === 'finished' && roster.length >= 2) {
+      saveTrainingSession();
+    }
+  }, [currentScreen]);
+
   const getRoleColor = (char: string) => {
       if (char === '[A]') return COLORS.accentMain;
       if (char === '[B]') return COLORS.accentCool;
@@ -2433,16 +2512,16 @@ export default function App() {
     : null;
   const startTrainingLabel =
     trainingMode === 'SPARING'
-      ? 'START SPARINGÓW'
+      ? t('startSparring', lang)
       : trainingMode === 'ZADANIOWKI'
         ? (zadaniowkiType === 'TRÓJKI'
-          ? 'START ZADANIÓWKI W TRÓJKACH'
-          : 'START ZADANIÓWKI W PARACH')
-        : 'START DRILLI';
+          ? t('startZadaniowkiTriads', lang)
+          : t('startZadaniowkiPairs', lang))
+        : t('startDrills', lang);
   const topBarWatermarkLabel =
-    trainingMode === 'SPARING' ? 'SPARINGI'
-    : trainingMode === 'ZADANIOWKI' ? 'ZADANIÓWKI'
-    : 'DRILLE';
+    trainingMode === 'SPARING' ? t('modeSparring', lang)
+    : trainingMode === 'ZADANIOWKI' ? t('modeZadaniowki', lang)
+    : t('modeDrille', lang);
   const topBarWatermark = (
     <View style={{ position: 'absolute', left: 0, width: screenWidth, height: topBarMetrics.estimatedHeight, justifyContent: 'center', alignItems: 'center', pointerEvents: 'none', zIndex: 0 } as any}>
       <Text style={{
@@ -2531,12 +2610,12 @@ export default function App() {
         <View style={{ flexDirection: 'row', gap: isCompactSettingsUI ? 10 : 14 }}>
           <View style={{ flex: 1 }}>
             <View style={[styles.controlPanelHeader, isCompactSettingsUI && styles.controlPanelHeaderCompact]}>
-              <Text style={styles.controlPanelEyebrow}>SKŁAD</Text>
-              <Text style={[styles.controlPanelTitle, isCompactSettingsUI && styles.controlPanelTitleCompact]}>Dodaj zawodnika</Text>
+              <Text style={styles.controlPanelEyebrow}>{t('sectionSquad', lang)}</Text>
+              <Text style={[styles.controlPanelTitle, isCompactSettingsUI && styles.controlPanelTitleCompact]}>{t('sectionSquadTitle', lang)}</Text>
               <Text style={[styles.controlPanelSubtitle, isCompactSettingsUI && styles.controlPanelSubtitleCompact]}>
                 {isCompactSettingsUI
-                  ? 'Ustaw zawodnika i szybko dorzuć go na matę.'
-                  : 'Szybko ustaw zawodnika i od razu dorzuć go na matę.'}
+                  ? t('sectionSquadSubtitleCompact', lang)
+                  : t('sectionSquadSubtitle', lang)}
               </Text>
             </View>
 
@@ -2605,13 +2684,13 @@ export default function App() {
           <>
             <View style={[styles.compactFormRow, styles.compactFormRowRaised]}>
               <View style={[styles.fieldBlock, styles.fieldBlockCompact, styles.compactFieldPrimary, styles.compactFieldRaised]}>
-                <Text style={styles.fieldLabelBadge}>PSEUDONIM</Text>
+                <Text style={styles.fieldLabelBadge}>{t('pseudonym', lang)}</Text>
                 <View>
                   <TextInput 
                       style={[styles.inputText, styles.inputTextCompact]} 
                       value={newName} 
                       onChangeText={handleNameChange} 
-                      placeholder="np. Kowalski" 
+                      placeholder={t('placeholderName', lang)} 
                       placeholderTextColor={COLORS.textMuted} 
                       autoCorrect={false}
                       maxLength={35}
@@ -2633,14 +2712,14 @@ export default function App() {
               </View>
               
               <View style={[styles.fieldBlock, styles.fieldBlockCompact, styles.compactFieldSecondary]}>
-              <Text style={styles.fieldLabelBadge}>WAGA (KG)</Text>
-              <TextInput style={[styles.inputText, styles.inputTextCompact]} keyboardType="numeric" value={newWeight} onChangeText={setNewWeight} placeholder="np. 82" placeholderTextColor={COLORS.textMuted} />
+              <Text style={styles.fieldLabelBadge}>{t('weightKg', lang)}</Text>
+              <TextInput style={[styles.inputText, styles.inputTextCompact]} keyboardType="numeric" value={newWeight} onChangeText={setNewWeight} placeholder={t('placeholderWeight', lang)} placeholderTextColor={COLORS.textMuted} />
               </View>
             </View>
 
             <View style={styles.compactFormRow}>
               <View style={[styles.optionGroup, styles.optionGroupCompact, styles.compactFieldHalf]}>
-                <Text style={styles.optionGroupLabel}>KATEGORIA</Text>
+                <Text style={styles.optionGroupLabel}>{t('category', lang)}</Text>
                 <View style={styles.togglesRow}>
                   <TouchableOpacity
                     style={[
@@ -2672,7 +2751,7 @@ export default function App() {
               </View>
 
               <View style={[styles.optionGroup, styles.optionGroupCompact, styles.compactFieldHalf]}>
-                <Text style={styles.optionGroupLabel}>STRÓJ</Text>
+                <Text style={styles.optionGroupLabel}>{t('gear', lang)}</Text>
                 <View style={styles.togglesRow}>
                   <TouchableOpacity
                     style={[
@@ -2706,7 +2785,7 @@ export default function App() {
 
             <View style={styles.compactFormRow}>
               <View style={[styles.optionGroup, styles.optionGroupCompact, { flex: 1 }]}>
-                <Text style={styles.optionGroupLabel}>PŁEĆ</Text>
+                <Text style={styles.optionGroupLabel}>{t('gender', lang)}</Text>
                 <View style={styles.togglesRow}>
                   <TouchableOpacity
                     style={[
@@ -2719,7 +2798,7 @@ export default function App() {
                     ]}
                     onPress={() => setNewGender('M')}
                   >
-                    <Text style={[styles.toggleText, styles.toggleTextCompact, newGender === 'M' && { color: TOGGLE_TONES.male.textColor }]}>♂ M</Text>
+                    <Text style={[styles.toggleText, styles.toggleTextCompact, newGender === 'M' && { color: TOGGLE_TONES.male.textColor }]}>{t('maleShort', lang)}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[
@@ -2732,7 +2811,7 @@ export default function App() {
                     ]}
                     onPress={() => setNewGender('F')}
                   >
-                    <Text style={[styles.toggleText, styles.toggleTextCompact, newGender === 'F' && { color: TOGGLE_TONES.female.textColor }]}>♀ K</Text>
+                    <Text style={[styles.toggleText, styles.toggleTextCompact, newGender === 'F' && { color: TOGGLE_TONES.female.textColor }]}>{t('femaleShort', lang)}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -2741,13 +2820,13 @@ export default function App() {
         ) : (
           <>
             <View style={[styles.fieldBlock, isCompactSettingsUI && styles.fieldBlockCompact, { zIndex: 10 }]}>
-              <Text style={styles.fieldLabelBadge}>PSEUDONIM</Text>
+              <Text style={styles.fieldLabelBadge}>{t('pseudonym', lang)}</Text>
               <View>
                 <TextInput 
                     style={[styles.inputText, isCompactSettingsUI && styles.inputTextCompact]} 
                     value={newName} 
                     onChangeText={handleNameChange} 
-                    placeholder="np. Kowalski" 
+                    placeholder={t('placeholderName', lang)} 
                     placeholderTextColor={COLORS.textMuted} 
                     autoCorrect={false}
                     maxLength={35}
@@ -2769,12 +2848,12 @@ export default function App() {
             </View>
             
             <View style={[styles.fieldBlock, isCompactSettingsUI && styles.fieldBlockCompact]}>
-              <Text style={styles.fieldLabelBadge}>WAGA (KG)</Text>
-              <TextInput style={[styles.inputText, isCompactSettingsUI && styles.inputTextCompact]} keyboardType="numeric" value={newWeight} onChangeText={setNewWeight} placeholder="np. 82" placeholderTextColor={COLORS.textMuted} />
+              <Text style={styles.fieldLabelBadge}>{t('weightKg', lang)}</Text>
+              <TextInput style={[styles.inputText, isCompactSettingsUI && styles.inputTextCompact]} keyboardType="numeric" value={newWeight} onChangeText={setNewWeight} placeholder={t('placeholderWeight', lang)} placeholderTextColor={COLORS.textMuted} />
             </View>
             
             <View style={[styles.optionGroup, isCompactSettingsUI && styles.optionGroupCompact]}>
-              <Text style={styles.optionGroupLabel}>KATEGORIA</Text>
+              <Text style={styles.optionGroupLabel}>{t('category', lang)}</Text>
               <View style={styles.togglesRow}>
                 <TouchableOpacity
                   style={[
@@ -2806,7 +2885,7 @@ export default function App() {
             </View>
 
             <View style={[styles.optionGroup, isCompactSettingsUI && styles.optionGroupCompact]}>
-              <Text style={styles.optionGroupLabel}>STRÓJ</Text>
+              <Text style={styles.optionGroupLabel}>{t('gear', lang)}</Text>
               <View style={styles.togglesRow}>
                 <TouchableOpacity
                   style={[
@@ -2838,7 +2917,7 @@ export default function App() {
             </View>
 
             <View style={[styles.optionGroup, isCompactSettingsUI && styles.optionGroupCompact]}>
-              <Text style={styles.optionGroupLabel}>PŁEĆ</Text>
+              <Text style={styles.optionGroupLabel}>{t('gender', lang)}</Text>
               <View style={styles.togglesRow}>
                 <TouchableOpacity
                   style={[
@@ -2851,7 +2930,7 @@ export default function App() {
                   ]}
                   onPress={() => setNewGender('M')}
                 >
-                  <Text style={[styles.toggleText, isCompactSettingsUI && styles.toggleTextCompact, newGender === 'M' && { color: TOGGLE_TONES.male.textColor }]}>♂ M</Text>
+                  <Text style={[styles.toggleText, isCompactSettingsUI && styles.toggleTextCompact, newGender === 'M' && { color: TOGGLE_TONES.male.textColor }]}>{t('maleShort', lang)}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
@@ -2864,7 +2943,7 @@ export default function App() {
                   ]}
                   onPress={() => setNewGender('F')}
                 >
-                  <Text style={[styles.toggleText, isCompactSettingsUI && styles.toggleTextCompact, newGender === 'F' && { color: TOGGLE_TONES.female.textColor }]}>♀ K</Text>
+                  <Text style={[styles.toggleText, isCompactSettingsUI && styles.toggleTextCompact, newGender === 'F' && { color: TOGGLE_TONES.female.textColor }]}>{t('femaleShort', lang)}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -2873,7 +2952,7 @@ export default function App() {
 
         {newType === 'ADULT' && (
           <View style={[styles.optionGroup, isCompactSettingsUI && styles.optionGroupCompact]}>
-            <Text style={styles.optionGroupLabel}>POZIOM</Text>
+            <Text style={styles.optionGroupLabel}>{t('level', lang)}</Text>
             <View style={styles.togglesRow}>
               {ADULT_SKILL_LEVEL_OPTIONS.map((option) => {
                 const optionTone = getSkillToggleTone(option.value);
@@ -2903,11 +2982,11 @@ export default function App() {
 
         <View style={{ flexDirection: 'row', gap: isCompactSettingsUI ? 8 : 10 }}>
           <TouchableOpacity style={[styles.addButton, isCompactSettingsUI && styles.addButtonCompact, { flex: 1 }]} onPress={handleAddPlayer}>
-              <Text style={[styles.addButtonText, isCompactSettingsUI && styles.addButtonTextCompact]}>{editingPlayerId ? 'ZAPISZ ZMIANY' : 'DODAJ ZAWODNIKA'}</Text>
+              <Text style={[styles.addButtonText, isCompactSettingsUI && styles.addButtonTextCompact]}>{editingPlayerId ? t('saveChanges', lang) : t('addPlayer', lang)}</Text>
           </TouchableOpacity>
           {savedPlayersDB.length > 0 && !editingPlayerId && (
             <TouchableOpacity style={[styles.addButton, isCompactSettingsUI && styles.addButtonCompact, styles.clubDBButton]} onPress={handleOpenClubDB}>
-                <Text style={[styles.addButtonText, isCompactSettingsUI && styles.addButtonTextCompact, styles.clubDBButtonText]}>DODAJ Z BAZY</Text>
+                <Text style={[styles.addButtonText, isCompactSettingsUI && styles.addButtonTextCompact, styles.clubDBButtonText]}>{t('addFromDB', lang)}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -2916,23 +2995,23 @@ export default function App() {
       <View style={[styles.controlPanel, isCompactSettingsUI && styles.controlPanelCompact]}>
         <View style={[styles.controlPanelAccent, { backgroundColor: COLORS.accentCool }]} />
         <View style={[styles.controlPanelHeader, isCompactSettingsUI && styles.controlPanelHeaderCompact]}>
-          <Text style={styles.controlPanelEyebrow}>TRENING</Text>
-          <Text style={[styles.controlPanelTitle, isCompactSettingsUI && styles.controlPanelTitleCompact]}>Czas i rytm rund</Text>
+          <Text style={styles.controlPanelEyebrow}>{t('sectionTraining', lang)}</Text>
+          <Text style={[styles.controlPanelTitle, isCompactSettingsUI && styles.controlPanelTitleCompact]}>{t('sectionTrainingTitle', lang)}</Text>
           <Text style={[styles.controlPanelSubtitle, isCompactSettingsUI && styles.controlPanelSubtitleCompact]}>
             {isCompactSettingsUI
-              ? 'Ustaw przygotowanie, pracę, przerwy i rundy.'
-              : 'Ustaw przygotowanie, pracę, przerwy i liczbę rund w czytelnej siatce.'}
+              ? t('sectionTrainingSubtitleCompact', lang)
+              : t('sectionTrainingSubtitle', lang)}
           </Text>
         </View>
 
         <View style={[styles.timeGrid, isCompactSettingsUI && styles.timeGridCompact]}>
           <View style={[styles.timeGridRow, isCompactSettingsUI && styles.timeGridRowCompact, stackTimeCards && styles.timeGridRowStacked]}>
             <View style={[styles.timeCard, isCompactSettingsUI && styles.timeCardCompact, stackTimeCards && styles.timeCardStacked]}>
-              <Text style={[styles.timeCardLabel, isCompactSettingsUI && styles.timeCardLabelCompact]}>RUNDA (MIN)</Text>
+              <Text style={[styles.timeCardLabel, isCompactSettingsUI && styles.timeCardLabelCompact]}>{t('roundMin', lang)}</Text>
               <TextInput style={[styles.timeCardInput, isCompactSettingsUI && styles.timeCardInputCompact]} keyboardType="numeric" value={roundTime} onChangeText={handleSetRoundTime} />
             </View>
             <View style={[styles.timeCard, isCompactSettingsUI && styles.timeCardCompact, stackTimeCards && styles.timeCardStacked, sparringOptions.weightDivisionEnabled && { opacity: 0.35 }]}>
-              <Text style={[styles.timeCardLabel, isCompactSettingsUI && styles.timeCardLabelCompact]}>PRZYGOT. (S)</Text>
+              <Text style={[styles.timeCardLabel, isCompactSettingsUI && styles.timeCardLabelCompact]}>{t('prepTimeS', lang)}</Text>
               {sparringOptions.weightDivisionEnabled
                 ? <Text style={[styles.timeCardInput, isCompactSettingsUI && styles.timeCardInputCompact, { textAlign: 'center' }]}>90</Text>
                 : <TextInput style={[styles.timeCardInput, isCompactSettingsUI && styles.timeCardInputCompact]} keyboardType="numeric" value={prepTime} onChangeText={handleSetPrepTime} />
@@ -2941,14 +3020,14 @@ export default function App() {
           </View>
           <View style={[styles.timeGridRow, isCompactSettingsUI && styles.timeGridRowCompact, stackTimeCards && styles.timeGridRowStacked]}>
             <View style={[styles.timeCard, isCompactSettingsUI && styles.timeCardCompact, stackTimeCards && styles.timeCardStacked, sparringOptions.weightDivisionEnabled && { opacity: 0.35 }]}>
-              <Text style={[styles.timeCardLabel, isCompactSettingsUI && styles.timeCardLabelCompact]}>PRZERWA (S)</Text>
+              <Text style={[styles.timeCardLabel, isCompactSettingsUI && styles.timeCardLabelCompact]}>{t('restTimeS', lang)}</Text>
               {sparringOptions.weightDivisionEnabled
                 ? <Text style={[styles.timeCardInput, isCompactSettingsUI && styles.timeCardInputCompact, { textAlign: 'center' }]}>20</Text>
                 : <TextInput style={[styles.timeCardInput, isCompactSettingsUI && styles.timeCardInputCompact]} keyboardType="numeric" value={restTime} onChangeText={handleSetRestTime} />
               }
             </View>
             <View style={[styles.timeCard, isCompactSettingsUI && styles.timeCardCompact, stackTimeCards && styles.timeCardStacked]}>
-              <Text style={[styles.timeCardLabel, isCompactSettingsUI && styles.timeCardLabelCompact]}>RUNDY</Text>
+              <Text style={[styles.timeCardLabel, isCompactSettingsUI && styles.timeCardLabelCompact]}>{t('rounds', lang)}</Text>
               <TextInput style={[styles.timeCardInput, isCompactSettingsUI && styles.timeCardInputCompact]} keyboardType="numeric" value={roundsTotal} onChangeText={handleSetRoundsTotal} />
             </View>
           </View>
@@ -2958,14 +3037,14 @@ export default function App() {
       <View style={[styles.controlPanel, isCompactSettingsUI && styles.controlPanelCompact]}>
         <View style={[styles.controlPanelAccent, { backgroundColor: COLORS.accentMain }]} />
         <View style={[styles.controlPanelHeader, isCompactSettingsUI && styles.controlPanelHeaderCompact]}>
-          <Text style={styles.controlPanelEyebrow}>TRYB TRENINGU</Text>
-          <Text style={[styles.controlPanelTitle, isCompactSettingsUI && styles.controlPanelTitleCompact]}>Wybierz tryb i dostosuj</Text>
+          <Text style={styles.controlPanelEyebrow}>{t('sectionMode', lang)}</Text>
+          <Text style={[styles.controlPanelTitle, isCompactSettingsUI && styles.controlPanelTitleCompact]}>{t('sectionModeTitle', lang)}</Text>
         </View>
 
         <View style={[styles.optionsRow, isCompactSettingsUI && styles.optionsRowCompact, { marginBottom: 10 }]}>
           {(['SPARING', 'ZADANIOWKI', 'DRILLE'] as TrainingMode[]).map((mode) => {
             const isSelected = trainingMode === mode;
-            const label = mode === 'SPARING' ? 'SPARINGI' : mode === 'ZADANIOWKI' ? 'ZADANIÓWKI' : 'DRILLE';
+            const label = mode === 'SPARING' ? t('modeSparring', lang) : mode === 'ZADANIOWKI' ? t('modeZadaniowki', lang) : t('modeDrille', lang);
             return (
               <TouchableOpacity
                 key={mode}
@@ -3005,7 +3084,7 @@ export default function App() {
         {trainingMode === 'SPARING' && (
           <View style={{ gap: isCompactSettingsUI ? 8 : 10 }}>
             <TouchableOpacity style={[styles.vipButton, isCompactSettingsUI && styles.vipButtonCompact]} onPress={() => setIsVipModalVisible(true)}>
-              <Text style={[styles.vipButtonText, isCompactSettingsUI && styles.vipButtonTextCompact]}>BEZ PAUZY (VIP)</Text>
+              <Text style={[styles.vipButtonText, isCompactSettingsUI && styles.vipButtonTextCompact]}>{t('noRestVip', lang)}</Text>
             </TouchableOpacity>
 
             <View style={{ gap: 6 }}>
@@ -3013,15 +3092,15 @@ export default function App() {
                 <TouchableOpacity onPress={() => setActiveInfoTooltip(activeInfoTooltip === 'priority' ? null : 'priority')} style={{ width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: activeInfoTooltip === 'priority' ? COLORS.accentMain : COLORS.borderStrong, backgroundColor: activeInfoTooltip === 'priority' ? withAlpha(COLORS.accentMain, 0.15) : 'transparent', justifyContent: 'center', alignItems: 'center' }}>
                   <Text style={{ color: activeInfoTooltip === 'priority' ? COLORS.accentMain : COLORS.textMuted, fontSize: 8, fontWeight: '800' }}>i</Text>
                 </TouchableOpacity>
-                <Text style={styles.optionGroupLabel}>PRIORYTET DOBORU</Text>
+                <Text style={styles.optionGroupLabel}>{t('priorityLabel', lang)}</Text>
               </View>
               {activeInfoTooltip === 'priority' && (
                 <Text style={{ color: COLORS.textMuted, fontSize: isCompactSettingsUI ? 10 : 11, marginBottom: 6, lineHeight: isCompactSettingsUI ? 14 : 16 }}>
-                  Określa co jest ważniejsze przy dobieraniu par. UMIEJĘTNOŚCI — pary o zbliżonym poziomie. WAGA — pary o zbliżonej masie ciała. Pozycje pośrednie łączą oba kryteria.
+                  {t('tooltipPriority', lang)}
                 </Text>
               )}
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <Text style={{ color: sparringOptions.prioritySlider <= 16 ? COLORS.accentCool : COLORS.textMuted, fontSize: isCompactSettingsUI ? 12 : 13, fontWeight: '700' }}>UMIEJĘTNOŚCI</Text>
+                <Text style={{ color: sparringOptions.prioritySlider <= 16 ? COLORS.accentCool : COLORS.textMuted, fontSize: isCompactSettingsUI ? 12 : 13, fontWeight: '700' }}>{t('skillsLabel', lang)}</Text>
                 <View
                   style={{ flex: 1, height: 32, justifyContent: 'center' }}
                   onLayout={(e) => { prioritySliderWidthRef.current = e.nativeEvent.layout.width; }}
@@ -3098,18 +3177,18 @@ export default function App() {
                 <TouchableOpacity onPress={() => setActiveInfoTooltip(activeInfoTooltip === 'order' ? null : 'order')} style={{ width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: activeInfoTooltip === 'order' ? COLORS.accentMain : COLORS.borderStrong, backgroundColor: activeInfoTooltip === 'order' ? withAlpha(COLORS.accentMain, 0.15) : 'transparent', justifyContent: 'center', alignItems: 'center' }}>
                   <Text style={{ color: activeInfoTooltip === 'order' ? COLORS.accentMain : COLORS.textMuted, fontSize: 8, fontWeight: '800' }}>i</Text>
                 </TouchableOpacity>
-                <Text style={styles.optionGroupLabel}>KOLEJNOŚĆ WALK</Text>
+                <Text style={styles.optionGroupLabel}>{t('fightOrder', lang)}</Text>
               </View>
               {activeInfoTooltip === 'order' && (
                 <Text style={{ color: COLORS.textMuted, fontSize: isCompactSettingsUI ? 10 : 11, marginBottom: 6, lineHeight: isCompactSettingsUI ? 14 : 16 }}>
-                  ZBLIŻONE — najbardziej wyrównane walki na początku, z rundami coraz bardziej zróżnicowane. RÓŻNE — odwrotnie, najlepsze pary na koniec. LOSOWO — kolejność losowa.
+                  {t('tooltipFightOrder', lang)}
                 </Text>
               )}
               <View style={[styles.optionsRow, isCompactSettingsUI && styles.optionsRowCompact]}>
                 {([
-                  { value: 'BEST_FIRST' as IntensityProfile, label: 'ZBLIŻONE' },
-                  { value: 'BEST_LAST' as IntensityProfile, label: 'RÓŻNE' },
-                  { value: 'RANDOM' as IntensityProfile, label: 'LOSOWO' },
+                  { value: 'BEST_FIRST' as IntensityProfile, label: t('orderMatched', lang) },
+                  { value: 'BEST_LAST' as IntensityProfile, label: t('orderVaried', lang) },
+                  { value: 'RANDOM' as IntensityProfile, label: t('orderRandom', lang) },
                 ]).map((opt) => {
                   const isActive = sparringOptions.intensityProfile === opt.value;
                   return (
@@ -3134,11 +3213,11 @@ export default function App() {
                 <TouchableOpacity onPress={() => setActiveInfoTooltip(activeInfoTooltip === 'weight' ? null : 'weight')} style={{ width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: activeInfoTooltip === 'weight' ? COLORS.accentMain : COLORS.borderStrong, backgroundColor: activeInfoTooltip === 'weight' ? withAlpha(COLORS.accentMain, 0.15) : 'transparent', justifyContent: 'center', alignItems: 'center' }}>
                   <Text style={{ color: activeInfoTooltip === 'weight' ? COLORS.accentMain : COLORS.textMuted, fontSize: 8, fontWeight: '800' }}>i</Text>
                 </TouchableOpacity>
-                <Text style={styles.optionGroupLabel}>PODZIAŁ WAGOWY</Text>
+                <Text style={styles.optionGroupLabel}>{t('weightDivision', lang)}</Text>
               </View>
               {activeInfoTooltip === 'weight' && (
                 <Text style={{ color: COLORS.textMuted, fontSize: isCompactSettingsUI ? 10 : 11, marginBottom: 6, lineHeight: isCompactSettingsUI ? 14 : 16 }}>
-                  Dzieli matę na dwie grupy wagowe. Walczy jedna grupa, druga odpoczywa — potem zamiana. Brak przerwy między rundami (20s na zmianę grup). Próg wagowy obliczany automatycznie dla równej liczby par.
+                  {t('tooltipWeightDivision', lang)}
                 </Text>
               )}
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -3159,7 +3238,7 @@ export default function App() {
                   }}
                 >
                   <Text style={[styles.vipButtonText, isCompactSettingsUI && styles.vipButtonTextCompact, sparringOptions.weightDivisionEnabled && { color: COLORS.bgMain }]}>
-                    {sparringOptions.weightDivisionEnabled ? 'WŁ.' : 'WYŁ.'}
+                    {sparringOptions.weightDivisionEnabled ? t('weightOn', lang) : t('weightDivisionOff', lang)}
                   </Text>
                 </TouchableOpacity>
                 {sparringOptions.weightDivisionEnabled && (
@@ -3195,18 +3274,18 @@ export default function App() {
                 <TouchableOpacity onPress={() => setActiveInfoTooltip(activeInfoTooltip === 'gender' ? null : 'gender')} style={{ width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: activeInfoTooltip === 'gender' ? COLORS.accentMain : COLORS.borderStrong, backgroundColor: activeInfoTooltip === 'gender' ? withAlpha(COLORS.accentMain, 0.15) : 'transparent', justifyContent: 'center', alignItems: 'center' }}>
                   <Text style={{ color: activeInfoTooltip === 'gender' ? COLORS.accentMain : COLORS.textMuted, fontSize: 8, fontWeight: '800' }}>i</Text>
                 </TouchableOpacity>
-                <Text style={styles.optionGroupLabel}>WALKI WG PŁCI</Text>
+                <Text style={styles.optionGroupLabel}>{t('genderMatching', lang)}</Text>
               </View>
               {activeInfoTooltip === 'gender' && (
                 <Text style={{ color: COLORS.textMuted, fontSize: isCompactSettingsUI ? 10 : 11, marginBottom: 6, lineHeight: isCompactSettingsUI ? 14 : 16 }}>
-                  WYŁ. — mieszane walki bez podziału. PRIORYTET — kobiety walczą najpierw ze sobą (aż każda z każdą), potem dołączają do mężczyzn. ZAWSZE — kobiety tylko z kobietami przez cały trening.
+                  {t('tooltipGender', lang)}
                 </Text>
               )}
               <View style={[styles.optionsRow, isCompactSettingsUI && styles.optionsRowCompact]}>
                 {([
-                  { value: 'OFF' as GenderMatchingMode, label: 'WYŁ.' },
-                  { value: 'PREFER' as GenderMatchingMode, label: 'PRIORYTET' },
-                  { value: 'STRICT' as GenderMatchingMode, label: 'ZAWSZE' },
+                  { value: 'OFF' as GenderMatchingMode, label: t('genderOff', lang) },
+                  { value: 'PREFER' as GenderMatchingMode, label: t('genderPrefer', lang) },
+                  { value: 'STRICT' as GenderMatchingMode, label: t('genderAlways', lang) },
                 ]).map((opt) => {
                   const isActive = sparringOptions.genderMatching === opt.value;
                   return (
@@ -3232,10 +3311,10 @@ export default function App() {
           <View style={{ gap: isCompactSettingsUI ? 8 : 10 }}>
             <View style={[styles.optionsRow, isCompactSettingsUI && styles.optionsRowCompact]}>
               <TouchableOpacity style={[styles.vipButton, isCompactSettingsUI && styles.vipButtonCompact, zadaniowkiType === 'TRÓJKI' && styles.vipButtonActive, { flex: 1 }]} onPress={() => setZadaniowkiType('TRÓJKI')}>
-                <Text style={[styles.vipButtonText, isCompactSettingsUI && styles.vipButtonTextCompact, zadaniowkiType === 'TRÓJKI' && { color: COLORS.bgMain }]}>TRÓJKI</Text>
+                <Text style={[styles.vipButtonText, isCompactSettingsUI && styles.vipButtonTextCompact, zadaniowkiType === 'TRÓJKI' && { color: COLORS.bgMain }]}>{t('zadaniowkiTriads', lang)}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.vipButton, isCompactSettingsUI && styles.vipButtonCompact, zadaniowkiType === 'DWÓJKI' && styles.vipButtonActive, { flex: 1 }]} onPress={() => setZadaniowkiType('DWÓJKI')}>
-                <Text style={[styles.vipButtonText, isCompactSettingsUI && styles.vipButtonTextCompact, zadaniowkiType === 'DWÓJKI' && { color: COLORS.bgMain }]}>DWÓJKI</Text>
+                <Text style={[styles.vipButtonText, isCompactSettingsUI && styles.vipButtonTextCompact, zadaniowkiType === 'DWÓJKI' && { color: COLORS.bgMain }]}>{t('zadaniowkiPairs', lang)}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -3244,7 +3323,7 @@ export default function App() {
         {trainingMode === 'DRILLE' && (
           <View style={{ paddingVertical: 8, gap: 6 }}>
             <Text style={{ color: COLORS.textSecondary, fontSize: isCompactSettingsUI ? 11 : 13, lineHeight: isCompactSettingsUI ? 16 : 19, paddingHorizontal: 4 }}>
-              Pary dobierane raz. Role A/B zamieniają się co rundę.
+              {t('drilleDescription', lang)}
             </Text>
           </View>
         )}
@@ -3264,9 +3343,25 @@ export default function App() {
             {startTrainingLabel}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.aboutButtonInline} onPress={() => setIsAboutModalVisible(true)}>
-          <Text style={styles.aboutButtonFixedText}>ℹ️</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 10, marginTop: 8, alignItems: 'center' }}>
+          <TouchableOpacity style={[styles.aboutButtonInline, { marginTop: 0 }]} onPress={() => setIsAboutModalVisible(true)}>
+            <Text style={styles.aboutButtonFixedText}>ℹ️</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.aboutButtonInline, { marginTop: 0 }]} onPress={() => setIsStatsModalVisible(true)}>
+            <Text style={styles.statsButtonText}>📊</Text>
+          </TouchableOpacity>
+          <View style={styles.langSwitchRow}>
+            {LANGUAGE_OPTIONS.map(opt => (
+              <TouchableOpacity
+                key={opt.value}
+                style={[styles.langSwitchBtn, lang === opt.value && styles.langSwitchBtnActive]}
+                onPress={() => handleSelectLanguage(opt.value)}
+              >
+                <Text style={[styles.langSwitchText, lang === opt.value && styles.langSwitchTextActive]}>{opt.value}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
       </View>
     </>
   );
@@ -3275,9 +3370,9 @@ export default function App() {
     <Modal visible={isDropoutModalVisible} transparent={true} animationType="fade" onRequestClose={handleCloseDropoutModal}>
       <View style={styles.modalOverlay}>
         <View style={[styles.modalContent, styles.dropoutModalContent]}>
-          <Text style={styles.modalTitle}>KTO WYPADŁ Z TRENINGU?</Text>
+          <Text style={styles.modalTitle}>{t('dropoutTitle', lang)}</Text>
           <Text style={styles.dropoutModalSubtitle}>
-            Czas został zatrzymany. Możesz zaznaczyć kilka osób i zatwierdzić jednym kliknięciem.
+            {t('dropoutSubtitle', lang)}
           </Text>
           <ScrollView style={{ width: '100%' }} contentContainerStyle={styles.dropoutList}>
             {sortedDropoutPlayers.map((p) => {
@@ -3302,7 +3397,7 @@ export default function App() {
                   </View>
                   <View style={[styles.dropoutBadge, isSelected && styles.dropoutBadgeActive]}>
                     <Text style={[styles.dropoutBadgeText, isSelected && styles.dropoutBadgeTextActive]}>
-                      {isSelected ? 'ZAZNACZONY' : 'WYBIERZ'}
+                      {isSelected ? t('selected', lang) : t('select', lang)}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -3311,7 +3406,7 @@ export default function App() {
           </ScrollView>
           <View style={styles.dropoutActionsRow}>
             <TouchableOpacity style={[styles.closeModalButton, styles.dropoutCancelButton]} onPress={handleCloseDropoutModal}>
-              <Text style={styles.closeModalButtonText}>ANULUJ</Text>
+              <Text style={styles.closeModalButtonText}>{t('cancel', lang)}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
@@ -3346,16 +3441,16 @@ export default function App() {
     <Modal visible={isClubDBModalVisible} transparent={true} animationType="fade" onRequestClose={() => setIsClubDBModalVisible(false)}>
       <View style={styles.modalOverlay}>
         <View style={[styles.modalContent, styles.dropoutModalContent]}>
-          <Text style={styles.modalTitle}>BAZA KLUBOWA</Text>
+          <Text style={styles.modalTitle}>{t('clubDBTitle', lang)}</Text>
           <Text style={styles.dropoutModalSubtitle}>
-            Wybierz zawodników z bazy i dodaj ich na matę jednym kliknięciem.
+            {t('clubDBSubtitle', lang)}
           </Text>
           <View style={styles.clubDBSearchWrap}>
             <TextInput
               style={styles.clubDBSearchInput}
               value={clubDBSearchText}
               onChangeText={setClubDBSearchText}
-              placeholder="Szukaj po imieniu..."
+              placeholder={t('searchByName', lang)}
               placeholderTextColor={COLORS.textMuted}
               autoCorrect={false}
             />
@@ -3363,7 +3458,7 @@ export default function App() {
           <ScrollView style={{ width: '100%' }} contentContainerStyle={styles.dropoutList} keyboardShouldPersistTaps="handled">
             {clubDBAvailablePlayers.length === 0 ? (
               <Text style={[styles.dropoutModalSubtitle, { marginTop: 20, marginBottom: 20 }]}>
-                {clubDBSearchText ? 'Brak wyników wyszukiwania.' : 'Baza klubowa jest pusta.'}
+                {clubDBSearchText ? t('clubDBNoResults', lang) : t('clubDBEmpty', lang)}
               </Text>
             ) : clubDBAvailablePlayers.map((p) => {
               const isOnMat = roster.some(r => r.id === p.id);
@@ -3393,7 +3488,7 @@ export default function App() {
                   </View>
                   <View style={[styles.dropoutBadge, isSelected && styles.dropoutBadgeActive, isOnMat && styles.clubDBBadgeOnMat]}>
                     <Text style={[styles.dropoutBadgeText, isSelected && styles.dropoutBadgeTextActive, isOnMat && styles.clubDBBadgeTextOnMat]}>
-                      {isOnMat ? 'NA MACIE' : isSelected ? 'ZAZNACZONY' : 'WYBIERZ'}
+                      {isOnMat ? t('onMat', lang) : isSelected ? t('selected', lang) : t('select', lang)}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -3402,7 +3497,7 @@ export default function App() {
           </ScrollView>
           <View style={styles.dropoutActionsRow}>
             <TouchableOpacity style={[styles.closeModalButton, styles.dropoutCancelButton]} onPress={() => setIsClubDBModalVisible(false)}>
-              <Text style={styles.closeModalButtonText}>ANULUJ</Text>
+              <Text style={styles.closeModalButtonText}>{t('cancel', lang)}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
@@ -3415,7 +3510,7 @@ export default function App() {
               onPress={handleConfirmClubDBSelection}
             >
               <Text style={styles.removeButtonText}>
-                {selectedClubDBCount > 0 ? `DODAJ (${selectedClubDBCount})` : 'DODAJ'}
+                {selectedClubDBCount > 0 ? `${t('addSelected', lang)} (${selectedClubDBCount})` : t('addSelected', lang)}
               </Text>
             </TouchableOpacity>
           </View>
@@ -3424,6 +3519,56 @@ export default function App() {
     </Modal>
   );
 
+  // ── LOADING SCREEN ──
+  if (!langLoaded) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Image source={APP_LOGO} style={{ width: 120, height: 120, borderRadius: 24 }} resizeMode="contain" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ── LANGUAGE PICKER (first launch) ──
+  if (currentScreen === 'langPicker') {
+    const logoSize = Math.round(Math.min(screenWidth * 0.3, screenHeight * 0.25, 200));
+    const langBtnColors = [
+      { bg: 'rgba(73, 198, 255, 0.10)', border: 'rgba(73, 198, 255, 0.4)', accent: COLORS.accentCool },
+      { bg: 'rgba(247, 183, 51, 0.10)', border: 'rgba(247, 183, 51, 0.4)', accent: COLORS.accentMain },
+      { bg: 'rgba(76, 217, 100, 0.10)', border: 'rgba(76, 217, 100, 0.4)', accent: '#4CD964' },
+    ];
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.langPickerContainer}>
+          <Image source={APP_LOGO} style={{ width: logoSize, height: logoSize, borderRadius: Math.round(logoSize * 0.12), marginBottom: 28 }} resizeMode="contain" />
+          <Text style={styles.langPickerTitle}>Z NIM NIE ROBIĘ</Text>
+          <View style={styles.langPickerDivider} />
+          <View style={styles.langPickerOptions}>
+            {LANGUAGE_OPTIONS.map((opt, i) => {
+              const c = langBtnColors[i];
+              return (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[styles.langPickerBtn, { backgroundColor: c.bg, borderColor: c.border }]}
+                  onPress={() => { handleSelectLanguage(opt.value); setCurrentScreen('settings'); }}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.langPickerFlagCircle, { borderColor: c.accent }]}>
+                    <Text style={[styles.langPickerFlagText, { color: c.accent }]}>{opt.value}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.langPickerLabel}>{opt.label}</Text>
+                  </View>
+                  <Text style={[styles.langPickerArrow, { color: c.accent }]}>{'\u2192'}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (currentScreen === 'finished') {
     const finishedLogoSize = Math.round(Math.min(screenWidth * 0.38, screenHeight * 0.28, 400));
@@ -3436,11 +3581,11 @@ export default function App() {
         <View style={styles.finishedContainer}>
           <View style={[styles.finishedTextWrap, { gap: finishedGap }]}>
             <Image source={APP_LOGO} style={{ width: finishedLogoSize, height: finishedLogoSize, borderRadius: Math.round(finishedLogoSize * 0.08), marginBottom: finishedGap / 2 }} resizeMode="contain" />
-            <Text style={[styles.finishedTextBig, { fontSize: finishedBigFont, lineHeight: Math.round(finishedBigFont * 1.05) }]} adjustsFontSizeToFit={true} numberOfLines={1}>DZIĘKUJĘ</Text>
-            <Text style={[styles.finishedTextSmall, { fontSize: finishedSmallFont, lineHeight: Math.round(finishedSmallFont * 1.1) }]} adjustsFontSizeToFit={true} numberOfLines={1}>DOBRA ROBOTA!</Text>
+            <Text style={[styles.finishedTextBig, { fontSize: finishedBigFont, lineHeight: Math.round(finishedBigFont * 1.05) }]} adjustsFontSizeToFit={true} numberOfLines={1}>{t('thanks', lang)}</Text>
+            <Text style={[styles.finishedTextSmall, { fontSize: finishedSmallFont, lineHeight: Math.round(finishedSmallFont * 1.1) }]} adjustsFontSizeToFit={true} numberOfLines={1}>{t('goodJob', lang)}</Text>
           </View>
           <TouchableOpacity style={[styles.finishedReturnBtn, { paddingVertical: Math.round(finishedBtnFont * 0.6), paddingHorizontal: Math.round(finishedBtnFont * 1.2) }]} onPress={() => setCurrentScreen('settings')}>
-            <Text style={[styles.finishedReturnText, { fontSize: finishedBtnFont }]}>Wróć do menu</Text>
+            <Text style={[styles.finishedReturnText, { fontSize: finishedBtnFont }]}>{t('backToMenu', lang)}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -3888,15 +4033,15 @@ export default function App() {
       const triadLegend = !isDwojki ? getGenericInstruction(step) : null;
       const triadLegendItems = triadLegend
         ? [
-            { role: triadLegend.b, label: 'DÓŁ' },
-            { role: triadLegend.t, label: 'GÓRA' },
-            { role: triadLegend.r, label: 'PAUZA' },
+            { role: triadLegend.b, label: t('bottom', lang) },
+            { role: triadLegend.t, label: t('top', lang) },
+            { role: triadLegend.r, label: t('pause', lang) },
           ].sort((a, b) => getTriadRoleOrder(a.role) - getTriadRoleOrder(b.role))
         : [];
       const dwojkiLegendItems = isDwojki
         ? (step === 1
-          ? [{ role: '[A]', label: isDrille ? 'PRACA' : 'DÓŁ' }, { role: '[B]', label: isDrille ? 'ASYSTA' : 'GÓRA' }]
-          : [{ role: '[B]', label: isDrille ? 'PRACA' : 'DÓŁ' }, { role: '[A]', label: isDrille ? 'ASYSTA' : 'GÓRA' }])
+          ? [{ role: '[A]', label: isDrille ? t('work', lang) : t('bottom', lang) }, { role: '[B]', label: isDrille ? t('assist', lang) : t('top', lang) }]
+          : [{ role: '[B]', label: isDrille ? t('work', lang) : t('bottom', lang) }, { role: '[A]', label: isDrille ? t('assist', lang) : t('top', lang) }])
         : [];
 
       const showGrid = phase === 'PREP' && currentStep === 1 && (currentRound === 1 || isDwojki);
@@ -4097,11 +4242,11 @@ export default function App() {
                 <View style={[styles.timerButtonsRowGigantic, { marginBottom: 4, padding: 6 }]}>
                   <TouchableOpacity style={[styles.controlButtonGigantic, { paddingVertical: btnPaddingV }, isActive ? styles.btnStandard : styles.btnImportant]} onPress={() => setIsActive(!isActive)}>
                     <Text style={[styles.controlButtonTextGigantic, isActive ? {color: COLORS.textPrimary} : {color: COLORS.bgMain}]}>
-                        {isActive ? 'PAUZA' : 'WZNÓW'}
+                        {isActive ? t('pause', lang) : t('resume', lang)}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={[styles.controlButtonGigantic, { paddingVertical: btnPaddingV }, styles.btnStop]} onPress={handleStopTraining}>
-                    <Text style={styles.controlButtonTextGigantic}>ZAKOŃCZ</Text>
+                    <Text style={styles.controlButtonTextGigantic}>{t('endTraining', lang)}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -4472,14 +4617,14 @@ export default function App() {
             <View style={[styles.bottomButtonsBar, { paddingHorizontal: bottomBarMetrics.gap, paddingVertical: bottomBarMetrics.gap, flexWrap: bottomBarMetrics.wrap ? 'wrap' : 'nowrap' }]}>
               <TouchableOpacity style={[styles.controlButtonSmall, { paddingVertical: bottomBarMetrics.buttonPaddingVertical, paddingHorizontal: bottomBarMetrics.buttonPaddingHorizontal, minWidth: bottomBarMetrics.buttonMinWidth, marginHorizontal: bottomBarMetrics.gap / 2, marginVertical: bottomBarMetrics.wrap ? bottomBarMetrics.gap / 2 : 0, flexBasis: bottomBarMetrics.wrap ? '47%' : undefined, flexGrow: bottomBarMetrics.wrap ? 1 : 0 }, isActive ? styles.btnStandard : styles.btnImportant]} onPress={() => setIsActive(!isActive)}>
                 <Text style={[styles.controlButtonTextSmall, { fontSize: bottomBarMetrics.buttonFont }, isActive ? { color: COLORS.textPrimary } : { color: COLORS.bgMain }]}>
-                  {isActive ? 'PAUZA' : 'WZNÓW'}
+                  {isActive ? t('pause', lang) : t('resume', lang)}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.controlButtonSmall, { paddingVertical: bottomBarMetrics.buttonPaddingVertical, paddingHorizontal: bottomBarMetrics.buttonPaddingHorizontal, minWidth: bottomBarMetrics.buttonMinWidth, marginHorizontal: bottomBarMetrics.gap / 2, marginVertical: bottomBarMetrics.wrap ? bottomBarMetrics.gap / 2 : 0, flexBasis: bottomBarMetrics.wrap ? '47%' : undefined, flexGrow: bottomBarMetrics.wrap ? 1 : 0 }, styles.btnSecondary]} onPress={handleOpenDropoutModal}>
-                <Text style={[styles.controlButtonTextSmall, { fontSize: bottomBarMetrics.buttonFont, color: COLORS.accentAlert }]}>KTOŚ WYPADŁ?</Text>
+                <Text style={[styles.controlButtonTextSmall, { fontSize: bottomBarMetrics.buttonFont, color: COLORS.accentAlert }]}>{t('dropout', lang)}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.controlButtonSmall, { paddingVertical: bottomBarMetrics.buttonPaddingVertical, paddingHorizontal: bottomBarMetrics.buttonPaddingHorizontal, minWidth: bottomBarMetrics.buttonMinWidth, marginHorizontal: bottomBarMetrics.gap / 2, marginVertical: bottomBarMetrics.wrap ? bottomBarMetrics.gap / 2 : 0, flexBasis: bottomBarMetrics.wrap ? '47%' : undefined, flexGrow: bottomBarMetrics.wrap ? 1 : 0 }, styles.btnStop]} onPress={handleStopTraining}>
-                <Text style={[styles.controlButtonTextSmall, { fontSize: bottomBarMetrics.buttonFont }]}>ZAKOŃCZ</Text>
+                <Text style={[styles.controlButtonTextSmall, { fontSize: bottomBarMetrics.buttonFont }]}>{t('endTraining', lang)}</Text>
               </TouchableOpacity>
             </View>
             {dropoutModal}
@@ -4697,14 +4842,14 @@ export default function App() {
           <View style={[styles.bottomButtonsBar, { paddingHorizontal: bottomBarMetrics.gap, paddingVertical: bottomBarMetrics.gap, flexWrap: bottomBarMetrics.wrap ? 'wrap' : 'nowrap' }]}>
               <TouchableOpacity style={[styles.controlButtonSmall, { paddingVertical: bottomBarMetrics.buttonPaddingVertical, paddingHorizontal: bottomBarMetrics.buttonPaddingHorizontal, minWidth: bottomBarMetrics.buttonMinWidth, marginHorizontal: bottomBarMetrics.wrap ? bottomBarMetrics.gap / 2 : bottomBarMetrics.gap / 2, marginVertical: bottomBarMetrics.wrap ? bottomBarMetrics.gap / 2 : 0, flexBasis: bottomBarMetrics.wrap ? '47%' : undefined, flexGrow: bottomBarMetrics.wrap ? 1 : 0 }, isActive ? styles.btnStandard : styles.btnImportant]} onPress={() => setIsActive(!isActive)}>
                 <Text style={[styles.controlButtonTextSmall, { fontSize: bottomBarMetrics.buttonFont }, isActive ? {color: COLORS.textPrimary} : {color: COLORS.bgMain}]}>
-                    {isActive ? 'PAUZA' : 'WZNÓW'}
+                    {isActive ? t('pause', lang) : t('resume', lang)}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.controlButtonSmall, { paddingVertical: bottomBarMetrics.buttonPaddingVertical, paddingHorizontal: bottomBarMetrics.buttonPaddingHorizontal, minWidth: bottomBarMetrics.buttonMinWidth, marginHorizontal: bottomBarMetrics.wrap ? bottomBarMetrics.gap / 2 : bottomBarMetrics.gap / 2, marginVertical: bottomBarMetrics.wrap ? bottomBarMetrics.gap / 2 : 0, flexBasis: bottomBarMetrics.wrap ? '47%' : undefined, flexGrow: bottomBarMetrics.wrap ? 1 : 0 }, styles.btnSecondary]} onPress={handleOpenDropoutModal}>
-                <Text style={[styles.controlButtonTextSmall, { fontSize: bottomBarMetrics.buttonFont, color: COLORS.accentAlert }]}>KTOŚ WYPADŁ?</Text>
+                <Text style={[styles.controlButtonTextSmall, { fontSize: bottomBarMetrics.buttonFont, color: COLORS.accentAlert }]}>{t('dropout', lang)}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.controlButtonSmall, { paddingVertical: bottomBarMetrics.buttonPaddingVertical, paddingHorizontal: bottomBarMetrics.buttonPaddingHorizontal, minWidth: bottomBarMetrics.buttonMinWidth, marginHorizontal: bottomBarMetrics.wrap ? bottomBarMetrics.gap / 2 : bottomBarMetrics.gap / 2, marginVertical: bottomBarMetrics.wrap ? bottomBarMetrics.gap / 2 : 0, flexBasis: bottomBarMetrics.wrap ? '47%' : undefined, flexGrow: bottomBarMetrics.wrap ? 1 : 0 }, styles.btnStop]} onPress={handleStopTraining}>
-                <Text style={[styles.controlButtonTextSmall, { fontSize: bottomBarMetrics.buttonFont }]}>ZAKOŃCZ</Text>
+                <Text style={[styles.controlButtonTextSmall, { fontSize: bottomBarMetrics.buttonFont }]}>{t('endTraining', lang)}</Text>
               </TouchableOpacity>
           </View>
           {dropoutModal}
@@ -4825,20 +4970,20 @@ export default function App() {
                 onPress={() => setIsActive(!isActive)}
               >
                 <Text style={[styles.controlButtonTextSmall, { fontSize: wdButtonFont }, isActive ? { color: COLORS.textPrimary } : { color: COLORS.bgMain }]}>
-                  {isActive ? 'PAUZA' : 'WZNÓW'}
+                  {isActive ? t('pause', lang) : t('resume', lang)}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.controlButtonSmall, styles.btnStop, { flex: 1, paddingVertical: 10 }]}
                 onPress={handleStopTraining}
               >
-                <Text style={[styles.controlButtonTextSmall, { fontSize: wdButtonFont }]}>ZAKOŃCZ</Text>
+                <Text style={[styles.controlButtonTextSmall, { fontSize: wdButtonFont }]}>{t('endTraining', lang)}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.controlButtonSmall, styles.btnStandard, { flex: 1, paddingVertical: 10 }]}
                 onPress={handleOpenDropoutModal}
               >
-                <Text style={[styles.controlButtonTextSmall, { fontSize: wdButtonFont, color: COLORS.textPrimary }]}>KTO WYPADŁ?</Text>
+                <Text style={[styles.controlButtonTextSmall, { fontSize: wdButtonFont, color: COLORS.textPrimary }]}>{t('dropout', lang)}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -4962,7 +5107,7 @@ export default function App() {
                     isActive ? { color: COLORS.textPrimary } : { color: COLORS.bgMain },
                   ]}
                 >
-                  {isActive ? 'PAUZA' : 'WZNÓW'}
+                  {isActive ? t('pause', lang) : t('resume', lang)}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -4989,7 +5134,7 @@ export default function App() {
                     { fontSize: workTimerButtonFont, lineHeight: Math.round(workTimerButtonFont * 1.02) },
                   ]}
                 >
-                  ZAKOŃCZ
+                  {t('endTraining', lang)}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -5587,7 +5732,7 @@ export default function App() {
               isActive ? { color: COLORS.textPrimary } : { color: COLORS.bgMain },
             ]}
           >
-            {isActive ? 'PAUZA' : 'WZNÓW'}
+            {isActive ? t('pause', lang) : t('resume', lang)}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -5612,7 +5757,7 @@ export default function App() {
               { fontSize: bottomBarMetrics.buttonFont, color: COLORS.accentAlert },
             ]}
           >
-            KTOŚ WYPADŁ?
+            {t('dropout', lang)}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -5631,7 +5776,7 @@ export default function App() {
           ]}
           onPress={handleStopTraining}
         >
-          <Text style={[styles.controlButtonTextSmall, { fontSize: bottomBarMetrics.buttonFont }]}>ZAKOŃCZ</Text>
+          <Text style={[styles.controlButtonTextSmall, { fontSize: bottomBarMetrics.buttonFont }]}>{t('endTraining', lang)}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -5774,12 +5919,12 @@ export default function App() {
               >
                 <View style={[styles.rosterHeaderRow, isCompactSettingsUI && styles.rosterHeaderRowCompact]}>
                     <View style={{ flexShrink: 1 }}>
-                      <Text style={[styles.sectionTitle, styles.rosterHeaderTitle]}>ZAWODNICY NA MACIE ({roster.length})</Text>
-                      <Text style={[styles.rosterHeaderSubtitle, isCompactSettingsUI && styles.rosterHeaderSubtitleCompact]}>{hasAnyRosterFilter ? `Filtrowanie: ${filteredSortedRoster.length} z ${roster.length}` : 'Kolejność alfabetyczna A-Z'}</Text>
+                      <Text style={[styles.sectionTitle, styles.rosterHeaderTitle]}>{t('playersOnMat', lang)} ({roster.length})</Text>
+                      <Text style={[styles.rosterHeaderSubtitle, isCompactSettingsUI && styles.rosterHeaderSubtitleCompact]}>{hasAnyRosterFilter ? `${t('rosterFiltering', lang)}: ${filteredSortedRoster.length} ${t('rosterOf', lang)} ${roster.length}` : t('rosterSubtitleAlpha', lang)}</Text>
                     </View>
                     {roster.length > 0 && (
                         <TouchableOpacity style={[styles.clearMataBtn, isCompactSettingsUI && styles.clearMataBtnCompact]} onPress={handleClearRoster}>
-                            <Text style={[styles.clearMataText, isCompactSettingsUI && styles.clearMataTextCompact]}>NOWY TRENING</Text>
+                            <Text style={[styles.clearMataText, isCompactSettingsUI && styles.clearMataTextCompact]}>{t('newTraining', lang)}</Text>
                         </TouchableOpacity>
                     )}
                 </View>
@@ -5865,16 +6010,16 @@ export default function App() {
                                     </View>
                                   ) : null}
                                 </View>
-                                <Text style={[styles.rosterEditHint, isCompactSettingsUI && styles.rosterEditHintCompact]}>Dotknij, aby edytować zawodnika</Text>
+                                <Text style={[styles.rosterEditHint, isCompactSettingsUI && styles.rosterEditHintCompact]}>{t('editPlayerHint', lang)}</Text>
                             </TouchableOpacity>
                           );
                         })}
                     </View>
                   ) : (
                     <View style={styles.rosterEmptyState}>
-                      <Text style={styles.rosterEmptyTitle}>{hasAnyRosterFilter ? 'Brak wyników dla wybranych filtrów' : 'Mata jest jeszcze pusta'}</Text>
+                      <Text style={styles.rosterEmptyTitle}>{hasAnyRosterFilter ? t('filterNoResults', lang) : t('matIsEmpty', lang)}</Text>
                       <Text style={styles.rosterEmptyText}>
-                        {hasAnyRosterFilter ? 'Zmień filtry lub wyczyść je, aby zobaczyć wszystkich zawodników.' : 'Dodaj zawodników z panelu po lewej, a tutaj pojawią się uporządkowane kafelki.'}
+                        {hasAnyRosterFilter ? t('filterChangeHint', lang) : t('matEmptyHintLeft', lang)}
                       </Text>
                     </View>
                   )}
@@ -5899,12 +6044,12 @@ export default function App() {
               >
                 <View style={[styles.rosterHeaderRow, isCompactSettingsUI && styles.rosterHeaderRowCompact]}>
                   <View style={{ flexShrink: 1 }}>
-                    <Text style={[styles.sectionTitle, styles.rosterHeaderTitle]}>ZAWODNICY NA MACIE ({roster.length})</Text>
-                    <Text style={[styles.rosterHeaderSubtitle, isCompactSettingsUI && styles.rosterHeaderSubtitleCompact]}>{hasAnyRosterFilter ? `Filtrowanie: ${filteredSortedRoster.length} z ${roster.length}` : 'Kolejność alfabetyczna A-Z'}</Text>
+                    <Text style={[styles.sectionTitle, styles.rosterHeaderTitle]}>{t('playersOnMat', lang)} ({roster.length})</Text>
+                    <Text style={[styles.rosterHeaderSubtitle, isCompactSettingsUI && styles.rosterHeaderSubtitleCompact]}>{hasAnyRosterFilter ? `${t('rosterFiltering', lang)}: ${filteredSortedRoster.length} ${t('rosterOf', lang)} ${roster.length}` : t('rosterSubtitleAlpha', lang)}</Text>
                   </View>
                   {roster.length > 0 && (
                     <TouchableOpacity style={[styles.clearMataBtn, isCompactSettingsUI && styles.clearMataBtnCompact]} onPress={handleClearRoster}>
-                      <Text style={[styles.clearMataText, isCompactSettingsUI && styles.clearMataTextCompact]}>NOWY TRENING</Text>
+                      <Text style={[styles.clearMataText, isCompactSettingsUI && styles.clearMataTextCompact]}>{t('newTraining', lang)}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -5984,16 +6129,16 @@ export default function App() {
                               </View>
                             ) : null}
                           </View>
-                          <Text style={[styles.rosterEditHint, isCompactSettingsUI && styles.rosterEditHintCompact]}>Dotknij, aby edytować zawodnika</Text>
+                          <Text style={[styles.rosterEditHint, isCompactSettingsUI && styles.rosterEditHintCompact]}>{t('editPlayerHint', lang)}</Text>
                         </TouchableOpacity>
                       );
                     })}
                   </View>
                 ) : (
                   <View style={styles.rosterEmptyState}>
-                    <Text style={styles.rosterEmptyTitle}>{hasAnyRosterFilter ? 'Brak wyników dla wybranych filtrów' : 'Mata jest jeszcze pusta'}</Text>
+                    <Text style={styles.rosterEmptyTitle}>{hasAnyRosterFilter ? t('filterNoResults', lang) : t('matIsEmpty', lang)}</Text>
                     <Text style={styles.rosterEmptyText}>
-                      {hasAnyRosterFilter ? 'Zmień filtry lub wyczyść je, aby zobaczyć wszystkich zawodników.' : 'Dodaj zawodników z panelu powyżej, a tutaj pojawią się uporządkowane kafelki.'}
+                      {hasAnyRosterFilter ? t('filterChangeHint', lang) : t('matEmptyHintAbove', lang)}
                     </Text>
                   </View>
                 )}
@@ -6007,7 +6152,7 @@ export default function App() {
             <View style={[styles.modalContent, { maxWidth: 420, width: '88%' }]}>
               <Image source={APP_LOGO} style={{ width: 100, height: 100, borderRadius: 20, marginBottom: 16 }} resizeMode="contain" />
               <Text style={[styles.modalTitle, { marginBottom: 4 }]}>Z NIM NIE ROBIĘ</Text>
-              <Text style={{ color: COLORS.textMuted, fontSize: 15, fontWeight: '700', marginBottom: 20 }}>Wersja V1</Text>
+              <Text style={{ color: COLORS.textMuted, fontSize: 15, fontWeight: '700', marginBottom: 20 }}>{t('aboutVersion', lang)}</Text>
 
               <View style={{ width: '100%', gap: 12, marginBottom: 20 }}>
                 <TouchableOpacity
@@ -6040,7 +6185,7 @@ export default function App() {
               </Text>
 
               <TouchableOpacity style={[styles.closeModalButton, { marginTop: 20 }]} onPress={() => setIsAboutModalVisible(false)}>
-                <Text style={styles.closeModalButtonText}>ZAMKNIJ</Text>
+                <Text style={styles.closeModalButtonText}>{t('close', lang)}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -6049,7 +6194,7 @@ export default function App() {
         <Modal visible={isVipModalVisible} transparent={true} animationType="slide">
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>ZAWODNICY BEZ PAUZY</Text>
+              <Text style={styles.modalTitle}>{t('vipModalTitle', lang)}</Text>
               <ScrollView style={{width: '100%'}}>
                 <View style={styles.vipGrid}>
                   {sortedRoster.map((p) => {
@@ -6070,7 +6215,7 @@ export default function App() {
 
       <Modal visible={isDevMetricsVisible} transparent={true} animationType="fade" onRequestClose={() => setIsDevMetricsVisible(false)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.96)', padding: 12, paddingTop: 16 }}>
-          <Text style={{ color: COLORS.accentMain, fontSize: 16, fontWeight: '900', textAlign: 'center', marginBottom: 8, letterSpacing: 1 }}>PARAMETRY URZĄDZENIA</Text>
+          <Text style={{ color: COLORS.accentMain, fontSize: 16, fontWeight: '900', textAlign: 'center', marginBottom: 8, letterSpacing: 1 }}>{t('devMetricsTitle', lang)}</Text>
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, ...(screenWidth >= 700 ? { alignContent: 'center', flexGrow: 1 } : {}) }}>
             {devMetricsSections.map((section, si) => (
               <View key={si} style={{ flexBasis: screenWidth >= 700 ? '48%' : '100%', flexGrow: 1, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: 'rgba(73,198,255,0.15)' }}>
@@ -6094,11 +6239,75 @@ export default function App() {
             style={{ backgroundColor: COLORS.borderSoft, paddingVertical: 12, borderRadius: 12, alignItems: 'center', marginTop: 8 }}
             onPress={() => setIsDevMetricsVisible(false)}
           >
-            <Text style={{ color: COLORS.textPrimary, fontSize: 16, fontWeight: '900' }}>ZAMKNIJ</Text>
+            <Text style={{ color: COLORS.textPrimary, fontSize: 16, fontWeight: '900' }}>{t('close', lang)}</Text>
           </TouchableOpacity>
         </View>
       </Modal>
     {clubDBModal}
+    <Modal visible={isStatsModalVisible} transparent={false} animationType="slide" onRequestClose={() => setIsStatsModalVisible(false)}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bgMain }}>
+        <View style={styles.statsHeader}>
+          <Text style={styles.statsTitle}>{t('statsTitle', lang)}</Text>
+          <TouchableOpacity style={styles.statsCloseBtn} onPress={() => setIsStatsModalVisible(false)}>
+            <Text style={styles.statsCloseBtnText}>{'\u2715'}</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.statsTabBar}>
+          {([{ key: 'TRENINGI' as const, label: t('statsTabTrainings', lang) }, { key: 'FREKWENCJA' as const, label: t('statsTabFrequency', lang) }, { key: 'PARY' as const, label: t('statsTabPairs', lang) }]).map(tab => (
+            <TouchableOpacity key={tab.key} style={[styles.statsTab, statsTab === tab.key && styles.statsTabActive]} onPress={() => setStatsTab(tab.key)}>
+              <Text style={[styles.statsTabText, statsTab === tab.key && styles.statsTabTextActive]}>{tab.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={styles.statsFilterBar}>
+          {([{ key: 'TYDZIEŃ' as const, label: t('statsFilterWeek', lang) }, { key: 'MIESIĄC' as const, label: t('statsFilterMonth', lang) }, { key: 'WSZYSTKO' as const, label: t('statsFilterAll', lang) }]).map(f => (
+            <TouchableOpacity key={f.key} style={[styles.statsFilterBtn, statsFilter === f.key && styles.statsFilterBtnActive]} onPress={() => setStatsFilter(f.key)}>
+              <Text style={[styles.statsFilterText, statsFilter === f.key && styles.statsFilterTextActive]}>{f.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+          {(() => {
+            const now = Date.now();
+            const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+            const monthAgo = now - 30 * 24 * 60 * 60 * 1000;
+            const filtered = trainingHistory.filter(s => {
+              const d = new Date(s.date).getTime();
+              if (statsFilter === 'TYDZIEŃ') return d >= weekAgo;
+              if (statsFilter === 'MIESIĄC') return d >= monthAgo;
+              return true;
+            });
+            if (statsTab === 'TRENINGI') {
+              if (filtered.length === 0) return (<View style={styles.statsEmpty}><Text style={styles.statsEmptyIcon}>📋</Text><Text style={styles.statsEmptyText}>{t('statsNoSessions', lang)}</Text><Text style={styles.statsEmptyHint}>{t('statsNoSessionsHint', lang)}</Text></View>);
+              return filtered.map((s) => {
+                const d = new Date(s.date);
+                const dateStr = `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')}.${d.getFullYear()}`;
+                const timeStr = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+                const modeLabel = s.mode === 'SPARING' ? t('modeSparring', lang) : s.mode === 'ZADANIOWKI' ? t('modeZadaniowki', lang) : t('modeDrille', lang);
+                return (<View key={s.id} style={styles.statsSessionCard}><View style={styles.statsSessionHeader}><View><Text style={styles.statsSessionDate}>{dateStr} · {timeStr}</Text><Text style={styles.statsSessionMode}>{modeLabel}</Text></View><TouchableOpacity style={styles.statsSessionDeleteBtn} onPress={() => handleDeleteTrainingSession(s.id)}><Text style={styles.statsSessionDeleteText}>🗑</Text></TouchableOpacity></View><View style={styles.statsSessionChips}><View style={styles.statsChip}><Text style={styles.statsChipText}>{s.players.length} {t('statsPlayers', lang)}</Text></View><View style={styles.statsChip}><Text style={styles.statsChipText}>{s.rounds} {t('statsRounds', lang)}</Text></View><View style={styles.statsChip}><Text style={styles.statsChipText}>{s.roundTimeMin} {t('statsMinPerRound', lang)}</Text></View></View>{s.pairs.length > 0 && (<View style={styles.statsSessionPairs}>{s.pairs.map((roundPairs, ri) => (<View key={ri} style={{ marginBottom: 6 }}><Text style={styles.statsRoundLabel}>{t('statsRound', lang)} {ri + 1}</Text><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>{roundPairs.map((pair, pi) => (<View key={pi} style={styles.statsPairBadge}><Text style={styles.statsPairText}>{pair.p1} vs {pair.p2}</Text></View>))}</View></View>))}</View>)}</View>);
+              });
+            }
+            if (statsTab === 'FREKWENCJA') {
+              const freq: Record<string, number> = {};
+              filtered.forEach(s => s.players.forEach(p => { freq[p] = (freq[p] || 0) + 1; }));
+              const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+              if (sorted.length === 0) return (<View style={styles.statsEmpty}><Text style={styles.statsEmptyIcon}>👥</Text><Text style={styles.statsEmptyText}>{t('statsNoFrequency', lang)}</Text><Text style={styles.statsEmptyHint}>{t('statsNoFrequencyHint', lang)}</Text></View>);
+              const maxFreq = sorted[0][1];
+              return (<View style={{ gap: 8 }}><Text style={styles.statsSectionTitle}>{t('statsAttendanceRanking', lang)} ({filtered.length} {t('statsTrainings', lang)})</Text>{sorted.map(([name, count], i) => (<View key={name} style={styles.statsFreqRow}><Text style={styles.statsFreqRank}>{i + 1}.</Text><View style={{ flex: 1 }}><View style={styles.statsFreqNameRow}><Text style={styles.statsFreqName}>{name}</Text><Text style={styles.statsFreqCount}>{count}x</Text></View><View style={styles.statsFreqBarBg}><View style={[styles.statsFreqBar, { width: `${(count / maxFreq) * 100}%` }]} /></View></View></View>))}</View>);
+            }
+            if (statsTab === 'PARY') {
+              const pairMap: Record<string, number> = {};
+              filtered.forEach(s => s.pairs.forEach(roundPairs => roundPairs.forEach(pair => { const key = [pair.p1, pair.p2].sort().join(' vs '); pairMap[key] = (pairMap[key] || 0) + 1; })));
+              const sortedPairs = Object.entries(pairMap).sort((a, b) => b[1] - a[1]);
+              if (sortedPairs.length === 0) return (<View style={styles.statsEmpty}><Text style={styles.statsEmptyIcon}>🤝</Text><Text style={styles.statsEmptyText}>{t('statsNoPairs', lang)}</Text><Text style={styles.statsEmptyHint}>{t('statsNoPairsHint', lang)}</Text></View>);
+              const maxPairFreq = sortedPairs[0][1];
+              return (<View style={{ gap: 8 }}><Text style={styles.statsSectionTitle}>{t('statsMostFrequentPairs', lang)} ({sortedPairs.length} {t('statsCombinations', lang)})</Text>{sortedPairs.map(([pair, count], i) => (<View key={pair} style={styles.statsFreqRow}><Text style={styles.statsFreqRank}>{i + 1}.</Text><View style={{ flex: 1 }}><View style={styles.statsFreqNameRow}><Text style={styles.statsFreqName}>{pair}</Text><Text style={styles.statsFreqCount}>{count}x</Text></View><View style={styles.statsFreqBarBg}><View style={[styles.statsFreqBar, { width: `${(count / maxPairFreq) * 100}%`, backgroundColor: COLORS.accentMain }]} /></View></View></View>))}</View>);
+            }
+            return null;
+          })()}
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
     </SafeAreaView>
   );
 }
@@ -7098,4 +7307,62 @@ const styles = StyleSheet.create({
   clubDBBadgeOnMat: { backgroundColor: 'rgba(255,255,255,0.04)', borderColor: COLORS.borderSoft },
   clubDBBadgeTextOnMat: { color: COLORS.textMuted },
   clubDBPlayerDetail: { color: COLORS.textSecondary, fontSize: 12, fontWeight: '600', marginTop: 2 },
+
+  // ── STATS MODAL ──
+  statsButtonText: { fontSize: 16 },
+  statsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: COLORS.borderSoft },
+  statsTitle: { color: COLORS.textPrimary, fontSize: 22, fontWeight: '900', letterSpacing: 0.5 },
+  statsCloseBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: COLORS.bgPanel2, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderSoft },
+  statsCloseBtnText: { color: COLORS.textPrimary, fontSize: 18, fontWeight: '900' },
+  statsTabBar: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 12, gap: 8 },
+  statsTab: { flex: 1, paddingVertical: 10, borderRadius: 14, backgroundColor: COLORS.bgPanel2, alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderSoft },
+  statsTabActive: { backgroundColor: 'rgba(73, 198, 255, 0.15)', borderColor: 'rgba(73, 198, 255, 0.5)' },
+  statsTabText: { color: COLORS.textSecondary, fontSize: 13, fontWeight: '800', letterSpacing: 0.5 },
+  statsTabTextActive: { color: COLORS.accentCool },
+  statsFilterBar: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4, gap: 8 },
+  statsFilterBtn: { paddingVertical: 6, paddingHorizontal: 14, borderRadius: 999, backgroundColor: COLORS.bgPanel2, borderWidth: 1, borderColor: COLORS.borderSoft },
+  statsFilterBtnActive: { backgroundColor: 'rgba(255, 193, 59, 0.15)', borderColor: 'rgba(255, 193, 59, 0.5)' },
+  statsFilterText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '700' },
+  statsFilterTextActive: { color: COLORS.accentMain },
+  statsEmpty: { alignItems: 'center', justifyContent: 'center', paddingTop: 60, gap: 12 },
+  statsEmptyIcon: { fontSize: 48 },
+  statsEmptyText: { color: COLORS.textPrimary, fontSize: 20, fontWeight: '900' },
+  statsEmptyHint: { color: COLORS.textMuted, fontSize: 14, fontWeight: '600', textAlign: 'center', maxWidth: 300 },
+  statsSessionCard: { backgroundColor: COLORS.bgPanel, borderRadius: 18, borderWidth: 1, borderColor: COLORS.borderSoft, padding: 16, marginBottom: 12 },
+  statsSessionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
+  statsSessionDate: { color: COLORS.textMuted, fontSize: 13, fontWeight: '700' },
+  statsSessionMode: { color: COLORS.accentCool, fontSize: 18, fontWeight: '900', marginTop: 2 },
+  statsSessionDeleteBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,77,109,0.12)', justifyContent: 'center', alignItems: 'center' },
+  statsSessionDeleteText: { fontSize: 16 },
+  statsSessionChips: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 10 },
+  statsChip: { backgroundColor: COLORS.bgPanel2, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1, borderColor: COLORS.borderSoft },
+  statsChipText: { color: COLORS.textSecondary, fontSize: 12, fontWeight: '700' },
+  statsSessionPairs: { borderTopWidth: 1, borderTopColor: COLORS.borderSoft, paddingTop: 10, marginTop: 4 },
+  statsRoundLabel: { color: COLORS.textMuted, fontSize: 11, fontWeight: '800', letterSpacing: 0.5, marginBottom: 4 },
+  statsPairBadge: { backgroundColor: 'rgba(73,198,255,0.08)', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(73,198,255,0.2)' },
+  statsPairText: { color: COLORS.textPrimary, fontSize: 12, fontWeight: '700' },
+  statsSectionTitle: { color: COLORS.textMuted, fontSize: 13, fontWeight: '800', letterSpacing: 1, marginBottom: 8 },
+  statsFreqRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: COLORS.bgPanel, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: COLORS.borderSoft },
+  statsFreqRank: { color: COLORS.accentMain, fontSize: 16, fontWeight: '900', width: 28, textAlign: 'center' },
+  statsFreqNameRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  statsFreqName: { color: COLORS.textPrimary, fontSize: 16, fontWeight: '900', flexShrink: 1 },
+  statsFreqCount: { color: COLORS.accentCool, fontSize: 14, fontWeight: '800', marginLeft: 8 },
+  statsFreqBarBg: { height: 6, borderRadius: 3, backgroundColor: COLORS.bgPanel2, overflow: 'hidden' as const },
+  statsFreqBar: { height: 6, borderRadius: 3, backgroundColor: COLORS.accentCool },
+
+  // ── LANGUAGE PICKER ──
+  langPickerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
+  langPickerTitle: { color: COLORS.textPrimary, fontSize: 36, fontWeight: '900', letterSpacing: 2, marginBottom: 8 },
+  langPickerDivider: { width: 60, height: 3, borderRadius: 2, backgroundColor: COLORS.accentCool, marginBottom: 36, opacity: 0.6 },
+  langPickerOptions: { gap: 14, width: '100%', maxWidth: 380 },
+  langPickerBtn: { flexDirection: 'row', alignItems: 'center', borderRadius: 22, borderWidth: 1.5, paddingVertical: 16, paddingHorizontal: 20, gap: 16 },
+  langPickerFlagCircle: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.04)' },
+  langPickerFlagText: { fontSize: 16, fontWeight: '900', letterSpacing: 1 },
+  langPickerLabel: { color: COLORS.textPrimary, fontSize: 20, fontWeight: '800', letterSpacing: 0.3 },
+  langPickerArrow: { fontSize: 22, fontWeight: '900' },
+  langSwitchRow: { flexDirection: 'row', gap: 6 },
+  langSwitchBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: COLORS.bgPanel2, borderWidth: 1, borderColor: COLORS.borderSoft, justifyContent: 'center', alignItems: 'center', opacity: 0.7 },
+  langSwitchBtnActive: { borderColor: COLORS.accentCool, opacity: 1, backgroundColor: 'rgba(73,198,255,0.12)' },
+  langSwitchText: { fontSize: 11, fontWeight: '900', color: COLORS.textSecondary },
+  langSwitchTextActive: { color: COLORS.accentCool },
 });

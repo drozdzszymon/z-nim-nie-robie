@@ -26,9 +26,10 @@ const withAdiRegistration = (config) => {
       const targetPath = path.join(assetsDir, FILENAME);
 
       if (!fs.existsSync(sourcePath)) {
-        throw new Error(
-          `[with-adi-registration] Source file not found: ${sourcePath}`
+        console.warn(
+          `[with-adi-registration] Source file not found: ${sourcePath} — skipping (preview build)`
         );
+        return cfg;
       }
 
       fs.mkdirSync(assetsDir, { recursive: true });
