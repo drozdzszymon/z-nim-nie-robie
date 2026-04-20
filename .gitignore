@@ -45,8 +45,6 @@ app-example
 # Foldery robocze / zrzuty do poprawy
 ZRZUTY EKRANU DO POPRAWY/
 OBRAZKI_APLIKACJA/
-/Screenshots/
-/Images/
 BUILD/
 
 # Google Play / EAS secrets
