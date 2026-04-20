@@ -115,6 +115,8 @@ const translations = {
   // ── MODALS ──
   dropoutTitle: { PL: 'KTO WYPADŁ Z TRENINGU?', EN: 'WHO DROPPED OUT?', PT: 'QUEM SAIU DO TREINO?' },
   dropoutSubtitle: { PL: 'Czas został zatrzymany. Możesz zaznaczyć kilka osób i zatwierdzić jednym kliknięciem.', EN: 'Time has been stopped. Select players and confirm with one click.', PT: 'O tempo foi parado. Selecione os lutadores e confirme com um clique.' },
+  dropoutModeFull: { PL: 'WYPADŁ', EN: 'OUT', PT: 'SAIU' },
+  dropoutModeOneRound: { PL: 'ODPOCZYWA 1 RUNDĘ', EN: 'RESTS 1 ROUND', PT: 'DESCANSA 1 ROUND' },
   selected: { PL: 'ZAZNACZONY', EN: 'SELECTED', PT: 'SELECIONADO' },
   select: { PL: 'WYBIERZ', EN: 'SELECT', PT: 'SELECIONAR' },
   clubDBTitle: { PL: 'BAZA KLUBOWA', EN: 'CLUB DATABASE', PT: 'BANCO DO CLUBE' },
@@ -128,7 +130,7 @@ const translations = {
 
   // ── ABOUT MODAL ──
   aboutTitle: { PL: 'Z NIM NIE ROBIĘ', EN: 'Z NIM NIE ROBIĘ', PT: 'Z NIM NIE ROBIĘ' },
-  aboutVersion: { PL: 'Wersja V2', EN: 'Version V2', PT: 'Versão V2' },
+  aboutVersion: { PL: 'Wersja 2.0.1 BETA', EN: 'Version 2.0.1 BETA', PT: 'Versão 2.0.1 BETA' },
   aboutDescription: { PL: 'Aplikacja treningowa do zarządzania parami, rundami i rotacją zawodników podczas treningów BJJ.', EN: 'Training app for managing pairs, rounds and player rotation during BJJ training sessions.', PT: 'Aplicativo de treino para gerenciar duplas, rodadas e rotação de lutadores durante treinos de BJJ.' },
 
   // ── VALIDATION MESSAGES ──

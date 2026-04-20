@@ -54,6 +54,145 @@ const COLORS = {
   borderStrong: '#31445D',
 };
 
+// --- PAIR CATEGORY COLORS ---
+// Single source of truth for category-coded pair cards & legend.
+// Used everywhere pairs are rendered (sparingi, zadaniówki trójki/dwójki, drille).
+const PAIR_CATEGORY_COLORS = {
+  KID_GI:      '#5A6CFF', // niebieski
+  KID_NO_GI:   '#49C6FF', // jasny cyan
+  ADULT_GI:    '#F7B733', // pomarańczowy
+  ADULT_NO_GI: '#FF4D6D', // czerwony
+} as const;
+
+const PAIR_CATEGORY_LABELS: Record<keyof typeof PAIR_CATEGORY_COLORS, string> = {
+  KID_GI:      'KID GI',
+  KID_NO_GI:   'KID NO-GI',
+  ADULT_GI:    'ADULT GI',
+  ADULT_NO_GI: 'ADULT NO-GI',
+};
+
+const PAIR_CATEGORY_ORDER: (keyof typeof PAIR_CATEGORY_COLORS)[] = [
+  'KID_GI', 'KID_NO_GI', 'ADULT_GI', 'ADULT_NO_GI',
+];
+
+type PairCategory = keyof typeof PAIR_CATEGORY_COLORS;
+
+const getCategoryFromPlayer = (p: { type: string; gear: string }): PairCategory => {
+  const ageKey = p.type === 'KID' ? 'KID' : 'ADULT';
+  const gearKey = p.gear === 'GI' ? 'GI' : 'NO_GI';
+  return `${ageKey}_${gearKey}` as PairCategory;
+};
+
+// Same-type (KID-KID or ADULT-ADULT): rule "para GI = obaj GI; inaczej NO-GI".
+// Mixed (KID + ADULT): returns null → caller treats as gradient.
+const getPairCategory = (
+  p1: { type: string; gear: string },
+  p2: { type: string; gear: string },
+): PairCategory | null => {
+  if (p1.type !== p2.type) return null;
+  const ageKey = p1.type === 'KID' ? 'KID' : 'ADULT';
+  const gearKey = (p1.gear === 'GI' && p2.gear === 'GI') ? 'GI' : 'NO_GI';
+  return `${ageKey}_${gearKey}` as PairCategory;
+};
+
+const getPairCardColors = (
+  m: { p1: { type: string; gear: string }; p2: { type: string; gear: string } },
+): { primary: string; secondary: string; isMixed: boolean } => {
+  const cat = getPairCategory(m.p1, m.p2);
+  if (cat) {
+    const c = PAIR_CATEGORY_COLORS[cat];
+    return { primary: c, secondary: c, isMixed: false };
+  }
+  return {
+    primary: PAIR_CATEGORY_COLORS[getCategoryFromPlayer(m.p1)],
+    secondary: PAIR_CATEGORY_COLORS[getCategoryFromPlayer(m.p2)],
+    isMixed: true,
+  };
+};
+
+// Stable sort key for unifying pair list display (KID GI → KID NO-GI → ADULT GI → ADULT NO-GI → MIXED).
+const getPairSortKey = (m: { p1: any; p2: any }): number => {
+  const cat = getPairCategory(m.p1, m.p2);
+  if (!cat) return 99; // mixed last
+  return PAIR_CATEGORY_ORDER.indexOf(cat);
+};
+
+const getPairLegendItems = (
+  matches: { p1: any; p2: any }[],
+): { key: PairCategory | 'MIXED'; label: string; primary: string; secondary?: string }[] => {
+  const set = new Set<PairCategory>();
+  let hasMixed = false;
+  for (const m of matches) {
+    const cat = getPairCategory(m.p1, m.p2);
+    if (cat) set.add(cat);
+    else hasMixed = true;
+  }
+  const items: { key: PairCategory | 'MIXED'; label: string; primary: string; secondary?: string }[] = [];
+  for (const cat of PAIR_CATEGORY_ORDER) {
+    if (set.has(cat)) {
+      items.push({ key: cat, label: PAIR_CATEGORY_LABELS[cat], primary: PAIR_CATEGORY_COLORS[cat] });
+    }
+  }
+  if (hasMixed) {
+    items.push({ key: 'MIXED', label: 'MIESZANE', primary: PAIR_CATEGORY_COLORS.KID_GI, secondary: PAIR_CATEGORY_COLORS.ADULT_GI });
+  }
+  return items;
+};
+
+const formatRestingInline = (resting: { id: string }[]): string =>
+  resting.length === 0 ? '' : `ODPOCZYWA: ${resting.map(r => r.id).join(', ')}`;
+
+// For zadaniówki triad/duo cards: returns per-player color array.
+// Same-type group → all players colored by group category (KID GI / KID NO-GI / ADULT GI / ADULT NO-GI).
+// Mixed group (KID+ADULT) → each player colored by their own category (gradient effect).
+const getGroupCardColors = (
+  players: { type: string; gear: string }[],
+): { isMixed: boolean; primary: string; perPlayer: string[] } => {
+  if (players.length === 0) return { isMixed: false, primary: PAIR_CATEGORY_COLORS.ADULT_NO_GI, perPlayer: [] };
+  const types = new Set(players.map(p => p.type));
+  if (types.size > 1) {
+    const perPlayer = players.map(p => PAIR_CATEGORY_COLORS[getCategoryFromPlayer(p)]);
+    return { isMixed: true, primary: perPlayer[0], perPlayer };
+  }
+  const ageKey = players[0].type === 'KID' ? 'KID' : 'ADULT';
+  const allGi = players.every(p => p.gear === 'GI');
+  const cat = `${ageKey}_${allGi ? 'GI' : 'NO_GI'}` as PairCategory;
+  const c = PAIR_CATEGORY_COLORS[cat];
+  return { isMixed: false, primary: c, perPlayer: players.map(() => c) };
+};
+
+// For zadaniówki: derive legend items from triad/duo groups (already merges kid + adult).
+const getGroupLegendItems = (
+  groups: { type: string; gear: string }[][],
+): ReturnType<typeof getPairLegendItems> => {
+  const set = new Set<PairCategory>();
+  let hasMixed = false;
+  for (const g of groups) {
+    const colors = getGroupCardColors(g);
+    if (colors.isMixed) {
+      hasMixed = true;
+    } else {
+      // Re-derive cat from primary
+      for (const cat of PAIR_CATEGORY_ORDER) {
+        if (PAIR_CATEGORY_COLORS[cat] === colors.primary) {
+          set.add(cat);
+          break;
+        }
+      }
+    }
+  }
+  const items: ReturnType<typeof getPairLegendItems> = [];
+  for (const cat of PAIR_CATEGORY_ORDER) {
+    if (set.has(cat)) {
+      items.push({ key: cat, label: PAIR_CATEGORY_LABELS[cat], primary: PAIR_CATEGORY_COLORS[cat] });
+    }
+  }
+  if (hasMixed) {
+    items.push({ key: 'MIXED', label: 'MIESZANE', primary: PAIR_CATEGORY_COLORS.KID_GI, secondary: PAIR_CATEGORY_COLORS.ADULT_GI });
+  }
+  return items;
+};
+
 const BELL_SOUND = require('../../assets/boxing-bell.mp3');
 const BEEP_SOUND = require('../../assets/short-beep.mp3');
 const KLAPS_SOUND = require('../../assets/side_stick_1.mp3');
@@ -1272,6 +1411,49 @@ const ResponsiveTriadPrepCard = ({
   );
 };
 
+// Compact horizontal legend for unified pair grid (KID GI / KID NO-GI / ADULT GI / ADULT NO-GI / MIESZANE).
+// Color swatches per category; mixed shows two-color swatch (gradient hint).
+const PairCategoryLegend = ({
+  items,
+  fontSize = 11,
+  compact = false,
+}: {
+  items: ReturnType<typeof getPairLegendItems>;
+  fontSize?: number;
+  compact?: boolean;
+}) => {
+  if (items.length === 0) return null;
+  return (
+    <View style={[pairLegendStyles.row, compact && pairLegendStyles.rowCompact]}>
+      {items.map(item => (
+        <View key={item.key} style={pairLegendStyles.item}>
+          {item.secondary ? (
+            <View style={pairLegendStyles.swatchMixed}>
+              <View style={[pairLegendStyles.swatchHalf, { backgroundColor: item.primary }]} />
+              <View style={[pairLegendStyles.swatchHalf, { backgroundColor: item.secondary }]} />
+            </View>
+          ) : (
+            <View style={[pairLegendStyles.swatch, { backgroundColor: item.primary }]} />
+          )}
+          <Text style={[pairLegendStyles.label, { fontSize, color: item.primary }]} numberOfLines={1}>
+            {item.label}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+};
+
+const pairLegendStyles = StyleSheet.create({
+  row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 10, rowGap: 4, marginTop: 4 },
+  rowCompact: { columnGap: 6, marginTop: 2 },
+  item: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  swatch: { width: 11, height: 11, borderRadius: 2 },
+  swatchMixed: { width: 11, height: 11, borderRadius: 2, overflow: 'hidden', flexDirection: 'row' },
+  swatchHalf: { flex: 1, height: '100%' },
+  label: { fontWeight: '800', letterSpacing: 0.4 },
+});
+
 export default function App() {
   useKeepAwake();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -1363,6 +1545,10 @@ export default function App() {
   
   const [isDropoutModalVisible, setIsDropoutModalVisible] = useState(false);
   const [selectedDropoutPlayerIds, setSelectedDropoutPlayerIds] = useState<string[]>([]);
+  // Per-player dropout mode chosen in the modal.
+  const [selectedDropoutMode, setSelectedDropoutMode] = useState<Record<string, 'FULL' | 'ONE_ROUND'>>({});
+  // Players resting just for the current round; auto-cleared when next round begins.
+  const [oneRoundRestPlayerIds, setOneRoundRestPlayerIds] = useState<string[]>([]);
 
   const [isClubDBModalVisible, setIsClubDBModalVisible] = useState(false);
   const [selectedClubDBPlayerIds, setSelectedClubDBPlayerIds] = useState<string[]>([]);
@@ -1386,6 +1572,7 @@ export default function App() {
   const weightGroupMatchesARef = useRef<Match[]>([]);
   const weightGroupMatchesBRef = useRef<Match[]>([]);
   const noRestPlayersRef = useRef<string[]>([]);
+  const oneRoundRestPlayerIdsRef = useRef<string[]>([]);
   const soundsRef = useRef<any>({});
   const audioDuckHoldRef = useRef<Audio.Sound | null>(null);
   const tenSecSoundFiredRef = useRef(false);
@@ -1402,6 +1589,10 @@ export default function App() {
   useEffect(() => {
     noRestPlayersRef.current = noRestPlayers;
   }, [noRestPlayers]);
+
+  useEffect(() => {
+    oneRoundRestPlayerIdsRef.current = oneRoundRestPlayerIds;
+  }, [oneRoundRestPlayerIds]);
 
   useEffect(() => {
     sparringOptionsRef.current = sparringOptions;
@@ -2117,6 +2308,7 @@ export default function App() {
     dropoutShouldResumeRef.current = isActive;
     setIsActive(false);
     setSelectedDropoutPlayerIds([]);
+    setSelectedDropoutMode({});
     setIsDropoutModalVisible(true);
   };
 
@@ -2125,6 +2317,7 @@ export default function App() {
     dropoutShouldResumeRef.current = false;
     setIsDropoutModalVisible(false);
     setSelectedDropoutPlayerIds([]);
+    setSelectedDropoutMode({});
     if (shouldResume) {
       setIsActive(true);
     }
@@ -2138,33 +2331,68 @@ export default function App() {
     setActivePlayers(updatedPlayers);
     activePlayersRef.current = updatedPlayers;
 
+    // Permanently removed players should also leave the one-round rest list.
+    if (oneRoundRestPlayerIdsRef.current.length > 0) {
+      const cleaned = oneRoundRestPlayerIdsRef.current.filter(id => !removedPlayerIds.has(id));
+      oneRoundRestPlayerIdsRef.current = cleaned;
+      setOneRoundRestPlayerIds(cleaned);
+    }
+
+    regenerateCurrentRoundForRoster(updatedPlayers);
+
+    const shouldResume = dropoutShouldResumeRef.current;
+    dropoutShouldResumeRef.current = false;
+    setSelectedDropoutPlayerIds([]);
+    setSelectedDropoutMode({});
+    setIsDropoutModalVisible(false);
+    if (shouldResume) {
+      setIsActive(true);
+    }
+  };
+
+  // Regenerates the CURRENT round's matches/groups using the given roster as the
+  // pool of available players. Players excluded from `roster` (either permanently
+  // removed or sitting out one round) appear in `currentResting` so the topbar's
+  // "ODPOCZYWA: …" inline summary stays correct.
+  const regenerateCurrentRoundForRoster = (roster: RealPlayer[]) => {
+    const oneRoundIds = new Set(oneRoundRestPlayerIdsRef.current);
+    const effectiveRoster = roster.filter(p => !oneRoundIds.has(p.id));
+    const benchedFromOneRound = activePlayersRef.current.filter(p => oneRoundIds.has(p.id));
+    const mergeResting = (resting: RealPlayer[]) => {
+      const seen = new Set(resting.map(r => r.id));
+      const merged = [...resting];
+      for (const p of benchedFromOneRound) {
+        if (!seen.has(p.id)) merged.push(p);
+      }
+      return merged;
+    };
+
     if (trainingMode === 'ZADANIOWKI') {
         if (zadaniowkiType === 'TRÓJKI') {
-            setZadaniowkiGroups(buildTriadZadaniowkiGroups(updatedPlayers));
+            setZadaniowkiGroups(buildTriadZadaniowkiGroups(effectiveRoster));
+            updateCurrentResting(mergeResting([]));
         } else {
-            const { matches, resting } = generateRound(updatedPlayers, historyRef.current, currentRound, noRestPlayers, sparringOptionsRef.current, parseInt(roundsTotal));
+            const { matches, resting } = generateRound(effectiveRoster, historyRef.current, currentRound, noRestPlayersRef.current, sparringOptionsRef.current, parseInt(roundsTotal));
             setCurrentMatches(matches);
             currentMatchesRef.current = matches;
-            updateCurrentResting(resting);
+            updateCurrentResting(mergeResting(resting));
         }
     } else if (trainingMode === 'DRILLE') {
-        // Drille: regenerate pairs (they stay fixed for remaining rounds)
-        const { matches, resting } = generateRound(updatedPlayers, historyRef.current, currentRound, noRestPlayers, sparringOptionsRef.current, parseInt(roundsTotal));
+        const { matches, resting } = generateRound(effectiveRoster, historyRef.current, currentRound, noRestPlayersRef.current, sparringOptionsRef.current, parseInt(roundsTotal));
         setCurrentMatches(matches);
         currentMatchesRef.current = matches;
-        updateCurrentResting(resting);
+        updateCurrentResting(mergeResting(resting));
     } else if (sparringOptionsRef.current.weightDivisionEnabled) {
-        // Weight division: regenerate both groups
         const threshold = sparringOptionsRef.current.weightDivisionThreshold;
-        const groupAPlayers = updatedPlayers.filter(p => p.weight <= threshold);
-        const groupBPlayers = updatedPlayers.filter(p => p.weight > threshold);
+        const groupAPlayers = effectiveRoster.filter(p => p.weight <= threshold);
+        const groupBPlayers = effectiveRoster.filter(p => p.weight > threshold);
         const rds = parseInt(roundsTotal);
 
         const resultA = groupAPlayers.length >= 2
-          ? generateRound(groupAPlayers, historyRef.current, currentRound, noRestPlayers, sparringOptionsRef.current, rds)
+          ? generateRound(groupAPlayers, historyRef.current, currentRound, noRestPlayersRef.current, sparringOptionsRef.current, rds)
           : { matches: [] as Match[], resting: groupAPlayers };
         const resultB = groupBPlayers.length >= 2
-          ? generateRound(groupBPlayers, historyRef.current, currentRound, noRestPlayers, sparringOptionsRef.current, rds)
+          ? generateRound(groupBPlayers, historyRef.current, currentRound, noRestPlayersRef.current, sparringOptionsRef.current, rds)
           : { matches: [] as Match[], resting: groupBPlayers };
 
         setWeightGroupMatchesA(resultA.matches);
@@ -2178,21 +2406,30 @@ export default function App() {
         const curResult = curGroup === 'A' ? resultA : resultB;
         setCurrentMatches(curResult.matches);
         currentMatchesRef.current = curResult.matches;
-        updateCurrentResting(curResult.resting);
+        updateCurrentResting(mergeResting(curResult.resting));
     } else {
         const targetRoundNum = phase === 'PREP' ? currentRound : currentRound + 1;
-        const { matches, resting } = generateRound(updatedPlayers, historyRef.current, targetRoundNum, noRestPlayers, sparringOptionsRef.current, parseInt(roundsTotal));
+        const { matches, resting } = generateRound(effectiveRoster, historyRef.current, targetRoundNum, noRestPlayersRef.current, sparringOptionsRef.current, parseInt(roundsTotal));
         setCurrentMatches(matches);
         currentMatchesRef.current = matches;
-        updateCurrentResting(resting);
+        updateCurrentResting(mergeResting(resting));
     }
-    const shouldResume = dropoutShouldResumeRef.current;
-    dropoutShouldResumeRef.current = false;
-    setSelectedDropoutPlayerIds([]);
-    setIsDropoutModalVisible(false);
-    if (shouldResume) {
-      setIsActive(true);
+  };
+
+  // Cleared at every "generate next round" site so 1-round resters re-enter the rotation.
+  const consumeOneRoundRest = () => {
+    if (oneRoundRestPlayerIdsRef.current.length > 0) {
+      oneRoundRestPlayerIdsRef.current = [];
+      setOneRoundRestPlayerIds([]);
     }
+  };
+
+  const handleRestPlayersForOneRound = (playerIds: string[]) => {
+    if (playerIds.length === 0) return;
+    const merged = Array.from(new Set([...oneRoundRestPlayerIdsRef.current, ...playerIds]));
+    oneRoundRestPlayerIdsRef.current = merged;
+    setOneRoundRestPlayerIds(merged);
+    regenerateCurrentRoundForRoster(activePlayersRef.current);
   };
 
   const handleConfirmDropoutSelection = () => {
@@ -2201,7 +2438,28 @@ export default function App() {
       return;
     }
 
-    handleRemovePlayersFromTraining(selectedDropoutPlayerIds);
+    const fullIds = selectedDropoutPlayerIds.filter(id => (selectedDropoutMode[id] ?? 'FULL') === 'FULL');
+    const oneRoundIds = selectedDropoutPlayerIds.filter(id => selectedDropoutMode[id] === 'ONE_ROUND');
+
+    if (oneRoundIds.length > 0 && fullIds.length === 0) {
+      handleRestPlayersForOneRound(oneRoundIds);
+      const shouldResume = dropoutShouldResumeRef.current;
+      dropoutShouldResumeRef.current = false;
+      setSelectedDropoutPlayerIds([]);
+      setSelectedDropoutMode({});
+      setIsDropoutModalVisible(false);
+      if (shouldResume) setIsActive(true);
+      return;
+    }
+
+    if (oneRoundIds.length > 0) {
+      // Stage one-round rest BEFORE permanent removal so regeneration sees both.
+      const merged = Array.from(new Set([...oneRoundRestPlayerIdsRef.current, ...oneRoundIds]));
+      oneRoundRestPlayerIdsRef.current = merged;
+      setOneRoundRestPlayerIds(merged);
+    }
+
+    handleRemovePlayersFromTraining(fullIds);
   };
 
   useEffect(() => {
@@ -2246,6 +2504,7 @@ export default function App() {
                           setTimeLeft(Math.floor(parseFloat(prepTime))); 
                           setCurrentRound(prev => prev + 1);
                           setCurrentStep(1);
+                          consumeOneRoundRest();
                           const { matches, resting } = generateRound(activePlayersRef.current, historyRef.current, currentRound + 1, noRestPlayersRef.current, sparringOptionsRef.current, parseInt(roundsTotal));
                           setCurrentMatches(matches); currentMatchesRef.current = matches; updateCurrentResting(resting);
                       } else {
@@ -2353,6 +2612,7 @@ export default function App() {
           } else if (phase === 'WORK') {
             if (currentRound < parseInt(roundsTotal)) {
               playSound('end'); setPhase('REST'); setTimeLeft(Math.floor(parseFloat(restTime))); 
+              consumeOneRoundRest();
               const { matches, resting } = generateRound(activePlayersRef.current, historyRef.current, currentRound + 1, noRestPlayersRef.current, sparringOptionsRef.current, parseInt(roundsTotal));
               setCurrentMatches(matches); currentMatchesRef.current = matches; updateCurrentResting(resting);
             } else {
@@ -3389,30 +3649,62 @@ export default function App() {
           <ScrollView style={{ width: '100%' }} contentContainerStyle={styles.dropoutList}>
             {sortedDropoutPlayers.map((p) => {
               const isSelected = selectedDropoutPlayerIds.includes(p.id);
-
+              const mode: 'FULL' | 'ONE_ROUND' = selectedDropoutMode[p.id] ?? 'FULL';
+              const setMode = (m: 'FULL' | 'ONE_ROUND') => {
+                setSelectedDropoutMode((prev) => ({ ...prev, [p.id]: m }));
+                if (!isSelected) {
+                  setSelectedDropoutPlayerIds((prev) => prev.includes(p.id) ? prev : [...prev, p.id]);
+                }
+              };
+              const toggleSelected = () => {
+                setSelectedDropoutPlayerIds((prev) =>
+                  prev.includes(p.id)
+                    ? prev.filter((id) => id !== p.id)
+                    : [...prev, p.id]
+                );
+              };
+              const accentColor = mode === 'ONE_ROUND' ? COLORS.accentMain : COLORS.accentAlert;
               return (
-                <TouchableOpacity
+                <View
                   key={p.id}
-                  style={[styles.dropoutRow, isSelected && styles.dropoutRowActive]}
-                  onPress={() =>
-                    setSelectedDropoutPlayerIds((prev) =>
-                      prev.includes(p.id)
-                        ? prev.filter((id) => id !== p.id)
-                        : [...prev, p.id]
-                    )
-                  }
-                  activeOpacity={0.9}
+                  style={[
+                    styles.dropoutRow,
+                    isSelected && (mode === 'ONE_ROUND' ? styles.dropoutRowActiveOneRound : styles.dropoutRowActiveFull),
+                  ]}
                 >
-                  <View style={styles.dropoutPlayerInfo}>
-                    <View style={[styles.dropoutDot, isSelected && styles.dropoutDotActive]} />
-                    <Text style={[styles.dropoutPlayerName, isSelected && styles.dropoutPlayerNameActive]}>{p.id}</Text>
+                  <TouchableOpacity onPress={toggleSelected} activeOpacity={0.85} style={styles.dropoutPlayerInfo}>
+                    <View style={[styles.dropoutDot, isSelected && { backgroundColor: accentColor }]} />
+                    <Text style={[styles.dropoutPlayerName, isSelected && { color: accentColor }]}>{p.id}</Text>
+                  </TouchableOpacity>
+                  <View style={styles.dropoutModeRow}>
+                    <TouchableOpacity
+                      onPress={() => setMode('FULL')}
+                      activeOpacity={0.85}
+                      style={[
+                        styles.dropoutModePill,
+                        isSelected && mode === 'FULL' && styles.dropoutModePillActiveFull,
+                      ]}
+                    >
+                      <Text style={[
+                        styles.dropoutModePillText,
+                        isSelected && mode === 'FULL' && { color: COLORS.accentAlert },
+                      ]}>{t('dropoutModeFull', lang)}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setMode('ONE_ROUND')}
+                      activeOpacity={0.85}
+                      style={[
+                        styles.dropoutModePill,
+                        isSelected && mode === 'ONE_ROUND' && styles.dropoutModePillActiveOneRound,
+                      ]}
+                    >
+                      <Text style={[
+                        styles.dropoutModePillText,
+                        isSelected && mode === 'ONE_ROUND' && { color: COLORS.accentMain },
+                      ]}>{t('dropoutModeOneRound', lang)}</Text>
+                    </TouchableOpacity>
                   </View>
-                  <View style={[styles.dropoutBadge, isSelected && styles.dropoutBadgeActive]}>
-                    <Text style={[styles.dropoutBadgeText, isSelected && styles.dropoutBadgeTextActive]}>
-                      {isSelected ? t('selected', lang) : t('select', lang)}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
+                </View>
               );
             })}
           </ScrollView>
@@ -4271,16 +4563,17 @@ export default function App() {
       const renderZadaniowkiCardPrep = (g: any, cardWidth: number, cardHeight: number) => {
           if (isDwojki) {
               const match = g as Match;
+              const colors = getPairCardColors(match);
               return (
                   <ResponsiveTriadPrepCard
                     leftRole="[A]"
                     leftName={match.p1.id}
                     leftRoleColor={getRoleColor('[A]')}
-                    leftNameColor={getGearColor(match.p1.gear)}
+                    leftNameColor={colors.primary}
                     rightRole="[B]"
                     rightName={match.p2.id}
                     rightRoleColor={getRoleColor('[B]')}
-                    rightNameColor={getGearColor(match.p2.gear)}
+                    rightNameColor={colors.secondary}
                     cardWidth={cardWidth}
                     cardHeight={cardHeight}
                     reserveRestSpace={false}
@@ -4290,35 +4583,37 @@ export default function App() {
               const group = g as RealPlayer[];
               if (group.length === 3) {
                   const { btm, top, rest } = getRoles(step);
+                  const colors = getGroupCardColors(group);
                   return (
                       <ResponsiveTriadPrepCard
                         leftRole={letters[btm]}
                         leftName={group[btm].id}
                         leftRoleColor={getRoleColor(letters[btm])}
-                        leftNameColor={getGearColor(group[btm].gear)}
+                        leftNameColor={colors.perPlayer[btm]}
                         rightRole={letters[top]}
                         rightName={group[top].id}
                         rightRoleColor={getRoleColor(letters[top])}
-                        rightNameColor={getGearColor(group[top].gear)}
+                        rightNameColor={colors.perPlayer[top]}
                         restRole={letters[rest]}
                         restName={group[rest].id}
                         restRoleColor={getRoleColor(letters[rest])}
-                        restNameColor={getGearColor(group[rest].gear)}
+                        restNameColor={colors.perPlayer[rest]}
                         cardWidth={cardWidth}
                         cardHeight={cardHeight}
                       />
                   );
               } else if (group.length === 2) {
+                  const colors = getGroupCardColors(group);
                   return (
                       <ResponsiveTriadPrepCard
                         leftRole="[A]"
                         leftName={group[0].id}
                         leftRoleColor={COLORS.accentMain}
-                        leftNameColor={getGearColor(group[0].gear)}
+                        leftNameColor={colors.perPlayer[0]}
                         rightRole="[B]"
                         rightName={group[1].id}
                         rightRoleColor={COLORS.accentCool}
-                        rightNameColor={getGearColor(group[1].gear)}
+                        rightNameColor={colors.perPlayer[1]}
                         cardWidth={cardWidth}
                         cardHeight={cardHeight}
                         reserveRestSpace={false}
@@ -4389,21 +4684,24 @@ export default function App() {
 
       // --- Dwójki prep grid: sparring-style rendering ---
       if (isDwojkiPrepGrid) {
-        const renderDwPairCard = (match: Match, cardWidth: number, cardHeight: number) => (
-          <ResponsiveTriadPrepCard
-            leftRole="[A]"
-            leftName={match.p1.id}
-            leftRoleColor={getRoleColor('[A]')}
-            leftNameColor={getGearColor(match.p1.gear)}
-            rightRole="[B]"
-            rightName={match.p2.id}
-            rightRoleColor={getRoleColor('[B]')}
-            rightNameColor={getGearColor(match.p2.gear)}
-            cardWidth={cardWidth}
-            cardHeight={cardHeight}
-            reserveRestSpace={false}
-          />
-        );
+        const renderDwPairCard = (match: Match, cardWidth: number, cardHeight: number) => {
+          const colors = getPairCardColors(match);
+          return (
+            <ResponsiveTriadPrepCard
+              leftRole="[A]"
+              leftName={match.p1.id}
+              leftRoleColor={getRoleColor('[A]')}
+              leftNameColor={colors.primary}
+              rightRole="[B]"
+              rightName={match.p2.id}
+              rightRoleColor={getRoleColor('[B]')}
+              rightNameColor={colors.secondary}
+              cardWidth={cardWidth}
+              cardHeight={cardHeight}
+              reserveRestSpace={false}
+            />
+          );
+        };
 
         const renderDwPairCells = (
           matches: Match[],
@@ -4490,60 +4788,86 @@ export default function App() {
           </View>
         );
 
-        const dwPairsContent = (
-          <>
-            {isDwojkiPhoneView ? (
-              <>
-                {hasKidSection &&
-                  renderDwMatchSection('KID', COLORS.accentCool, kidsPairs, dwKidsGridSpec, { width: '100%' }, 'dw-kid')}
-                {hasAdultSection && (
-                  <View style={{ marginTop: hasKidSection ? dwPairSectionGap : 0 }}>
-                    {renderDwMatchSection('ADULT', COLORS.accentMain, adultsPairs, dwAdultsGridSpec, { width: '100%' }, 'dw-adult')}
-                  </View>
-                )}
-              </>
-            ) : (
-              (hasKidSection || hasAdultSection) && (
-                <View style={[styles.splitMainArea, { gap: dwPairSectionGap, ...(screenWidth >= 1000 ? { flex: 1 } : { minHeight: dwSplitAreaHeight }) }]}>
-                  {hasKidSection &&
-                    renderDwMatchSection('KID', COLORS.accentCool, kidsPairs, dwKidsGridSpec, dwKidsSectionStyle, 'dw-kid')}
-                  {hasAdultSection &&
-                    renderDwMatchSection('ADULT', COLORS.accentMain, adultsPairs, dwAdultsGridSpec, dwAdultsSectionStyle, 'dw-adult')}
-                </View>
-              )
-            )}
+        const dwAllPairs = [...kidsPairs, ...adultsPairs].sort((a, b) => getPairSortKey(a) - getPairSortKey(b));
+        const dwUnifiedBodyWidth = isDwojkiPhoneView
+          ? dwPhoneSectionWidth - dwPairSectionPadding * 2
+          : Math.max(220, dwSplitAreaWidth - dwPairSectionPadding * 2);
+        const dwUnifiedDynamicMaxCols = dwUnifiedBodyWidth >= 1300 ? 5 : dwUnifiedBodyWidth >= 1000 ? 4 : dwUnifiedBodyWidth >= 700 ? 3 : 2;
+        const dwUnifiedSpec = isDwojkiPrepGrid && dwAllPairs.length > 0
+          ? getBestPairGridSpec({
+              count: dwAllPairs.length,
+              sectionWidth: dwUnifiedBodyWidth,
+              sectionHeight: dwSectionBodyHeight,
+              cellPadding: dwPairCellPadding,
+              minCardWidth: isDwojkiPhoneView ? dwUnifiedBodyWidth : 200,
+              minCardHeight: isDwojkiPhoneView ? dwPhonePairCardHeight : dwGridMinCardHeight,
+              preferredCardWidth: isDwojkiPhoneView ? dwUnifiedBodyWidth : 280,
+              maxCols: isDwojkiPhoneView ? 1 : Math.min(dwAllPairs.length, dwUnifiedDynamicMaxCols),
+              allowScroll: isDwojkiPhoneView,
+            })
+          : { cols: 1, rows: 0, cardWidth: 0, cardHeight: 0 };
 
-            {currentResting.length > 0 && (
-              <View
-                style={[
-                  styles.sideSection,
-                  styles.pairMetaSection,
-                  {
-                    marginTop: hasKidSection || hasAdultSection ? dwPairSectionGap : 0,
-                    paddingHorizontal: dwPairSectionPadding,
-                    paddingTop: dwPairSectionPadding,
-                    paddingBottom: dwPairSectionPadding,
-                  },
-                  !isDwojkiPhoneView && (screenWidth >= 1000 ? { flexShrink: 1 } : { minHeight: dwRestingPanelHeight, height: dwRestingPanelHeight }),
-                ]}
-              >
-                <View style={[styles.matchSectionAccent, { backgroundColor: COLORS.accentAlert }]} />
-                <View style={[styles.matchSectionHeader, { minHeight: dwPairHeaderHeight }]}>
-                  <Text style={[styles.matchSectionTitle, { color: COLORS.accentAlert }]}>ODPOCZYWA</Text>
-                </View>
-                <View style={[styles.restingWrapMath, { flex: isDwojkiPhoneView ? 0 : 1, marginTop: 2 }]}>
-                  {currentResting.map((playerObj) => (
-                    <View key={playerObj.id} style={styles.restingBadge}>
-                      <Text style={styles.restingPlayerTextMath} adjustsFontSizeToFit minimumFontScale={0.55} numberOfLines={1}>
-                        {playerObj.id}
-                      </Text>
+        const dwojkiPairLegendItems = getPairLegendItems(dwAllPairs);
+        const dwojkiRestingInline = formatRestingInline(currentResting);
+
+        const dwPairsContent = (() => {
+          if (dwAllPairs.length === 0) return null;
+          if (isDwojkiPhoneView) {
+            return (
+              <View style={[styles.sideSection, { paddingHorizontal: dwPairSectionPadding, paddingVertical: dwPairSectionPadding, width: '100%' }]}>
+                <View style={styles.timerPairPhoneList}>
+                  {dwAllPairs.map((match, index) => (
+                    <View key={`dw-u-${match.p1.id}-${match.p2.id}-${index}`} style={{ width: '100%', paddingVertical: dwPairCellPadding }}>
+                      <View style={{ width: '100%', height: dwPhonePairCardHeight }}>
+                        {renderDwPairCard(
+                          match,
+                          Math.max(220, dwPhoneSectionWidth - dwPairSectionPadding * 2 - dwPairCellPadding * 2),
+                          dwPhonePairCardHeight,
+                        )}
+                      </View>
                     </View>
                   ))}
                 </View>
               </View>
-            )}
-          </>
-        );
+            );
+          }
+          const cellWidthPct = `${100 / Math.max(1, dwUnifiedSpec.cols)}%`;
+          const cellHeightPct = `${100 / Math.max(1, dwUnifiedSpec.rows)}%`;
+          return (
+            <View
+              style={[
+                styles.sideSection,
+                { padding: dwPairSectionPadding, ...(screenWidth >= 1000 ? { flex: 1 } : { minHeight: dwSplitAreaHeight }) },
+              ]}
+            >
+              <View
+                style={[
+                  styles.gridWrap,
+                  styles.gridWrapNoScroll,
+                  { flex: 1, marginHorizontal: -dwPairCellPadding, marginBottom: -dwPairCellPadding },
+                ]}
+              >
+                {dwAllPairs.map((match, index) => {
+                  const lastRowOffset = getCenteredLastRowOffset(index, dwAllPairs.length, Math.max(1, dwUnifiedSpec.cols));
+                  return (
+                    <View
+                      key={`dw-u-${match.p1.id}-${match.p2.id}-${index}`}
+                      style={{
+                        width: cellWidthPct as any,
+                        height: cellHeightPct as any,
+                        padding: dwPairCellPadding,
+                        marginLeft: lastRowOffset ? `${lastRowOffset}%` as any : 0,
+                      }}
+                    >
+                      {renderDwPairCard(match, dwUnifiedSpec.cardWidth, dwUnifiedSpec.cardHeight)}
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          );
+        })();
+
 
         return (
           <SafeAreaView style={styles.safeArea}>
@@ -4559,8 +4883,20 @@ export default function App() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   {!isDwojkiPhoneView && <Image source={APP_LOGOS[lang]} style={{ width: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), height: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), borderRadius: 12 }} resizeMode="contain" />}
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.topBarRound, { fontSize: topBarMetrics.roundFont }]}>RUNDA {currentRound} / {roundsTotal}</Text>
-                    <Text style={[styles.topBarPhase, { color: COLORS.accentMain, fontSize: topBarMetrics.phaseFont }]}>PRZYGOTOWANIE</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 12, rowGap: 2 }}>
+                      <Text style={[styles.topBarRound, { fontSize: topBarMetrics.roundFont }]}>RUNDA {currentRound} / {roundsTotal}</Text>
+                      {dwojkiPairLegendItems.length > 0 && (
+                        <PairCategoryLegend items={dwojkiPairLegendItems} fontSize={Math.max(10, topBarMetrics.roundFont * 0.55)} compact />
+                      )}
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 10 }}>
+                      <Text style={[styles.topBarPhase, { color: COLORS.accentMain, fontSize: topBarMetrics.phaseFont }]}>PRZYGOTOWANIE</Text>
+                      {dwojkiRestingInline.length > 0 && (
+                        <Text style={{ color: COLORS.accentAlert, fontSize: Math.max(10, topBarMetrics.phaseFont * 0.62), fontWeight: '800', letterSpacing: 0.5, flexShrink: 1 }} numberOfLines={2}>
+                          • {dwojkiRestingInline}
+                        </Text>
+                      )}
+                    </View>
                     {dwojkiLegendItems.length > 0 && (
                       <View style={[styles.triadLegendRow, { marginTop: 4 }]}>
                         {dwojkiLegendItems.map(item => (
@@ -4644,6 +4980,11 @@ export default function App() {
         );
       }
       
+      // Category legend + inline resting for triad PREP topbar.
+      const triadAllGroups = [...(kData as RealPlayer[][]), ...(aData as RealPlayer[][])];
+      const triadPairLegendItems = getGroupLegendItems(triadAllGroups);
+      const triadRestingInline = formatRestingInline(currentResting);
+
       return (
         <SafeAreaView style={styles.safeArea}>
           <View style={[styles.topBar, { paddingHorizontal: topBarMetrics.paddingHorizontal, paddingVertical: topBarMetrics.paddingVertical, overflow: 'hidden' }]}>
@@ -4652,8 +4993,20 @@ export default function App() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 {screenWidth >= 760 && <Image source={APP_LOGOS[lang]} style={{ width: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), height: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), borderRadius: 12 }} resizeMode="contain" />}
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.topBarRound, { fontSize: topBarMetrics.roundFont }]}>RUNDA {currentRound} / {roundsTotal}</Text>
-                  <Text style={[styles.topBarPhase, { color: COLORS.accentMain, fontSize: topBarMetrics.phaseFont }]}>PRZYGOTOWANIE</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 12, rowGap: 2 }}>
+                    <Text style={[styles.topBarRound, { fontSize: topBarMetrics.roundFont }]}>RUNDA {currentRound} / {roundsTotal}</Text>
+                    {triadPairLegendItems.length > 0 && (
+                      <PairCategoryLegend items={triadPairLegendItems} fontSize={Math.max(10, topBarMetrics.roundFont * 0.55)} compact />
+                    )}
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 10 }}>
+                    <Text style={[styles.topBarPhase, { color: COLORS.accentMain, fontSize: topBarMetrics.phaseFont }]}>PRZYGOTOWANIE</Text>
+                    {triadRestingInline.length > 0 && (
+                      <Text style={{ color: COLORS.accentAlert, fontSize: Math.max(10, topBarMetrics.phaseFont * 0.62), fontWeight: '800', letterSpacing: 0.5, flexShrink: 1 }} numberOfLines={2}>
+                        • {triadRestingInline}
+                      </Text>
+                    )}
+                  </View>
                   {triadLegend && (
                     <View style={[styles.triadLegendRow, { marginTop: 4 }]}>
                       {triadLegendItems.map(item => (
@@ -4714,141 +5067,93 @@ export default function App() {
             showsVerticalScrollIndicator={shouldScrollTriadGrid}
             onLayout={isTriadPrepGrid ? handleZadaniowkiMainLayout : undefined}
           >
-            <View
-              style={[
-                styles.splitMainArea,
-                (shouldScrollTriadGrid || isTriadPrepGrid) && {
-                  flexGrow: forceNoScroll ? 1 : 0,
-                  flexShrink: forceNoScroll ? 1 : 0,
-                  ...(forceNoScroll
-                    ? {}
-                    : {
-                        minHeight: stackPrepSections
-                          ? (kidsSectionExplicitHeight ?? 0) + (adultsSectionExplicitHeight ?? 0) + responsiveSectionGap
-                          : Math.max(kidsSectionExplicitHeight ?? 0, adultsSectionExplicitHeight ?? 0),
-                      }),
-                },
-                isTriadPrepGrid && {
-                  flexDirection: stackPrepSections ? 'column' : 'row',
-                  gap: responsiveSectionGap,
-                },
-              ]}
-            >
-              
-              {kData.length > 0 && (
-                <View
-                  style={[
-                    styles.sideSection,
-                    isTriadPrepGrid
-                      ? (stackPrepSections
-                        ? (forceNoScroll
-                          ? { flex: kidsRows, flexShrink: 1 }
-                          : { flexGrow: 0, flexShrink: 0, height: kidsSectionExplicitHeight })
-                        : (forceNoScroll
-                          ? { flex: kidsFlex }
-                          : { flex: kidsFlex, height: kidsSectionExplicitHeight }))
-                      : shouldScrollTriadGrid
-                        ? { flexGrow: 0, flexShrink: 0, height: kidsSectionScrollHeight }
-                        : { flex: stackPrepSections ? kidsRows : kidsFlex },
-                    {
-                      paddingHorizontal: responsiveSectionPadding,
-                      paddingTop: responsiveSectionPadding,
-                      paddingBottom: responsiveSectionPadding,
-                    },
-                  ]}
-                >
-                  <View style={[styles.matchSectionAccent, { backgroundColor: COLORS.accentCool }]} />
-                  <View style={styles.matchSectionHeader}>
-                    <Text style={[styles.matchSectionTitle, { color: COLORS.accentCool }]}>KID</Text>
+            {(() => {
+              // === UNIFIED ZADANIÓWKI PREP BLOCK ===
+              // One block for all groups (KID + ADULT, triads + duos), color-coded per category.
+              const sortedUnifiedGroups = [...(kData as RealPlayer[][]), ...(aData as RealPlayer[][])]
+                .sort((a, b) => {
+                  const colA = getGroupCardColors(a).primary;
+                  const colB = getGroupCardColors(b).primary;
+                  const idxA = PAIR_CATEGORY_ORDER.findIndex(c => PAIR_CATEGORY_COLORS[c] === colA);
+                  const idxB = PAIR_CATEGORY_ORDER.findIndex(c => PAIR_CATEGORY_COLORS[c] === colB);
+                  return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+                });
+              if (sortedUnifiedGroups.length === 0) return null;
+
+              const unifiedSectionWidth = splitAreaWidth;
+              const unifiedBodyWidth = Math.max(220, unifiedSectionWidth - responsiveSectionPadding * 2);
+              const unifiedHeightBudget = preliminaryGridHeightBudget;
+
+              if (isTriadPrepGrid) {
+                // Use ADULT cols heuristic on full width.
+                const unifiedCols = getResponsiveTriadPrepCols(
+                  unifiedBodyWidth,
+                  unifiedHeightBudget,
+                  sortedUnifiedGroups.length,
+                  'ADULT',
+                  responsiveCellPadding,
+                  responsiveMinCardHeight,
+                  adultsMinWidths.safe,
+                  adultsMinWidths.hard,
+                );
+                const cardW = Math.max(130, unifiedBodyWidth / Math.max(1, unifiedCols) - responsiveCellPadding * 2);
+                const rowsCount = Math.ceil(sortedUnifiedGroups.length / Math.max(1, unifiedCols));
+                const cardH = forceNoScroll
+                  ? Math.max(responsiveMinCardHeight, unifiedHeightBudget / Math.max(1, rowsCount) - responsiveCellPadding * 2)
+                  : Math.max(responsiveMinCardHeight, scrollTriadCardHeight);
+                return (
+                  <View
+                    style={[
+                      styles.sideSection,
+                      { paddingHorizontal: responsiveSectionPadding, paddingTop: responsiveSectionPadding, paddingBottom: responsiveSectionPadding },
+                      forceNoScroll ? { flex: 1 } : { minHeight: rowsCount * (cardH + responsiveCellPadding * 2) + responsiveSectionPadding * 2 },
+                    ]}
+                  >
+                    <View style={[styles.gridWrap, forceNoScroll ? { flex: 1 } : {}]}>
+                      {sortedUnifiedGroups.map((group, index) => {
+                        const remainder = sortedUnifiedGroups.length % unifiedCols;
+                        const isLastRow = remainder !== 0 && index >= sortedUnifiedGroups.length - remainder;
+                        const cellW = isLastRow ? `${100 / remainder}%` : `${100 / unifiedCols}%`;
+                        const lastRowOffset = getLastRowOffset(index, sortedUnifiedGroups.length, unifiedCols);
+                        return (
+                          <View
+                            key={`unif-prep-${index}`}
+                            style={{
+                              width: cellW as any,
+                              height: forceNoScroll ? `${100 / Math.max(1, rowsCount)}%` as any : cardH + responsiveCellPadding * 2,
+                              padding: responsiveCellPadding,
+                              marginLeft: lastRowOffset ? `${lastRowOffset}%` as any : 0,
+                            }}
+                          >
+                            {renderZadaniowkiCardPrep(group, cardW, cardH)}
+                          </View>
+                        );
+                      })}
+                    </View>
                   </View>
-                  {isTriadPrepGrid ? (
-                    <View style={[styles.gridWrap, forceNoScroll ? { flex: 1 } : { flex: 0, flexGrow: 0, flexShrink: 0, height: kidsMergedGridHeight }]}>
-                      {renderMergedGridCells(kMergedData, kidsCols, kidsCardWidth, kidsCardHeight, kidsDuoCardWidth, kidsDuoCardHeight, 'dz')}
-                    </View>
-                  ) : (
-                    <View style={[styles.gridWrap, shouldScrollTriadGrid && { flex: 0, flexGrow: 0, flexShrink: 0, height: Math.ceil(kData.length / kidsCols) * (kidsCardHeight + responsiveCellPadding * 2) }]}>
-                        {kData.map((group: any, index: number) => {
-                          const remainder = kData.length % kidsCols;
-                          const isLastRow = remainder !== 0 && index >= kData.length - remainder;
-                          const cellWidth = isLastRow
-                              ? `${100 / remainder}%`
-                              : `${100 / kidsCols}%`;
-                          const lastRowOffset = getLastRowOffset(index, kData.length, kidsCols);
+                );
+              }
 
-                          return (
-                            <View key={`dz-${index}`} style={{ width: cellWidth as any, height: shouldScrollTriadGrid ? kidsCardHeight + responsiveCellPadding * 2 : `${100/kidsRows}%`, padding: 4, marginLeft: lastRowOffset ? `${lastRowOffset}%` as any : 0, justifyContent: isDwojki ? 'center' : undefined }}>
-                                {renderZadaniowkiCardPrep(group, kidsCardWidth, kidsCardHeight)}
-                            </View>
-                          );
-                        })}
-                    </View>
-                  )}
-                </View>
-              )}
-
-              {aData.length > 0 && (
-                <View
-                  style={[
-                    styles.sideSection,
-                    isTriadPrepGrid
-                      ? (stackPrepSections
-                        ? (forceNoScroll
-                          ? { flex: adultsRows, flexShrink: 1 }
-                          : { flexGrow: 0, flexShrink: 0, height: adultsSectionExplicitHeight })
-                        : (forceNoScroll
-                          ? { flex: adultsFlex }
-                          : { flex: adultsFlex, height: adultsSectionExplicitHeight }))
-                      : shouldScrollTriadGrid
-                        ? { flexGrow: 0, flexShrink: 0, height: adultsSectionScrollHeight }
-                        : { flex: stackPrepSections ? adultsRows : adultsFlex },
-                    {
-                      paddingHorizontal: responsiveSectionPadding,
-                      paddingTop: responsiveSectionPadding,
-                      paddingBottom: responsiveSectionPadding,
-                    },
-                  ]}
-                >
-                  <View style={[styles.matchSectionAccent, { backgroundColor: COLORS.accentMain }]} />
-                  <View style={styles.matchSectionHeader}>
-                    <Text style={[styles.matchSectionTitle, { color: COLORS.accentMain }]}>ADULT</Text>
+              // Non-triad-prep (e.g. dwojki rotation rounds shown as grid via showGrid)
+              const unifiedColsSimple = Math.min(sortedUnifiedGroups.length, Math.ceil(sortedUnifiedGroups.length / MAX_ROWS) || 1);
+              const cardWSimple = Math.max(130, unifiedBodyWidth / Math.max(1, unifiedColsSimple) - 8);
+              const rowsSimple = Math.ceil(sortedUnifiedGroups.length / Math.max(1, unifiedColsSimple));
+              const cardHSimple = Math.max(60, unifiedHeightBudget / Math.max(1, rowsSimple) - 8);
+              return (
+                <View style={[styles.sideSection, { padding: responsiveSectionPadding, flex: 1 }]}>
+                  <View style={[styles.gridWrap, { flex: 1 }]}>
+                    {sortedUnifiedGroups.map((group, index) => (
+                      <View
+                        key={`unif-${index}`}
+                        style={{ width: `${100 / unifiedColsSimple}%` as any, height: `${100 / rowsSimple}%` as any, padding: 4, justifyContent: isDwojki ? 'center' : undefined }}
+                      >
+                        {renderZadaniowkiCardPrep(group, cardWSimple, cardHSimple)}
+                      </View>
+                    ))}
                   </View>
-                  {isTriadPrepGrid ? (
-                    <View style={[styles.gridWrap, forceNoScroll ? { flex: 1 } : { flex: 0, flexGrow: 0, flexShrink: 0, height: adultsMergedGridHeight }]}>
-                      {renderMergedGridCells(aMergedData, adultsCols, adultsCardWidth, adultsCardHeight, adultsDuoCardWidth, adultsDuoCardHeight, 'do')}
-                    </View>
-                  ) : (
-                    <View style={[styles.gridWrap, shouldScrollTriadGrid && { flex: 0, flexGrow: 0, flexShrink: 0, height: Math.ceil(aData.length / adultsCols) * (adultsCardHeight + responsiveCellPadding * 2) }]}>
-                        {aData.map((group: any, index: number) => {
-                          const remainder = aData.length % adultsCols;
-                          const isLastRow = remainder !== 0 && index >= aData.length - remainder;
-                          const cellWidth = isLastRow
-                              ? `${100 / remainder}%`
-                              : `${100 / adultsCols}%`;
-                          const lastRowOffset = getLastRowOffset(index, aData.length, adultsCols);
-
-                          return (
-                            <View key={`do-${index}`} style={{ width: cellWidth as any, height: shouldScrollTriadGrid ? adultsCardHeight + responsiveCellPadding * 2 : `${100/adultsRows}%`, padding: 4, marginLeft: lastRowOffset ? `${lastRowOffset}%` as any : 0, justifyContent: isDwojki ? 'center' : undefined }}>
-                                {renderZadaniowkiCardPrep(group, adultsCardWidth, adultsCardHeight)}
-                            </View>
-                          );
-                        })}
-                    </View>
-                  )}
                 </View>
-              )}
-            </View>
-            {isDwojki && currentResting.length > 0 && (
-              <View style={styles.restingContainerMath}>
-                <Text style={styles.restingTitleMath}>ODPOCZYWA:</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
-                  {currentResting.map((playerObj, idx) => (
-                    <View key={idx} style={styles.restingBadge}>
-                      <Text style={[styles.restingPlayerTextMath, {color: COLORS.accentAlert}]}>{playerObj.id}</Text>
-                    </View>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
+              );
+            })()}
           </ScrollView>
 
           <View style={[styles.bottomButtonsBar, { paddingHorizontal: bottomBarMetrics.gap, paddingVertical: bottomBarMetrics.gap, flexWrap: bottomBarMetrics.wrap ? 'wrap' : 'nowrap' }]}>
@@ -5589,126 +5894,109 @@ export default function App() {
       </View>
     );
 
-    const timerPairsContent = (
-      <>
-        {isPhonePairsView ? (
-          <>
-            {hasKidSection &&
-              renderMatchSection('KID', COLORS.accentCool, kidsPairs, kidsGridSpec, { width: '100%' }, 'kid')}
-            {hasAdultSection && (
-              <View style={{ marginTop: hasKidSection ? pairSectionGap : 0 }}>
-                {renderMatchSection('ADULT', COLORS.accentMain, adultsPairs, adultsGridSpec, { width: '100%' }, 'adult')}
-              </View>
-            )}
-          </>
-        ) : (
-          (hasKidSection || hasAdultSection) && (
-            <View
-              style={[
-                styles.splitMainArea,
-                { gap: pairSectionGap, ...(screenWidth >= 1000 ? { flex: 1 } : { minHeight: splitAreaHeight }) },
-              ]}
-            >
-              {hasKidSection && (
-                <View style={[kidsSectionStyle, { flexDirection: 'column' }]}>
-                  {renderMatchSection('KID', COLORS.accentCool, kidsPairs, kidsGridSpec, { flex: 0, flexGrow: 1, flexShrink: 1 }, 'kid', !embedMixedInSide)}
-                  {embedMixedInSide && renderInlineMixedSection()}
-                  {embedRestingInSide && renderInlineRestingSection()}
-                </View>
-              )}
-              {hasAdultSection &&
-                renderMatchSection('ADULT', COLORS.accentMain, adultsPairs, adultsGridSpec, hasBothSections ? adultsSectionStyle : { flex: 1 }, 'adult')}
-              {embedMixedAsColumn && (
-                <View style={{ width: mixedSideColumnWidth, flexDirection: 'column', gap: pairSectionGap }}>
-                  {renderInlineMixedSection()}
-                  {embedRestingAsColumn && renderInlineRestingSection()}
-                </View>
-              )}
-            </View>
-          )
-        )}
+    // === UNIFIED PAIRS BLOCK ===
+    // Single grid containing all pairs (kids + adults + mixed) sorted by category.
+    // Per-pair color coding: KID GI / KID NO-GI / ADULT GI / ADULT NO-GI; mixed = gradient.
+    // Legend lives in the topbar (next to RUNDA), resting list inline next to PRZYGOTOWANIE.
+    const sparingPairLegendItems = getPairLegendItems(currentMatches);
+    const sparingRestingInline = formatRestingInline(currentResting);
+    const sortedSparingPairs = [...currentMatches].sort((a, b) => getPairSortKey(a) - getPairSortKey(b));
 
-        {mixedPairs.length > 0 && !anyEmbedMixed && (
-          <View
-            style={[
-              styles.sideSection,
-              styles.pairMetaSection,
-              {
-                marginTop: hasKidSection || hasAdultSection ? pairSectionGap : 0,
-                paddingHorizontal: pairSectionPadding,
-                paddingTop: pairSectionPadding,
-                paddingBottom: pairSectionPadding,
-              },
-              !isPhonePairsView && (screenWidth >= 1000 ? { flexShrink: 1 } : { minHeight: mixedPanelHeight, height: mixedPanelHeight }),
-            ]}
-          >
-            <View style={[styles.matchSectionAccent, { backgroundColor: COLORS.accentMain }]} />
-            <View style={[styles.matchSectionHeader, { minHeight: pairHeaderHeight }]}>
-              <Text style={[styles.matchSectionTitle, { color: COLORS.accentMain }]}>MIESZANE</Text>
-            </View>
-            {isPhonePairsView ? (
-              renderPhonePairList(mixedPairs, 'mixed', 'stacked', phonePairCardHeight)
-            ) : (
-              <View
-                style={[
-                  styles.timerPairPhoneList,
-                  {
-                    flex: 1,
-                    marginHorizontal: -pairCellPadding,
-                    marginBottom: -pairCellPadding,
-                  },
-                ]}
-              >
-                {renderMixedPairList(mixedPairs, 'mixed', mixedListCardHeight)}
-              </View>
-            )}
-          </View>
-        )}
+    const renderUnifiedPairCard = (match: Match, cardWidth: number, cardHeight: number) => {
+      const colors = getPairCardColors(match);
+      return (
+        <ResponsiveTriadPrepCard
+          leftRole="[A]"
+          leftName={match.p1.id}
+          leftRoleColor={COLORS.accentMain}
+          leftNameColor={colors.primary}
+          rightRole="[B]"
+          rightName={match.p2.id}
+          rightRoleColor={COLORS.accentCool}
+          rightNameColor={colors.secondary}
+          cardWidth={cardWidth}
+          cardHeight={cardHeight}
+          reserveRestSpace={false}
+          showRoles={false}
+        />
+      );
+    };
 
-        {currentResting.length > 0 && !anyEmbedResting && (
-          <View
-            style={[
-              styles.sideSection,
-              styles.pairMetaSection,
-              {
-                marginTop: mixedPairs.length > 0 || hasKidSection || hasAdultSection ? pairSectionGap : 0,
-                paddingHorizontal: pairSectionPadding,
-                paddingTop: pairSectionPadding,
-                paddingBottom: pairSectionPadding,
-              },
-              !isPhonePairsView && (screenWidth >= 1000 ? { flexShrink: 1 } : { minHeight: restingPanelHeight, height: restingPanelHeight }),
-            ]}
-          >
-            <View style={[styles.matchSectionAccent, { backgroundColor: COLORS.accentAlert }]} />
-            <View style={[styles.matchSectionHeader, { minHeight: pairHeaderHeight }]}>
-              <Text style={[styles.matchSectionTitle, { color: COLORS.accentAlert }]}>ODPOCZYWA</Text>
-            </View>
-            <View
-              style={[
-                styles.restingWrapMath,
-                {
-                  flex: isPhonePairsView ? 0 : 1,
-                  marginTop: 2,
-                },
-              ]}
-            >
-              {currentResting.map((playerObj) => (
-                <View key={playerObj.id} style={styles.restingBadge}>
-                  <Text
-                    style={styles.restingPlayerTextMath}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.55}
-                    numberOfLines={1}
-                  >
-                    {playerObj.id}
-                  </Text>
+    const sparingUnifiedBlock = (() => {
+      if (sortedSparingPairs.length === 0) return null;
+
+      if (isPhonePairsView) {
+        const phoneCardW = Math.max(220, phoneSectionWidth - pairSectionPadding * 2 - pairCellPadding * 2);
+        return (
+          <View style={[styles.sideSection, { paddingHorizontal: pairSectionPadding, paddingVertical: pairSectionPadding, width: '100%' }]}>
+            <View style={styles.timerPairPhoneList}>
+              {sortedSparingPairs.map((match, index) => (
+                <View key={`u-${match.p1.id}-${match.p2.id}-${index}`} style={{ width: '100%', paddingVertical: pairCellPadding }}>
+                  <View style={{ width: '100%', height: phonePairCardHeight }}>
+                    {renderUnifiedPairCard(match, phoneCardW, phonePairCardHeight)}
+                  </View>
                 </View>
               ))}
             </View>
           </View>
-        )}
-      </>
-    );
+        );
+      }
+
+      // Tablet: ONE responsive grid for ALL pairs.
+      const blockWidth = pairContentWidth;
+      const blockHeight = pairContentHeight;
+      const innerWidth = Math.max(220, blockWidth - pairSectionPadding * 2);
+      const innerHeight = Math.max(120, blockHeight - pairSectionPadding * 2);
+      const dynamicMaxCols = innerWidth >= 1300 ? 5 : innerWidth >= 1000 ? 4 : innerWidth >= 700 ? 3 : 2;
+      const unifiedSpec = getBestPairGridSpec({
+        count: sortedSparingPairs.length,
+        sectionWidth: innerWidth,
+        sectionHeight: innerHeight,
+        cellPadding: pairCellPadding,
+        minCardWidth: 200,
+        minCardHeight: screenWidth >= 1000 ? 36 : 68,
+        preferredCardWidth: 280,
+        maxCols: Math.min(sortedSparingPairs.length, dynamicMaxCols),
+        allowScroll: false,
+      });
+      const cellWidthPct = `${100 / Math.max(1, unifiedSpec.cols)}%`;
+      const cellHeightPct = `${100 / Math.max(1, unifiedSpec.rows)}%`;
+      return (
+        <View
+          style={[
+            styles.sideSection,
+            { padding: pairSectionPadding, ...(screenWidth >= 1000 ? { flex: 1 } : { minHeight: blockHeight }) },
+          ]}
+        >
+          <View
+            style={[
+              styles.gridWrap,
+              styles.gridWrapNoScroll,
+              { flex: 1, marginHorizontal: -pairCellPadding, marginBottom: -pairCellPadding },
+            ]}
+          >
+            {sortedSparingPairs.map((match, index) => {
+              const lastRowOffset = getCenteredLastRowOffset(index, sortedSparingPairs.length, Math.max(1, unifiedSpec.cols));
+              return (
+                <View
+                  key={`u-${match.p1.id}-${match.p2.id}-${index}`}
+                  style={{
+                    width: cellWidthPct as any,
+                    height: cellHeightPct as any,
+                    padding: pairCellPadding,
+                    marginLeft: lastRowOffset ? `${lastRowOffset}%` as any : 0,
+                  }}
+                >
+                  {renderUnifiedPairCard(match, unifiedSpec.cardWidth, unifiedSpec.cardHeight)}
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      );
+    })();
+
+    const timerPairsContent = sparingUnifiedBlock;
 
     const timerActionBar = (
       <View
@@ -5816,19 +6104,40 @@ export default function App() {
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               {isPrep && !isPhonePairsView && <Image source={APP_LOGOS[lang]} style={{ width: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), height: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), borderRadius: 12 }} resizeMode="contain" />}
-              <View>
-                <Text style={[styles.topBarRound, { fontSize: topBarMetrics.roundFont }]}>RUNDA {displayRound} / {roundsTotal}</Text>
-                <Text
-                  style={[
-                    styles.topBarPhase,
-                    {
-                      color: isPrep ? COLORS.accentMain : COLORS.accentAlert,
-                      fontSize: topBarMetrics.phaseFont,
-                    },
-                  ]}
-                >
-                  {phaseText}
-                </Text>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 12, rowGap: 2 }}>
+                  <Text style={[styles.topBarRound, { fontSize: topBarMetrics.roundFont }]}>RUNDA {displayRound} / {roundsTotal}</Text>
+                  {isPrep && sparingPairLegendItems.length > 0 && (
+                    <PairCategoryLegend items={sparingPairLegendItems} fontSize={Math.max(10, topBarMetrics.roundFont * 0.55)} compact />
+                  )}
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 10 }}>
+                  <Text
+                    style={[
+                      styles.topBarPhase,
+                      {
+                        color: isPrep ? COLORS.accentMain : COLORS.accentAlert,
+                        fontSize: topBarMetrics.phaseFont,
+                      },
+                    ]}
+                  >
+                    {phaseText}
+                  </Text>
+                  {isPrep && sparingRestingInline.length > 0 && (
+                    <Text
+                      style={{
+                        color: COLORS.accentAlert,
+                        fontSize: Math.max(10, topBarMetrics.phaseFont * 0.62),
+                        fontWeight: '800',
+                        letterSpacing: 0.5,
+                        flexShrink: 1,
+                      }}
+                      numberOfLines={2}
+                    >
+                      • {sparingRestingInline}
+                    </Text>
+                  )}
+                </View>
               </View>
             </View>
           </View>
@@ -7281,6 +7590,32 @@ const styles = StyleSheet.create({
   },
   dropoutBadgeText: { color: COLORS.textSecondary, fontSize: 12, fontWeight: '800', letterSpacing: 0.4 },
   dropoutBadgeTextActive: { color: COLORS.accentCool },
+  dropoutRowActiveFull: {
+    backgroundColor: 'rgba(255, 77, 109, 0.12)',
+    borderColor: 'rgba(255, 77, 109, 0.42)',
+  },
+  dropoutRowActiveOneRound: {
+    backgroundColor: 'rgba(247, 183, 51, 0.12)',
+    borderColor: 'rgba(247, 183, 51, 0.42)',
+  },
+  dropoutModeRow: { flexDirection: 'row', gap: 6 },
+  dropoutModePill: {
+    paddingVertical: 7,
+    paddingHorizontal: 11,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  dropoutModePillActiveFull: {
+    backgroundColor: 'rgba(255, 77, 109, 0.18)',
+    borderColor: 'rgba(255, 77, 109, 0.55)',
+  },
+  dropoutModePillActiveOneRound: {
+    backgroundColor: 'rgba(247, 183, 51, 0.18)',
+    borderColor: 'rgba(247, 183, 51, 0.55)',
+  },
+  dropoutModePillText: { color: COLORS.textSecondary, fontSize: 12, fontWeight: '800', letterSpacing: 0.4 },
   dropoutActionsRow: { flexDirection: 'row', justifyContent: 'center', gap: 12, width: '100%', marginTop: 18 },
   dropoutCancelButton: { marginTop: 0, minWidth: 180 },
   dropoutConfirmButton: { minWidth: 180, alignItems: 'center', justifyContent: 'center' },
