@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
-import { useKeepAwake } from 'expo-keep-awake';
+import { activateKeepAwakeAsync, useKeepAwake } from 'expo-keep-awake';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import { Alert, Dimensions, Image, Linking, Modal, PixelRatio, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
@@ -1455,7 +1455,11 @@ const pairLegendStyles = StyleSheet.create({
 });
 
 export default function App() {
-  useKeepAwake();
+  useKeepAwake('BJJ_TIMER_APP');
+  // Belt-and-suspenders: explicit async activation in case the hook is delayed.
+  useEffect(() => {
+    activateKeepAwakeAsync('BJJ_TIMER_APP_ASYNC').catch(() => {});
+  }, []);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const [zadaniowkiMainLayout, setZadaniowkiMainLayout] = useState({ width: 0, height: 0 });
   const [pairsMainLayout, setPairsMainLayout] = useState({ width: 0, height: 0 });
