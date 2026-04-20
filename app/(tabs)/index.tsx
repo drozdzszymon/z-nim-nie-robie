@@ -5,25 +5,25 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import { Alert, Dimensions, Image, Linking, Modal, PixelRatio, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { applyRoundResult, generateRound } from './engine/matchmaker';
+import { Language, LANGUAGE_OPTIONS, t, TranslationKey } from './i18n';
 import {
-  ADULT_SKILL_LEVEL_OPTIONS,
-  AdultSkillLevel,
-  DEFAULT_ADULT_SKILL_LEVEL,
-  DEFAULT_SPARRING_OPTIONS,
-  Gender,
-  GenderMatchingMode,
-  getSkillLevelShortLabel,
-  HistoryRecord,
-  IntensityProfile,
-  Match,
-  RealPlayer,
-  SkillLevel,
-  SparringOptions,
-  TrainingMode,
-  TrainingSession,
-  TrainingSessionPair,
+    ADULT_SKILL_LEVEL_OPTIONS,
+    AdultSkillLevel,
+    DEFAULT_ADULT_SKILL_LEVEL,
+    DEFAULT_SPARRING_OPTIONS,
+    Gender,
+    GenderMatchingMode,
+    getSkillLevelShortLabel,
+    HistoryRecord,
+    IntensityProfile,
+    Match,
+    RealPlayer,
+    SkillLevel,
+    SparringOptions,
+    TrainingMode,
+    TrainingSession,
+    TrainingSessionPair,
 } from './types';
-import { t, Language, LANGUAGE_OPTIONS, TranslationKey } from './i18n';
 
 const APP_LOGOS = {
   PL: require('../../assets/logo_pl.png'),
@@ -3180,7 +3180,7 @@ export default function App() {
                     }}
                   />
                 </View>
-                <Text style={{ color: sparringOptions.prioritySlider >= 84 ? COLORS.accentMain : COLORS.textMuted, fontSize: isCompactSettingsUI ? 12 : 13, fontWeight: '700' }}>WAGA</Text>
+                <Text style={{ color: sparringOptions.prioritySlider >= 84 ? COLORS.accentMain : COLORS.textMuted, fontSize: isCompactSettingsUI ? 12 : 13, fontWeight: '700' }}>{t('weightLabel', lang)}</Text>
               </View>
             </View>
 
