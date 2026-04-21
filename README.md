@@ -21,6 +21,10 @@
   <a href="https://znimnierobie.pl"><b>▶ Wypróbuj wersję webową</b></a>
 </p>
 
+<p align="center">
+  <b>🇵🇱 Polski</b> · <a href="README.en.md">🇬🇧 English</a> · <a href="README.pt-BR.md">🇧🇷 Português (BR)</a>
+</p>
+
 ---
 
 ## Spis treści
