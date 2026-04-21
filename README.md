@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/wersja-2.0.0%20Beta-orange" alt="Wersja" />
+  <img src="https://img.shields.io/badge/wersja-2.0.2%20Beta-orange" alt="Wersja" />
   <img src="https://img.shields.io/badge/platforma-Android%20%7C%20iOS%20%7C%20Web-blue" alt="Platforma" />
   <img src="https://img.shields.io/badge/framework-Expo%20%2B%20React%20Native-blueviolet" alt="Framework" />
   <img src="https://img.shields.io/badge/język-TypeScript-3178C6" alt="TypeScript" />
@@ -25,7 +25,7 @@
 
 ## Spis treści
 
-- [Co nowego w v2.0.0 Beta](#co-nowego-w-v200-beta)
+- [Co nowego w v2.0.2 Beta](#co-nowego-w-v202-beta)
 - [O aplikacji](#o-aplikacji)
 - [Zrzuty ekranu](#zrzuty-ekranu)
 - [Tryby treningowe](#tryby-treningowe)
@@ -40,16 +40,35 @@
 
 ---
 
-## Co nowego w v2.0.0 Beta
+## Co nowego w v2.0.2 Beta
+
+### 🔴 Krytyczna poprawka (v2.0.2)
+
+- **Ekran nie wyłącza się już podczas działania timera** — `useKeepAwake` przeniesiony na poziom root layout + jawna aktywacja `activateKeepAwakeAsync`. Tablet zamontowany na ścianie nie zgaśnie w trakcie sparingów ani zadaniówek.
+
+### 🟢 Nowości z cyklu 2.0.x Beta
+
+- **Zunifikowany ekran PRZYGOTOWANIE** — koniec dzielenia siatki na osobne kolumny KID / ADULT / ODPOCZYWA. Wszystkie pary w jednym, gęstym gridzie z **kolorowaniem wg kategorii** i **legendą w topbarze**:
+  - 🟦 **KID GI** (niebieski)
+  - 🩵 **KID NO-GI** (cyan)
+  - 🟧 **ADULT GI** (pomarańczowy)
+  - 🟥 **ADULT NO-GI** (czerwony)
+  - 🟪 **MIESZANE** (gradient — KID + ADULT)
+- **Reguła GI dla pary** — para liczy się jako GI tylko jeśli **obaj** są w GI; wystarczy jeden NO-GI i cała para jest NO-GI
+- **Inline ODPOCZYWA przy PRZYGOTOWANIE** — kto pauzuje pisze się obok nagłówka fazy, a nie w osobnej kolumnie (więcej miejsca na kafelki par)
+- **Dwutrybowe odpadanie zawodników** — w modalu „KTO WYPADŁ?" przy każdej osobie dwa przyciski:
+  - **WYPADŁ** — usuwany z całego treningu
+  - **ODPOCZYWA 1 RUNDĘ** — wraca automatycznie w kolejnej rundzie
+
+### 🟢 Bazowe funkcje 2.0.0 Beta
 
 - **Ekran startowy z wyborem języka** — PL / EN / PT (BR) widoczne od pierwszego uruchomienia
-- **Trzy tryby treningowe** — SPARINGI · ZADANIÓWKI (TRÓJKI / DWÓJKI) · **DRILLE** (nowość, pełnoprawny tryb z parami stałymi i rotacją ról A/B co rundę)
+- **Trzy tryby treningowe** — SPARINGI · ZADANIÓWKI (TRÓJKI / DWÓJKI) · **DRILLE** (pełnoprawny tryb z parami stałymi i rotacją ról A/B co rundę)
 - **Pole płeć (M / K)** w karcie zawodnika oraz **Walki wg płci** w opcjach sparingów (WYŁ / PRIORYTET / ZAWSZE)
 - **Suwak Priorytet doboru** UMIEJĘTNOŚCI ↔ WAGA (4 snapy)
 - **Podział wagowy** — opcjonalne dzielenie maty na dwie grupy wagowe
 - **Kolejność walk** — ZBLIŻONE / RÓŻNE / LOSOWO
-- **Bez pauzy (VIP)** w nowym, czytelnym układzie pigułek z imionami zawodników
-- **Ktoś wypadł** w trakcie treningu — pauza, zaznaczenie kilku osób, jedno zatwierdzenie
+- **Bez pauzy (VIP)** w czytelnym układzie pigułek z imionami zawodników
 - **Ekran końcowy „DZIĘKUJĘ — DOBRA ROBOTA!"** z powrotem do menu
 - **Panel WERSJA V2** — kontakt, link do GitHuba i sklepu, krótki opis
 - **Zoptymalizowane karty trójek i dwójek** pod tablety 10.5" — bez przewijania na typowych rozdzielczościach
@@ -345,7 +364,7 @@ assets/
 docs/
   privacy-policy.md        # Polityka prywatności
   play-store/              # Materiały do Google Play
-Screenshots/               # Zrzuty ekranu (v2.0.0 Beta)
+Screenshots/               # Zrzuty ekranu (v2.0.2 Beta)
 Images/                    # Logo i ikony aplikacji
 plugins/                   # Pluginy Expo (np. ADI registration)
 ```
@@ -401,6 +420,6 @@ Wszelkie prawa zastrzeżone. Kod źródłowy udostępniony wyłącznie w celach 
 ---
 
 <p align="center">
-  <b>Z NIM NIE ROBIĘ</b> · v2.0.0 Beta · Aplikacja treningowa BJJ<br/>
+  <b>Z NIM NIE ROBIĘ</b> · v2.0.2 Beta · Aplikacja treningowa BJJ<br/>
   Zbudowane z 🥋 na macie i przy klawiaturze
 </p>
