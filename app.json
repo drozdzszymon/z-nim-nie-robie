@@ -3,7 +3,7 @@
     "name": "Z NIM NIE ROBIĘ",
     "slug": "z-nim-nie-robie",
     "owner": "simon_on",
-    "version": "2.0.2",
+    "version": "2.0.3",
     "icon": "./assets/images/icon.png",
     "orientation": "default",
     "scheme": "znimnierobie",
@@ -38,7 +38,7 @@
     ],
     "android": {
       "package": "pl.znimnierobie.app",
-      "versionCode": 4,
+      "versionCode": 5,
       "edgeToEdgeEnabled": true,
       "permissions": [],
       "adaptiveIcon": {

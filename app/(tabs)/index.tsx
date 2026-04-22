@@ -6127,7 +6127,7 @@ export default function App() {
                   >
                     {phaseText}
                   </Text>
-                  {isPrep && sparingRestingInline.length > 0 && (
+                  {sparingRestingInline.length > 0 && (
                     <Text
                       style={{
                         color: COLORS.accentAlert,
