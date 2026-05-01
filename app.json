@@ -38,7 +38,7 @@
     ],
     "android": {
       "package": "pl.znimnierobie.app",
-      "versionCode": 6,
+      "versionCode": 7,
       "edgeToEdgeEnabled": true,
       "permissions": [],
       "adaptiveIcon": {

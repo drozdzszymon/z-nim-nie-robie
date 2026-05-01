@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/vers%C3%A3o-2.0.2%20Beta-orange" alt="Versão" />
+  <img src="https://img.shields.io/badge/vers%C3%A3o-2.0.3%20Beta-orange" alt="Versão" />
   <img src="https://img.shields.io/badge/plataforma-Android%20%7C%20iOS%20%7C%20Web-blue" alt="Plataforma" />
   <img src="https://img.shields.io/badge/framework-Expo%20%2B%20React%20Native-blueviolet" alt="Framework" />
   <img src="https://img.shields.io/badge/linguagem-TypeScript-3178C6" alt="TypeScript" />
@@ -29,7 +29,7 @@
 
 ## Sumário
 
-- [Novidades na v2.0.2 Beta](#novidades-na-v202-beta)
+- [Novidades na v2.0.3 Beta](#novidades-na-v203-beta)
 - [Sobre o app](#sobre-o-app)
 - [Capturas de tela](#capturas-de-tela)
 - [Modos de treino](#modos-de-treino)
@@ -44,7 +44,11 @@
 
 ---
 
-## Novidades na v2.0.2 Beta
+## Novidades na v2.0.3 Beta
+
+### 🔴 Correção crítica (v2.0.3)
+
+- **A lista de descanso não desaparece mais da barra superior durante a fase "INTERVALO"** — após marcar alguém como "FORA", o número de ativos ficava ímpar e o algoritmo corretamente colocava alguém para descansar, mas a dica só aparecia na fase PREP. Agora a lista "QUEM DESCANSA" é visível **em ambas as fases (PREP e INTERVALO)**.
 
 ### 🔴 Correção crítica (v2.0.2)
 
@@ -210,7 +214,7 @@ assets/
 docs/
   privacy-policy.md        # Política de privacidade
   play-store/              # Materiais para Google Play
-Screenshots/               # Capturas de tela (v2.0.2 Beta)
+Screenshots/               # Capturas de tela (v2.0.3 Beta)
 Images/                    # Logo e ícones do app
 plugins/                   # Plugins do Expo (ex.: ADI registration)
 ```
@@ -266,6 +270,6 @@ Todos os direitos reservados. Código-fonte publicado apenas para fins de revis�
 ---
 
 <p align="center">
-  <b>Z NIM NIE ROBIĘ</b> · v2.0.2 Beta · App de treino BJJ<br/>
+  <b>Z NIM NIE ROBIĘ</b> · v2.0.3 Beta · App de treino BJJ<br/>
   Construído com 🥋 no tatame e no teclado
 </p>

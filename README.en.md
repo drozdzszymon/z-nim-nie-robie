@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.0.2%20Beta-orange" alt="Version" />
+  <img src="https://img.shields.io/badge/version-2.0.3%20Beta-orange" alt="Version" />
   <img src="https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20Web-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/framework-Expo%20%2B%20React%20Native-blueviolet" alt="Framework" />
   <img src="https://img.shields.io/badge/language-TypeScript-3178C6" alt="TypeScript" />
@@ -29,7 +29,7 @@
 
 ## Table of contents
 
-- [What's new in v2.0.2 Beta](#whats-new-in-v202-beta)
+- [What's new in v2.0.3 Beta](#whats-new-in-v203-beta)
 - [About the app](#about-the-app)
 - [Screenshots](#screenshots)
 - [Training modes](#training-modes)
@@ -44,7 +44,11 @@
 
 ---
 
-## What's new in v2.0.2 Beta
+## What's new in v2.0.3 Beta
+
+### 🔴 Critical fix (v2.0.3)
+
+- **Resting players no longer disappear from the top bar during the BREAK phase** — after marking someone as "OUT", the active count became odd and the algorithm correctly sat someone out, but the hint was only rendered during the PREP phase. Now the "WHO'S RESTING" list is visible **in both phases (PREP and BREAK)**.
 
 ### 🔴 Critical fix (v2.0.2)
 
@@ -210,7 +214,7 @@ assets/
 docs/
   privacy-policy.md        # Privacy policy
   play-store/              # Google Play assets
-Screenshots/               # Screenshots (v2.0.2 Beta)
+Screenshots/               # Screenshots (v2.0.3 Beta)
 Images/                    # Logo and app icons
 plugins/                   # Expo plugins (e.g. ADI registration)
 ```
@@ -266,6 +270,6 @@ All rights reserved. Source code published for review purposes only.
 ---
 
 <p align="center">
-  <b>Z NIM NIE ROBIĘ</b> · v2.0.2 Beta · BJJ training app<br/>
+  <b>Z NIM NIE ROBIĘ</b> · v2.0.3 Beta · BJJ training app<br/>
   Built with 🥋 on the mat and at the keyboard
 </p>
