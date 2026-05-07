@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/wersja-2.0.3%20Beta-orange" alt="Wersja" />
+  <img src="https://img.shields.io/badge/wersja-2.0.4%20Beta-orange" alt="Wersja" />
   <img src="https://img.shields.io/badge/platforma-Android%20%7C%20iOS%20%7C%20Web-blue" alt="Platforma" />
   <img src="https://img.shields.io/badge/framework-Expo%20%2B%20React%20Native-blueviolet" alt="Framework" />
   <img src="https://img.shields.io/badge/język-TypeScript-3178C6" alt="TypeScript" />
@@ -29,7 +29,7 @@
 
 ## Spis treści
 
-- [Co nowego w v2.0.3 Beta](#co-nowego-w-v203-beta)
+- [Co nowego w v2.0.4 Beta](#co-nowego-w-v204-beta)
 - [O aplikacji](#o-aplikacji)
 - [Zrzuty ekranu](#zrzuty-ekranu)
 - [Tryby treningowe](#tryby-treningowe)
@@ -44,7 +44,14 @@
 
 ---
 
-## Co nowego w v2.0.3 Beta
+## Co nowego w v2.0.4 Beta
+
+### ✈ Goście z innego klubu (v2.0.4)
+
+- **Przełącznik `GOŚĆ` w karcie zawodnika** — mały toggle pod pseudonimem (`○ GOŚĆ` / `✈ GOŚĆ`).
+- **Silnik unika par GOŚĆ–GOŚĆ** prawie tak twardo jak powtórek — priorytet wyższy niż strój, waga i poziom; łamane tylko gdy matematycznie nie ma alternatywy.
+- **Status per-trening** — nie zapisuje się w bazie klubowej, przy każdym treningu zaznaczasz gości od nowa.
+- **Fioletowa ikonka ✈** przed pseudonimem na kafelkach składu — widać od razu kto jest gościem.
 
 ### 🔴 Krytyczna poprawka (v2.0.3)
 
@@ -372,7 +379,7 @@ assets/
 docs/
   privacy-policy.md        # Polityka prywatności
   play-store/              # Materiały do Google Play
-Screenshots/               # Zrzuty ekranu (v2.0.3 Beta)
+Screenshots/               # Zrzuty ekranu (v2.0.4 Beta)
 Images/                    # Logo i ikony aplikacji
 plugins/                   # Pluginy Expo (np. ADI registration)
 ```
@@ -428,6 +435,6 @@ Wszelkie prawa zastrzeżone. Kod źródłowy udostępniony wyłącznie w celach 
 ---
 
 <p align="center">
-  <b>Z NIM NIE ROBIĘ</b> · v2.0.3 Beta · Aplikacja treningowa BJJ<br/>
+  <b>Z NIM NIE ROBIĘ</b> · v2.0.4 Beta · Aplikacja treningowa BJJ<br/>
   Zbudowane z 🥋 na macie i przy klawiaturze
 </p>

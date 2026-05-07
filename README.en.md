@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.0.3%20Beta-orange" alt="Version" />
+  <img src="https://img.shields.io/badge/version-2.0.4%20Beta-orange" alt="Version" />
   <img src="https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20Web-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/framework-Expo%20%2B%20React%20Native-blueviolet" alt="Framework" />
   <img src="https://img.shields.io/badge/language-TypeScript-3178C6" alt="TypeScript" />
@@ -29,7 +29,7 @@
 
 ## Table of contents
 
-- [What's new in v2.0.3 Beta](#whats-new-in-v203-beta)
+- [What's new in v2.0.4 Beta](#whats-new-in-v204-beta)
 - [About the app](#about-the-app)
 - [Screenshots](#screenshots)
 - [Training modes](#training-modes)
@@ -44,7 +44,14 @@
 
 ---
 
-## What's new in v2.0.3 Beta
+## What's new in v2.0.4 Beta
+
+### ✈ Visiting players from another gym (v2.0.4)
+
+- **`GUEST` toggle on the player card** — small switch under the nickname (`○ GUEST` / `✈ GUEST`).
+- **Matchmaker avoids GUEST–GUEST pairs** almost as strictly as repeats — higher priority than gear, weight and skill level; broken only when there is no mathematical alternative.
+- **Per-session status** — not stored in the club database; mark guests at the start of each training.
+- **Purple ✈ icon** before the nickname on roster cards — instantly tells you who is visiting.
 
 ### 🔴 Critical fix (v2.0.3)
 
@@ -214,7 +221,7 @@ assets/
 docs/
   privacy-policy.md        # Privacy policy
   play-store/              # Google Play assets
-Screenshots/               # Screenshots (v2.0.3 Beta)
+Screenshots/               # Screenshots (v2.0.4 Beta)
 Images/                    # Logo and app icons
 plugins/                   # Expo plugins (e.g. ADI registration)
 ```
@@ -270,6 +277,6 @@ All rights reserved. Source code published for review purposes only.
 ---
 
 <p align="center">
-  <b>Z NIM NIE ROBIĘ</b> · v2.0.3 Beta · BJJ training app<br/>
+  <b>Z NIM NIE ROBIĘ</b> · v2.0.4 Beta · BJJ training app<br/>
   Built with 🥋 on the mat and at the keyboard
 </p>

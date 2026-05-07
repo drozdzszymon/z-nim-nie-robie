@@ -280,6 +280,7 @@ const normalizeStoredPlayer = (
   ...player,
   gender: player.gender || 'M',
   skillLevel: getNormalizedPlayerSkillLevel(player, migrateLegacyThreeLevelScale),
+  isGuest: false, // status "gość" jest per-trening, nie persystowany w bazie klubu
 });
 
 const sortForZadaniowki = (players: RealPlayer[]) => {
@@ -1493,6 +1494,7 @@ export default function App() {
   const [newGear, setNewGear] = useState<'GI'|'NO'>('NO'); 
   const [newGender, setNewGender] = useState<Gender>('M');
   const [newSkillLevel, setNewSkillLevel] = useState<AdultSkillLevel>(DEFAULT_ADULT_SKILL_LEVEL); 
+  const [newIsGuest, setNewIsGuest] = useState(false);
   
   const [savedPlayersDB, setSavedPlayersDB] = useState<RealPlayer[]>([]);
   const [filteredSuggestions, setFilteredSuggestions] = useState<RealPlayer[]>([]);
@@ -1840,6 +1842,8 @@ export default function App() {
     setNewGender(player.gender || 'M');
     const selectedSkillLevel = getNormalizedPlayerSkillLevel(player);
     if (selectedSkillLevel !== 0) setNewSkillLevel(selectedSkillLevel);
+    // Status "gość" jest per-trening — z bazy zawsze startujemy jako nie-gość.
+    setNewIsGuest(false);
     setShowSuggestions(false);
   };
 
@@ -1851,6 +1855,7 @@ export default function App() {
     setNewGender(p.gender || 'M');
     const selectedSkillLevel = getNormalizedPlayerSkillLevel(p);
     if (selectedSkillLevel !== 0) setNewSkillLevel(selectedSkillLevel);
+    setNewIsGuest(p.isGuest === true);
     setEditingPlayerId(p.id);
   };
 
@@ -1867,12 +1872,16 @@ export default function App() {
         gender: newGender,
         weight: parseFloat(newWeight),
         skillLevel: newType === 'ADULT' ? newSkillLevel : 0,
+        isGuest: newIsGuest,
         restDebt: 0,
         lastRestRound: 0,
         consecutiveMatches: 0,
         helpedKidCount: 0,
         mismatchDebt: 0
     };
+
+    // Status "gość" jest per-trening — w bazie klubu nigdy go nie zapisujemy.
+    const playerForDB: RealPlayer = { ...newPlayer, isGuest: false };
 
     let updatedRoster = [...roster];
     let updatedDB = [...savedPlayersDB];
@@ -1883,18 +1892,18 @@ export default function App() {
         
         const dbIdx = updatedDB.findIndex(p => p.id === editingPlayerId);
         if (dbIdx >= 0) {
-            updatedDB[dbIdx] = newPlayer;
+            updatedDB[dbIdx] = playerForDB;
         } else {
             const newNameDbIdx = updatedDB.findIndex(p => p.id === newPlayer.id);
-            if (newNameDbIdx >= 0) updatedDB[newNameDbIdx] = newPlayer;
-            else updatedDB.push(newPlayer);
+            if (newNameDbIdx >= 0) updatedDB[newNameDbIdx] = playerForDB;
+            else updatedDB.push(playerForDB);
         }
         setEditingPlayerId(null);
     } else {
         updatedRoster.push(newPlayer);
         const existingDbIndex = updatedDB.findIndex(p => p.id === newPlayer.id);
-        if (existingDbIndex >= 0) updatedDB[existingDbIndex] = newPlayer; 
-        else updatedDB.push(newPlayer); 
+        if (existingDbIndex >= 0) updatedDB[existingDbIndex] = playerForDB;
+        else updatedDB.push(playerForDB);
     }
 
     setRoster(updatedRoster);
@@ -1904,7 +1913,8 @@ export default function App() {
       await AsyncStorage.setItem(SKILL_LEVEL_SCHEMA_KEY, SKILL_LEVEL_SCHEMA_VERSION);
     } catch {}
     
-    setNewName(''); 
+    setNewName('');
+    setNewIsGuest(false);
     setShowSuggestions(false);
   };
 
@@ -1919,7 +1929,7 @@ export default function App() {
     const playersToAdd = savedPlayersDB
       .filter(p => selectedClubDBPlayerIds.includes(p.id))
       .filter(p => !roster.find(r => r.id === p.id))
-      .map(p => ({ ...p, restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 }));
+      .map(p => ({ ...p, isGuest: false, restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0 }));
     if (playersToAdd.length > 0) {
       setRoster(prev => [...prev, ...playersToAdd]);
     }
@@ -1962,6 +1972,7 @@ export default function App() {
         if (editingPlayerId === id) {
           setEditingPlayerId(null);
           setNewName('');
+          setNewIsGuest(false);
         }
       },
       t('delete', lang)
@@ -1974,6 +1985,7 @@ export default function App() {
         setNoRestPlayers([]);
         setEditingPlayerId(null);
         setNewName('');
+        setNewIsGuest(false);
     });
   };
 
@@ -2746,6 +2758,27 @@ export default function App() {
     kid: TOGGLE_TONES.cool,
     adult: TOGGLE_TONES.warm,
   };
+
+  const guestToggleNode = (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => setNewIsGuest(prev => !prev)}
+      accessibilityRole="switch"
+      accessibilityState={{ checked: newIsGuest }}
+      style={[
+        styles.guestToggle,
+        isCompactSettingsUI && styles.guestToggleCompact,
+        newIsGuest && styles.guestToggleActive,
+      ]}
+    >
+      <Text style={[styles.guestToggleIcon, newIsGuest && styles.guestToggleIconActive]}>
+        {newIsGuest ? '✈' : '○'}
+      </Text>
+      <Text style={[styles.guestToggleText, newIsGuest && styles.guestToggleTextActive]}>
+        {t('guest', lang)}
+      </Text>
+    </TouchableOpacity>
+  );
   const topBarMetrics = getTopBarMetrics(screenWidth, screenHeight);
   const bottomBarMetrics = getBottomBarMetrics(screenWidth, screenHeight);
   const isWideInstructionLayout = screenWidth >= 1180;
@@ -2994,6 +3027,10 @@ export default function App() {
             </View>
 
             <View style={styles.compactFormRow}>
+              {guestToggleNode}
+            </View>
+
+            <View style={styles.compactFormRow}>
               <View style={[styles.optionGroup, styles.optionGroupCompact, styles.compactFieldHalf]}>
                 <Text style={styles.optionGroupLabel}>{t('category', lang)}</Text>
                 <View style={styles.togglesRow}>
@@ -3123,6 +3160,10 @@ export default function App() {
               </View>
             </View>
             
+            <View style={[styles.fieldBlock, isCompactSettingsUI && styles.fieldBlockCompact]}>
+              {guestToggleNode}
+            </View>
+
             <View style={[styles.fieldBlock, isCompactSettingsUI && styles.fieldBlockCompact]}>
               <Text style={styles.fieldLabelBadge}>{t('weightKg', lang)}</Text>
               <TextInput style={[styles.inputText, isCompactSettingsUI && styles.inputTextCompact]} keyboardType="numeric" value={newWeight} onChangeText={setNewWeight} placeholder={t('placeholderWeight', lang)} placeholderTextColor={COLORS.textMuted} />
@@ -6323,7 +6364,7 @@ export default function App() {
                                   numberOfLines={2}
                                   ellipsizeMode="clip"
                                 >
-                                  {p.id}
+                                  {p.isGuest ? <Text style={styles.rosterNameGuestIcon}>✈ </Text> : null}{p.id}
                                 </Text>
                                 <View style={[styles.rosterInfoRow, isCompactSettingsUI && styles.rosterInfoRowCompact]}>
                                   <View style={[styles.rosterInfoChip, isCompactSettingsUI && styles.rosterInfoChipCompact]}>
@@ -6442,7 +6483,7 @@ export default function App() {
                             numberOfLines={2}
                             ellipsizeMode="clip"
                           >
-                            {p.id}
+                            {p.isGuest ? <Text style={styles.rosterNameGuestIcon}>✈ </Text> : null}{p.id}
                           </Text>
                           <View style={[styles.rosterInfoRow, isCompactSettingsUI && styles.rosterInfoRowCompact]}>
                             <View style={[styles.rosterInfoChip, isCompactSettingsUI && styles.rosterInfoChipCompact]}>
@@ -6767,6 +6808,56 @@ const styles = StyleSheet.create({
   toggleBtnCompact: { minHeight: 40, paddingHorizontal: 8, paddingVertical: 8, borderRadius: 13 },
   toggleText: { color: COLORS.textSecondary, fontWeight: '800', fontSize: 13, letterSpacing: 0.3 },
   toggleTextCompact: { fontSize: 11.5 },
+
+  guestToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    marginTop: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+    backgroundColor: COLORS.bgMain,
+  },
+  guestToggleCompact: {
+    marginTop: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  guestToggleActive: {
+    borderColor: 'rgba(193, 132, 255, 0.65)',
+    backgroundColor: 'rgba(193, 132, 255, 0.18)',
+  },
+  guestToggleIcon: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    fontWeight: '800',
+  },
+  guestToggleIconActive: {
+    color: '#C184FF',
+  },
+  guestToggleText: {
+    color: COLORS.textSecondary,
+    fontWeight: '800',
+    fontSize: 12,
+    letterSpacing: 0.6,
+  },
+  guestToggleTextActive: {
+    color: '#C184FF',
+  },
+  guestToggleHint: {
+    color: COLORS.textMuted,
+    fontSize: 10.5,
+    marginTop: 4,
+    lineHeight: 14,
+  },
+  rosterNameGuestIcon: {
+    color: '#C184FF',
+  },
 
   addButton: {
     backgroundColor: COLORS.accentCool,

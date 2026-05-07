@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/vers%C3%A3o-2.0.3%20Beta-orange" alt="Versão" />
+  <img src="https://img.shields.io/badge/vers%C3%A3o-2.0.4%20Beta-orange" alt="Versão" />
   <img src="https://img.shields.io/badge/plataforma-Android%20%7C%20iOS%20%7C%20Web-blue" alt="Plataforma" />
   <img src="https://img.shields.io/badge/framework-Expo%20%2B%20React%20Native-blueviolet" alt="Framework" />
   <img src="https://img.shields.io/badge/linguagem-TypeScript-3178C6" alt="TypeScript" />
@@ -29,7 +29,7 @@
 
 ## Sumário
 
-- [Novidades na v2.0.3 Beta](#novidades-na-v203-beta)
+- [Novidades na v2.0.4 Beta](#novidades-na-v204-beta)
 - [Sobre o app](#sobre-o-app)
 - [Capturas de tela](#capturas-de-tela)
 - [Modos de treino](#modos-de-treino)
@@ -44,7 +44,14 @@
 
 ---
 
-## Novidades na v2.0.3 Beta
+## Novidades na v2.0.4 Beta
+
+### ✈ Visitantes de outro clube (v2.0.4)
+
+- **Botão `VISITANTE` na ficha do lutador** — pequeno toggle abaixo do apelido (`○ VISITANTE` / `✈ VISITANTE`).
+- **O motor evita pares VISITANTE–VISITANTE** quase tão duramente quanto repetições — prioridade acima de traje, peso e nível; quebrado apenas quando não existe alternativa matemática.
+- **Status por treino** — não é salvo no banco do clube; marque os visitantes no início de cada sessão.
+- **Ícone roxo ✈** antes do apelido nos cards do elenco — mostra na hora quem é visitante.
 
 ### 🔴 Correção crítica (v2.0.3)
 
@@ -214,7 +221,7 @@ assets/
 docs/
   privacy-policy.md        # Política de privacidade
   play-store/              # Materiais para Google Play
-Screenshots/               # Capturas de tela (v2.0.3 Beta)
+Screenshots/               # Capturas de tela (v2.0.4 Beta)
 Images/                    # Logo e ícones do app
 plugins/                   # Plugins do Expo (ex.: ADI registration)
 ```
@@ -270,6 +277,6 @@ Todos os direitos reservados. Código-fonte publicado apenas para fins de revis�
 ---
 
 <p align="center">
-  <b>Z NIM NIE ROBIĘ</b> · v2.0.3 Beta · App de treino BJJ<br/>
+  <b>Z NIM NIE ROBIĘ</b> · v2.0.4 Beta · App de treino BJJ<br/>
   Construído com 🥋 no tatame e no teclado
 </p>

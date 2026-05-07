@@ -47,6 +47,7 @@ export interface RealPlayer {
   gender: Gender;
   weight: number;
   skillLevel: SkillLevel;
+  isGuest?: boolean;       // Goście z innego klubu — silnik unika par GOŚĆ-GOŚĆ (per trening, nie persystowane w bazie)
   restDebt: number;        // Pozostawione dla spójności stanu App, choć silnik używa byeHistory
   lastRestRound: number;   // Pozostawione dla spójności
   consecutiveMatches: number; // Pozostawione dla spójności

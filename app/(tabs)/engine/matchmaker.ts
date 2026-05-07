@@ -1,4 +1,4 @@
-import { RealPlayer, Match, HistoryRecord, SparringOptions, DEFAULT_SPARRING_OPTIONS } from '../types';
+import { DEFAULT_SPARRING_OPTIONS, HistoryRecord, Match, RealPlayer, SparringOptions } from '../types';
 
 type GroupType = 'KID' | 'ADULT';
 type BucketType = 'A' | 'B' | 'C' | 'D';
@@ -12,6 +12,7 @@ type MatchingPlayer = {
     weightKg: number;
     matchingSkillLevel: number;
     isPromotedKid: boolean;
+    isGuest: boolean;
     originalRef: RealPlayer;
     bucketCounts?: {
         A: number;
@@ -22,6 +23,7 @@ type MatchingPlayer = {
 };
 
 type KidPairScore = {
+    guestPairCount: number;
     recentPenalty: number;
     repeatCount: number;
     totalTimesMet: number;
@@ -43,6 +45,7 @@ type AdultMatchingScore = {
     bucketB: number;
     bucketC: number;
     bucketD: number;
+    guestPairCount: number;
     recentPenalty: number;
     repeatCount: number;
     totalTimesMet: number;
@@ -114,6 +117,13 @@ const getSkillDifference = (p1: MatchingPlayer, p2: MatchingPlayer) => {
 
 const getWeightDifference = (p1: MatchingPlayer, p2: MatchingPlayer) => {
     return Math.abs(p1.weightKg - p2.weightKg);
+};
+
+// Para GOŚĆ–GOŚĆ liczy się jako "miękko zakazana" — silnik unika takich par
+// chyba że matematycznie nie ma innej możliwości. Goście przyjeżdżają sparować
+// z domową ekipą, a nie ze sobą nawzajem.
+const isGuestVsGuestPair = (p1: MatchingPlayer, p2: MatchingPlayer) => {
+    return p1.isGuest && p2.isGuest;
 };
 
 // Stabilny tie-break zamiast Math.random() w sort()
@@ -307,6 +317,7 @@ const compareBucketCounts = (
 // --- KID GLOBAL SCORE ---
 
 const emptyKidPairScore = (): KidPairScore => ({
+    guestPairCount: 0,
     recentPenalty: 0,
     repeatCount: 0,
     totalTimesMet: 0,
@@ -316,6 +327,7 @@ const emptyKidPairScore = (): KidPairScore => ({
 });
 
 const addKidPairScore = (base: KidPairScore, add: KidPairScore): KidPairScore => ({
+    guestPairCount: base.guestPairCount + add.guestPairCount,
     recentPenalty: base.recentPenalty + add.recentPenalty,
     repeatCount: base.repeatCount + add.repeatCount,
     totalTimesMet: base.totalTimesMet + add.totalTimesMet,
@@ -328,6 +340,8 @@ const compareKidScores = (a: KidPairScore, b: KidPairScore) => {
     if (a.repeatCount !== b.repeatCount) return a.repeatCount - b.repeatCount;
     if (a.recentPenalty !== b.recentPenalty) return a.recentPenalty - b.recentPenalty;
     if (a.totalTimesMet !== b.totalTimesMet) return a.totalTimesMet - b.totalTimesMet;
+    // Para GOŚĆ–GOŚĆ traktowana niemal jak powtórka — łamana tylko jeśli matematycznie konieczne.
+    if (a.guestPairCount !== b.guestPairCount) return a.guestPairCount - b.guestPairCount;
     if (a.mixedOutfitCount !== b.mixedOutfitCount) return a.mixedOutfitCount - b.mixedOutfitCount;
     if (a.totalWeightDiff !== b.totalWeightDiff) return a.totalWeightDiff - b.totalWeightDiff;
     if (a.totalLastMetRound !== b.totalLastMetRound) return a.totalLastMetRound - b.totalLastMetRound;
@@ -344,6 +358,7 @@ const getSingleKidPairScore = (
     const lastMet = getLastMetRound(p1, p2, history);
 
     return {
+        guestPairCount: isGuestVsGuestPair(p1, p2) ? 1 : 0,
         recentPenalty: getRecentRepeatPenalty(p1, p2, history, roundNumber),
         repeatCount: timesMet > 0 ? 1 : 0,
         totalTimesMet: timesMet,
@@ -431,6 +446,7 @@ const emptyAdultMatchingScore = (): AdultMatchingScore => ({
     bucketB: 0,
     bucketC: 0,
     bucketD: 0,
+    guestPairCount: 0,
     recentPenalty: 0,
     repeatCount: 0,
     totalTimesMet: 0,
@@ -463,6 +479,7 @@ const addAdultMatchingScore = (
     bucketB: base.bucketB + add.bucketB,
     bucketC: base.bucketC + add.bucketC,
     bucketD: base.bucketD + add.bucketD,
+    guestPairCount: base.guestPairCount + add.guestPairCount,
     recentPenalty: base.recentPenalty + add.recentPenalty,
     repeatCount: base.repeatCount + add.repeatCount,
     totalTimesMet: base.totalTimesMet + add.totalTimesMet,
@@ -479,6 +496,12 @@ const compareAdultMatchingScores = (
     if (a.repeatCount !== b.repeatCount) return a.repeatCount - b.repeatCount;
     if (a.recentPenalty !== b.recentPenalty) return a.recentPenalty - b.recentPenalty;
     if (a.totalTimesMet !== b.totalTimesMet) return a.totalTimesMet - b.totalTimesMet;
+
+    // Para GOŚĆ–GOŚĆ traktowana niemal jak powtórka — łamana tylko gdy nie ma alternatywy.
+    // Priorytet PRZED outfit/wagą/poziomem, ale PO unikaniu powtórek.
+    if (a.guestPairCount !== b.guestPairCount) {
+        return a.guestPairCount - b.guestPairCount;
+    }
 
     if (a.promotedKidRepeatCount !== b.promotedKidRepeatCount) {
         return a.promotedKidRepeatCount - b.promotedKidRepeatCount;
@@ -584,6 +607,7 @@ const getSingleAdultPairScore = (
         bucketB: bucket === 'B' ? 1 : 0,
         bucketC: bucket === 'C' ? 1 : 0,
         bucketD: bucket === 'D' ? 1 : 0,
+        guestPairCount: isGuestVsGuestPair(p1, p2) ? 1 : 0,
         recentPenalty: getRecentRepeatPenalty(p1, p2, history, roundNumber),
         repeatCount: timesMet > 0 ? 1 : 0,
         totalTimesMet: timesMet,
@@ -1227,6 +1251,7 @@ const generateRoundInternal = (
         weightKg: k.weight,
         matchingSkillLevel: 0,
         isPromotedKid: false,
+        isGuest: k.isGuest === true,
         originalRef: k
     }));
 
@@ -1239,6 +1264,7 @@ const generateRoundInternal = (
         weightKg: a.weight,
         matchingSkillLevel: Number(a.skillLevel ?? 0),
         isPromotedKid: false,
+        isGuest: a.isGuest === true,
         originalRef: a
     }));
 
@@ -1252,6 +1278,7 @@ const generateRoundInternal = (
             weightKg: promotedKid.weight,
             matchingSkillLevel: 0,
             isPromotedKid: true,
+            isGuest: promotedKid.isGuest === true,
             originalRef: promotedKid
         });
     }

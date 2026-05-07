@@ -10,6 +10,8 @@ const translations = {
   level: { PL: 'POZIOM', EN: 'LEVEL', PT: 'NÍVEL' },
   placeholderName: { PL: 'np. Kowalski', EN: 'e.g. Smith', PT: 'ex. Silva' },
   placeholderWeight: { PL: 'np. 82', EN: 'e.g. 82', PT: 'ex. 82' },
+  guest: { PL: 'GOŚĆ', EN: 'GUEST', PT: 'VISITANTE' },
+  guestHint: { PL: 'Gość z innego klubu — silnik unika par gość–gość', EN: 'Guest from another gym — engine avoids guest–guest pairs', PT: 'Visitante de outro clube — o motor evita pares visitante–visitante' },
 
   // ── PLAYER TYPE / GEAR / GENDER BADGES ──
   maleShort: { PL: '♂ M', EN: '♂ M', PT: '♂ M' },
@@ -130,7 +132,7 @@ const translations = {
 
   // ── ABOUT MODAL ──
   aboutTitle: { PL: 'Z NIM NIE ROBIĘ', EN: 'Z NIM NIE ROBIĘ', PT: 'Z NIM NIE ROBIĘ' },
-  aboutVersion: { PL: 'Wersja 2.0.3 BETA', EN: 'Version 2.0.3 BETA', PT: 'Versão 2.0.3 BETA' },
+  aboutVersion: { PL: 'Wersja 2.0.4 BETA', EN: 'Version 2.0.4 BETA', PT: 'Versão 2.0.4 BETA' },
   aboutDescription: { PL: 'Aplikacja treningowa do zarządzania parami, rundami i rotacją zawodników podczas treningów BJJ.', EN: 'Training app for managing pairs, rounds and player rotation during BJJ training sessions.', PT: 'Aplicativo de treino para gerenciar duplas, rodadas e rotação de lutadores durante treinos de BJJ.' },
 
   // ── VALIDATION MESSAGES ──
