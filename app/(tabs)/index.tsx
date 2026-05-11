@@ -1587,6 +1587,21 @@ export default function App() {
   const devModeClickCount = useRef(0);
   const savedTimerValuesRef = useRef({ roundTime: '6', prepTime: '60', restTime: '75', roundsTotal: '5' });
 
+  // Outer settings ScrollView ref — used to reset scroll on orientation change
+  // (otherwise after portrait → landscape the user may see roster instead of the menu header).
+  const settingsScrollRef = useRef<ScrollView | null>(null);
+  const prevOrientationRef = useRef<'P' | 'L' | null>(null);
+  useEffect(() => {
+    const isLandscape = screenWidth > screenHeight;
+    const next: 'P' | 'L' = isLandscape ? 'L' : 'P';
+    if (prevOrientationRef.current !== null && prevOrientationRef.current !== next) {
+      // Orientation actually flipped — snap outer ScrollView back to the top so the
+      // settings header is visible regardless of where the user was scrolled before.
+      settingsScrollRef.current?.scrollTo({ x: 0, y: 0, animated: false });
+    }
+    prevOrientationRef.current = next;
+  }, [screenWidth, screenHeight]);
+
   const updateCurrentResting = useCallback((resting: RealPlayer[]) => {
     currentRestingRef.current = resting;
     setCurrentResting(resting);
@@ -6253,6 +6268,7 @@ export default function App() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
+        ref={settingsScrollRef}
         style={styles.settingsScroll}
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
