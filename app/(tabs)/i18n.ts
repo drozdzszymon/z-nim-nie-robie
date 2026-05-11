@@ -132,7 +132,7 @@ const translations = {
 
   // ── ABOUT MODAL ──
   aboutTitle: { PL: 'Z NIM NIE ROBIĘ', EN: 'Z NIM NIE ROBIĘ', PT: 'Z NIM NIE ROBIĘ' },
-  aboutVersion: { PL: 'Wersja 2.0.4 BETA', EN: 'Version 2.0.4 BETA', PT: 'Versão 2.0.4 BETA' },
+  aboutVersion: { PL: 'Wersja 2.0.5 BETA', EN: 'Version 2.0.5 BETA', PT: 'Versão 2.0.5 BETA' },
   aboutDescription: { PL: 'Aplikacja treningowa do zarządzania parami, rundami i rotacją zawodników podczas treningów BJJ.', EN: 'Training app for managing pairs, rounds and player rotation during BJJ training sessions.', PT: 'Aplicativo de treino para gerenciar duplas, rodadas e rotação de lutadores durante treinos de BJJ.' },
 
   // ── VALIDATION MESSAGES ──
