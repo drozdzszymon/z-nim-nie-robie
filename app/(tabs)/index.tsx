@@ -876,7 +876,7 @@ const getFittedFontSize = (
   return clamp(minFont, Math.min(fromWidth, fromHeight), maxFont);
 };
 
-const ResponsiveMatchCard = ({
+const _ResponsiveMatchCard = ({
   leftName,
   rightName,
   leftColor,
@@ -1184,7 +1184,7 @@ const ResponsiveTriadPrepCard = ({
         ? clamp(30, contentWidth * 0.12, 44)
         : clamp(34, contentWidth * 0.135, 50))
     : 0;
-  const nameClusterGap = showRoles ? (isDuoCard ? 3 : 5) : 0;
+  const _nameClusterGap = showRoles ? (isDuoCard ? 3 : 5) : 0;
   const fighterNameWidth = Math.max(68, contentWidth - rolePillWidth * 2 - (showRoles ? (isDuoCard ? 8 : 12) : 0));
   const restNameWidth = Math.max(60, contentWidth - rolePillWidth * 2 - (showRoles ? 12 : 0));
   const roleLineFont = showRoles
@@ -2069,7 +2069,7 @@ export default function App() {
     }
   };
 
-  const handleShowDeviceMetrics = () => {
+  const _handleShowDeviceMetrics = () => {
     const screenMetrics = Dimensions.get('screen');
     const windowMetrics = Dimensions.get('window');
     const smallestSide = Math.min(screenWidth, screenHeight);
@@ -2670,18 +2670,22 @@ export default function App() {
   };
 
   // Log pairs when a WORK phase starts
+  // TODO: deps intentionally limited to phase/round/step -- adding currentScreen would log duplicate pairs on screen transitions
   useEffect(() => {
     if (phase === 'WORK' && currentScreen !== 'settings' && currentScreen !== 'finished') {
       const pairs: TrainingSessionPair[] = currentMatchesRef.current.map(m => ({ p1: m.p1.id, p2: m.p2.id }));
       if (pairs.length > 0) trainingPairsLog.current.push(pairs);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, currentRound, currentStep]);
 
   // Save training session when training finishes
+  // TODO: deps intentionally limited to currentScreen -- saveTrainingSession is stable and roster.length is read inside the guard
   useEffect(() => {
     if (currentScreen === 'finished' && roster.length >= 2) {
       saveTrainingSession();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentScreen]);
 
   const getRoleColor = (char: string) => {
@@ -4120,15 +4124,15 @@ export default function App() {
       const adultsHeightBudget = stackPrepSections && hasBothSections
         ? Math.max(responsiveMinCardHeight, preliminarySectionHeightBudget * (adultsRows / stackedRowsTotal) - responsiveSectionGap - stackedSectionOverhead)
         : gridHeightBudget;
-      const kidsCardWidth = kidsCols > 0 ? Math.max(130, kidsSectionWidth / kidsCols - responsiveCellPadding * 2) : 0;
-      const adultsCardWidth = adultsCols > 0 ? Math.max(130, adultsSectionWidth / adultsCols - responsiveCellPadding * 2) : 0;
+      const _kidsCardWidth = kidsCols > 0 ? Math.max(130, kidsSectionWidth / kidsCols - responsiveCellPadding * 2) : 0;
+      const _adultsCardWidth = adultsCols > 0 ? Math.max(130, adultsSectionWidth / adultsCols - responsiveCellPadding * 2) : 0;
       const kidsComputedCardHeight = kidsRows > 0 ? kidsHeightBudget / (isTriadPrepGrid && !stackPrepSections ? prepGridRows : kidsRows) - responsiveCellPadding * 2 : 0;
       const adultsComputedCardHeight = adultsRows > 0 ? adultsHeightBudget / (isTriadPrepGrid && !stackPrepSections ? prepGridRows : adultsRows) - responsiveCellPadding * 2 : 0;
       const scrollTriadCardHeight = clamp(130, screenHeight * 0.2, 175);
       // Check if the total stacked content would exceed available space
       const minKidsContentHeight = kidsRows > 0 ? kidsRows * (responsiveMinCardHeight + responsiveCellPadding * 2) : 0;
       const minAdultsContentHeight = adultsRows > 0 ? adultsRows * (responsiveMinCardHeight + responsiveCellPadding * 2) : 0;
-      const stackedTotalMinNeeded = stackPrepSections && hasBothSections
+      const _stackedTotalMinNeeded = stackPrepSections && hasBothSections
         ? (minKidsContentHeight + stackedSectionOverhead) + (minAdultsContentHeight + stackedSectionOverhead) + responsiveSectionGap
         : 0;
 
@@ -4207,8 +4211,8 @@ export default function App() {
         adultsDuoCardHeight = Math.max(30, adultsCardHeight * TRIAD_PREP_DUO_ROW_WEIGHT);
       }
 
-      const kidsDuoCardWidth = kidsDuoCols > 0 ? Math.max(130, kidsSectionWidth / kidsDuoCols - responsiveCellPadding * 2) : 0;
-      const adultsDuoCardWidth = adultsDuoCols > 0 ? Math.max(130, adultsSectionWidth / adultsDuoCols - responsiveCellPadding * 2) : 0;
+      const _kidsDuoCardWidth = kidsDuoCols > 0 ? Math.max(130, kidsSectionWidth / kidsDuoCols - responsiveCellPadding * 2) : 0;
+      const _adultsDuoCardWidth = adultsDuoCols > 0 ? Math.max(130, adultsSectionWidth / adultsDuoCols - responsiveCellPadding * 2) : 0;
 
       // Compute merged grid heights for scroll mode
       const computeMergedGridHeight = (
@@ -4235,17 +4239,17 @@ export default function App() {
         : undefined;
 
       const headerAndPaddingHeight = responsiveSectionPadding * 2 + TRIAD_PREP_SECTION_HEADER_HEIGHT + 8;
-      const kidsSectionScrollHeight = shouldScrollTriadGrid
+      const _kidsSectionScrollHeight = shouldScrollTriadGrid
         ? headerAndPaddingHeight + (kidsMergedGridHeight ?? 0)
         : undefined;
-      const adultsSectionScrollHeight = shouldScrollTriadGrid
+      const _adultsSectionScrollHeight = shouldScrollTriadGrid
         ? headerAndPaddingHeight + (adultsMergedGridHeight ?? 0)
         : undefined;
       // For triad prep, always compute explicit section heights based on merged grid
-      const kidsSectionExplicitHeight = isTriadPrepGrid
+      const _kidsSectionExplicitHeight = isTriadPrepGrid
         ? headerAndPaddingHeight + (kidsMergedGridHeight ?? 0)
         : undefined;
-      const adultsSectionExplicitHeight = isTriadPrepGrid
+      const _adultsSectionExplicitHeight = isTriadPrepGrid
         ? headerAndPaddingHeight + (adultsMergedGridHeight ?? 0)
         : undefined;
 
@@ -4324,7 +4328,7 @@ export default function App() {
       }
 
       const dwGridMinCardHeight = screenWidth >= 1000 ? 36 : 68;
-      const dwKidsGridSpec = isDwojkiPrepGrid ? getBestPairGridSpec({
+      const _dwKidsGridSpec = isDwojkiPrepGrid ? getBestPairGridSpec({
         count: kidsPairs.length,
         sectionWidth: dwKidsBodyWidth,
         sectionHeight: dwSectionBodyHeight,
@@ -4335,7 +4339,7 @@ export default function App() {
         maxCols: isDwojkiPhoneView ? 1 : Math.min(kidsPairs.length || 1, 2),
         allowScroll: isDwojkiPhoneView,
       }) : { cols: 1, rows: 0, cardWidth: 0, cardHeight: 0 };
-      const dwAdultsGridSpec = isDwojkiPrepGrid ? getBestPairGridSpec({
+      const _dwAdultsGridSpec = isDwojkiPrepGrid ? getBestPairGridSpec({
         count: adultsPairs.length,
         sectionWidth: dwAdultsBodyWidth,
         sectionHeight: dwSectionBodyHeight,
@@ -4349,10 +4353,10 @@ export default function App() {
         allowScroll: isDwojkiPhoneView,
       }) : { cols: 1, rows: 0, cardWidth: 0, cardHeight: 0 };
 
-      const dwKidsSectionStyle = hasBothSections
+      const _dwKidsSectionStyle = hasBothSections
         ? { flexBasis: dwKidsSectionWidth, width: dwKidsSectionWidth, maxWidth: dwKidsSectionWidth, flexGrow: 0, flexShrink: 0 }
         : { flex: 1 };
-      const dwAdultsSectionStyle = hasBothSections
+      const _dwAdultsSectionStyle = hasBothSections
         ? { flexBasis: dwAdultsSectionWidth, width: dwAdultsSectionWidth, maxWidth: dwAdultsSectionWidth, flexGrow: 0, flexShrink: 0 }
         : { flex: 1 };
       const dwStackTopBar = isDwojkiPhoneView && screenWidth < 560;
@@ -4439,7 +4443,7 @@ export default function App() {
           // Instructions area: header label + main fight line + rest line (optional) + next section (optional)
           const instructionLineCount = 1 + (hasRestLine ? 1 : 0); // fight + optional rest
           const nextLineCount = hasNext ? (1 + (hasRestLine ? 1 : 0)) : 0; // next fight + optional rest
-          const totalInstructionLines = 1 + instructionLineCount + nextLineCount; // label + current + next
+          const _totalInstructionLines = 1 + instructionLineCount + nextLineCount; // label + current + next
 
           // Scale fonts from BOTH dimensions, using the LARGER possible value (maximize readability)
           const phaseHeaderFont = clamp(18, Math.min(screenWidth * 0.028, screenHeight * 0.032), 32);
@@ -4683,7 +4687,7 @@ export default function App() {
           return null;
       };
 
-      const renderPrepGridCells = (
+      const _renderPrepGridCells = (
         groups: any[],
         cols: number,
         rows: number,
@@ -4710,7 +4714,7 @@ export default function App() {
         ));
       };
 
-      const renderMergedGridCells = (
+      const _renderMergedGridCells = (
         items: MergedGridItem[],
         cols: number,
         triadCardWidth: number,
@@ -4724,7 +4728,7 @@ export default function App() {
         return items.map((item, index) => {
           const cw = item.isDuo ? duoCardWidth : triadCardWidth;
           const ch = item.isDuo ? duoCardHeight : triadCardHeight;
-          const totalRows = Math.ceil(items.length / safeCols);
+          const _totalRows = Math.ceil(items.length / safeCols);
           return (
             <View
               key={`${keyPrefix}-${index}`}
@@ -4807,7 +4811,7 @@ export default function App() {
           </View>
         );
 
-        const renderDwMatchSection = (
+        const _renderDwMatchSection = (
           title: string,
           color: string,
           matches: Match[],
@@ -5659,7 +5663,7 @@ export default function App() {
       ? Math.max(220, phoneSectionWidth - pairSectionPadding * 2)
       : Math.max(220, adultsSectionWidth - pairSectionPadding * 2);
     const sparringGridMinCardHeight = screenWidth >= 1000 ? 36 : 68;
-    const kidsGridSpec = getBestPairGridSpec({
+    const _kidsGridSpec = getBestPairGridSpec({
       count: kidsPairs.length,
       sectionWidth: kidsBodyWidth,
       sectionHeight: kidsSectionBodyHeight,
@@ -5670,7 +5674,7 @@ export default function App() {
       maxCols: isPhonePairsView ? 1 : Math.min(kidsPairs.length || 1, 2),
       allowScroll: isPhonePairsView,
     });
-    const adultsGridSpec = getBestPairGridSpec({
+    const _adultsGridSpec = getBestPairGridSpec({
       count: adultsPairs.length,
       sectionWidth: adultsBodyWidth,
       sectionHeight: sectionBodyHeight,
@@ -5688,7 +5692,7 @@ export default function App() {
     });
     const mixedBodyWidth = Math.max(220, pairContentWidth - pairSectionPadding * 2);
     const stackTimerTopBar = isPhonePairsView && screenWidth < 560;
-    const kidsSectionStyle = hasBothSections
+    const _kidsSectionStyle = hasBothSections
       ? {
           flexBasis: kidsSectionWidth,
           width: kidsSectionWidth,
@@ -5697,7 +5701,7 @@ export default function App() {
           flexShrink: screenWidth >= 1000 ? 1 : 0,
         }
       : { flex: 1 };
-    const adultsSectionStyle = hasBothSections
+    const _adultsSectionStyle = hasBothSections
       ? {
           flexBasis: adultsSectionWidth,
           width: adultsSectionWidth,
@@ -5799,7 +5803,7 @@ export default function App() {
         ))}
       </View>
     );
-    const renderMixedPairList = (
+    const _renderMixedPairList = (
       matches: Match[],
       keyPrefix: string,
       cardHeight: number,
@@ -5824,7 +5828,7 @@ export default function App() {
         ))}
       </View>
     );
-    const renderMatchSection = (
+    const _renderMatchSection = (
       title: string,
       color: string,
       matches: Match[],
@@ -5869,7 +5873,7 @@ export default function App() {
       </View>
     );
 
-    const renderInlineMixedSection = () => {
+    const _renderInlineMixedSection = () => {
       // Use the side column width appropriate for the layout context
       const inlineMixedCardWidth = embedMixedAsColumn
         ? Math.max(160, mixedSideColumnWidth - pairSectionPadding * 2 - pairCellPadding * 2)
@@ -5924,7 +5928,7 @@ export default function App() {
       );
     };
 
-    const renderInlineRestingSection = () => (
+    const _renderInlineRestingSection = () => (
       <View
         style={[
           styles.sideSection,

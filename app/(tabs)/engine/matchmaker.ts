@@ -1218,8 +1218,8 @@ const generateRoundInternal = (
     history: Map<string, HistoryRecord>,
     roundNum: number,
     noRestPlayers: string[],
-    sparringOptions: SparringOptions = DEFAULT_SPARRING_OPTIONS,
-    totalRounds: number = 1
+    _sparringOptions: SparringOptions = DEFAULT_SPARRING_OPTIONS,
+    _totalRounds: number = 1
 ): { matches: Match[]; resting: RealPlayer[] } => {
     const activePlayers = [...players];
 

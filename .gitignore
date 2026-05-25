@@ -56,3 +56,5 @@ plugins/adi-registration.properties
 # generated native folders
 /ios
 /android
+
+backups/
