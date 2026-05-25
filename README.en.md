@@ -380,7 +380,7 @@ The **MATCHMAKING PRIORITY** slider lets you smoothly weight skill vs weight (4 
 | Local data  | AsyncStorage                                |
 | Audio       | expo-av                                     |
 | Build       | EAS Build                                   |
-| Web hosting | Netlify                                     |
+| Web hosting | Self-hosted (manual deploy)                 |
 | Target      | Android (10.5" tablet), iOS, browser        |
 
 ---

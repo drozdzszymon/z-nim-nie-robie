@@ -380,7 +380,7 @@ O slider **PRIORIDADE DE FORMAÇÃO** permite balancear suavemente habilidade vs
 | Dados locais   | AsyncStorage                                |
 | Áudio          | expo-av                                     |
 | Build          | EAS Build                                   |
-| Hospedagem web | Netlify                                     |
+| Hospedagem web | Servidor próprio (deploy manual)            |
 | Alvo           | Android (tablet 10,5"), iOS, navegador      |
 
 ---

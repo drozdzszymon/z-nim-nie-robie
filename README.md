@@ -380,7 +380,7 @@ Suwak **PRIORYTET DOBORU** pozwala płynnie ważyć między umiejętnościami a 
 | Dane lokalne  | AsyncStorage                                 |
 | Audio         | expo-av                                      |
 | Build         | EAS Build                                    |
-| Web hosting   | Netlify                                      |
+| Hosting www   | Własny serwer (deploy ręczny)                |
 | Target        | Android (tablet 10.5"), iOS, przeglądarka    |
 
 ---
