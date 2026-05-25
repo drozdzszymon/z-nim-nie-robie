@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/vers%C3%A3o-2.0.4%20Beta-orange" alt="Versão" />
+  <img src="https://img.shields.io/badge/vers%C3%A3o-2.0.5%20Production-brightgreen" alt="Versão" />
   <img src="https://img.shields.io/badge/plataforma-Android%20%7C%20iOS%20%7C%20Web-blue" alt="Plataforma" />
   <img src="https://img.shields.io/badge/framework-Expo%20%2B%20React%20Native-blueviolet" alt="Framework" />
   <img src="https://img.shields.io/badge/linguagem-TypeScript-3178C6" alt="TypeScript" />
@@ -22,6 +22,10 @@
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/Google%20Play-Em%20breve-34a853?logo=google-play&logoColor=white" alt="Google Play — em breve" />
+</p>
+
+<p align="center">
   <a href="README.md">🇵🇱 Polski</a> · <a href="README.en.md">🇬🇧 English</a> · <b>🇧🇷 Português (BR)</b>
 </p>
 
@@ -29,7 +33,7 @@
 
 ## Sumário
 
-- [Novidades na v2.0.4 Beta](#novidades-na-v204-beta)
+- [Novidades na v2.0.5 Production](#novidades-na-v205-production)
 - [Sobre o app](#sobre-o-app)
 - [Capturas de tela](#capturas-de-tela)
 - [Modos de treino](#modos-de-treino)
@@ -44,7 +48,25 @@
 
 ---
 
-## Novidades na v2.0.4 Beta
+## Novidades na v2.0.5 Production
+
+### 🎉 Lançamento de produção (v2.0.5)
+
+Primeira versão aceita pelo **Google Play**. Disponível no Android em 3 idiomas (PL / EN / PT-BR).
+
+### 🎨 Tela de configurações renovada (v2.0.5)
+
+A tela inicial (adicionar lutadores, tempo de round, modo de treino) foi renovada — agora parece mais tranquila, profissional e menos apertada.
+
+- **Fontes mais finas e legíveis** — fim do agressivo `weight: 900` em todo lugar. Cabeçalhos e rótulos usam agora pesos mais leves (500/600) que respiram melhor.
+- **Mais espaço entre seções** — paddings maiores, margens maiores entre grupos de campos.
+- **Botões planos e limpos** — removidas bordas e sombras pesadas dos botões SPARRING / TASK DRILLS / DRILLS, cards de tempo (ROUND / PREP / INTERVALO / ROUNDS), campos de texto. Visual consistente no estilo “Apple/iOS minimal”.
+- **Botão VISITANTE redesenhado** — agora parece e funciona como os outros toggles (M/F, ADULT/KID, GI/NO-GI). Toque para alternar, fica roxo quando ativo — sem aquele marcador circular estranho.
+- **Pílulas mais sutis** — badges de tipo de lutador (ADULT, NO-GI, ♂/♀) não têm mais sombras, ficaram mais tranquilas.
+
+### 🐛 Corrigido (v2.0.5)
+
+- **Bug de rotação de tela** — após mudar orientação portrait → landscape (ou voltar), a tela de configurações às vezes ficava rolada “além do fim”. Agora o ScrollView externo volta automaticamente para o topo a cada mudança de orientação.
 
 ### ✈ Visitantes de outro clube (v2.0.4)
 
@@ -107,7 +129,165 @@ O app funciona offline, não exige conta nem login. Dados dos lutadores são sal
 
 ## Capturas de tela
 
-As capturas de tela estão disponíveis no [README em polonês](README.md#zrzuty-ekranu).
+### Seletor de idioma
+
+Primeira inicialização — escolha rápida do idioma da interface. O app pode ser alternado entre **PL / EN / PT** a qualquer momento pela barra inferior.
+
+<p align="center">
+  <img src="Screenshots/1.png" alt="Tela de seleção de idioma" width="90%" />
+</p>
+
+### Tela inicial (tatame vazio)
+
+Configuração do treino: adicionar lutadores (painel esquerdo), tempo e ritmo dos rounds, modo de treino e opções do matchmaker. À direita ficam os blocos dos lutadores.
+
+<p align="center">
+  <img src="Screenshots/2.png" alt="Tela inicial vazia do app" width="90%" />
+</p>
+
+### Editar lutador
+
+Ficha completa do lutador: apelido, peso, categoria (KID / ADULT), kimono (GI / NO-GI), gênero (M / F) e nível (INICIANTE / INTERMEDIÁRIO / AVANÇADO / PRO). Tocar em um card abre o mesmo formulário para edição.
+
+<p align="center">
+  <img src="Screenshots/3.png" alt="Editar lutador — formulário" width="90%" />
+</p>
+
+### Banco do clube — busca
+
+Modal **BANCO DO CLUBE** com a lista de lutadores salvos. Busca por nome, adição individual com **SELECIONAR**.
+
+<p align="center">
+  <img src="Screenshots/4.png" alt="Banco do clube — lista e busca" width="90%" />
+</p>
+
+### Banco do clube — adição em lote
+
+Marque várias pessoas de uma vez e adicione todas ao tatame com um único clique em **ADICIONAR (n)**. Os blocos selecionados ficam azuis.
+
+<p align="center">
+  <img src="Screenshots/5.png" alt="Banco do clube — adição em lote" width="90%" />
+</p>
+
+### Lutadores no tatame
+
+Lutadores ordenados alfabeticamente com filtros no topo (KID / ADULT / GI / NO-GI / nível). Cada card mostra kimono, categoria, gênero, peso e nível. O “×” vermelho remove, tocar edita.
+
+<p align="center">
+  <img src="Screenshots/6.png" alt="Lutadores no tatame — grade de cards" width="90%" />
+</p>
+
+### Modo SPARRING
+
+Sparring clássico com painel completo de opções: **SEM PAUSA (VIP)**, **PRIORIDADE DE FORMAÇÃO** (slider HABILIDADE ↔ PESO), **ORDEM DAS LUTAS** (SEMELHANTES / DIFERENTES / ALEATÓRIO), **DIVISÃO POR PESO** e **LUTAS POR GÊNERO** (DESL / PRIORIDADE / SEMPRE).
+
+<p align="center">
+  <img src="Screenshots/7.png" alt="Modo sparring — opções do matchmaker" width="60%" />
+</p>
+
+### Modo TASK DRILLS (trios / duplas)
+
+Ao escolher task drills, aparece o seletor **TRIOS / DUPLAS**. O texto do botão de início muda conforme (`INICIAR TASK DRILLS (TRIOS)` / `(DUPLAS)`).
+
+<p align="center">
+  <img src="Screenshots/8.png" alt="Modo task drills — seletor trios/duplas" width="60%" />
+</p>
+
+### Modo DRILLS
+
+Pares formados **uma vez por treino inteiro**, papéis A/B trocam a cada round. Ideal para repetir técnica com o mesmo parceiro.
+
+<p align="center">
+  <img src="Screenshots/9.png" alt="Modo drills — descrição e botão de início" width="60%" />
+</p>
+
+### Sparring — preparação
+
+Fase **PREP** do round 1/5: grade de pares dividida em seções **KID**, **ADULT** e **MISTO**. Cronômetro conta o tempo para se posicionar. Pares formados pelo motor matchmaker.
+
+<p align="center">
+  <img src="Screenshots/10.png" alt="Sparring — preparação dos pares" width="90%" />
+</p>
+
+### Sparring — cronômetro de trabalho
+
+Cronômetro grande e legível, visível à distância. Número do round em cima. Botões **PAUSAR** e **ENCERRAR** ao alcance.
+
+<p align="center">
+  <img src="Screenshots/11.png" alt="Sparring — cronômetro de trabalho" width="90%" />
+</p>
+
+### Sparring — intervalo com próximos pares
+
+Fase **INTERVALO** do round 2/5: a tela já mostra a próxima formação de pares. O professor pode discutir o que melhorar antes do próximo gongo.
+
+<p align="center">
+  <img src="Screenshots/12.png" alt="Sparring — intervalo com prévia dos próximos pares" width="90%" />
+</p>
+
+### Task drills em trios — preparação
+
+Grade de trios com divisão por papel: **[A] EMBAIXO**, **[B] EM CIMA**, **[C] DESCANSO / AUXÍLIO**. Seções KID e ADULT lado a lado, legível mesmo do outro lado da sala.
+
+<p align="center">
+  <img src="Screenshots/13.png" alt="Task drills em trios — preparação" width="90%" />
+</p>
+
+### Task drills em trios — cronômetro com troca
+
+Cronômetro de etapa com o passo atual da rotação (**Etapa 2/6 — TROCAR!**). Abaixo do cronômetro: papéis atuais e **PRÓXIMA TROCA**, para que ninguém se perca.
+
+<p align="center">
+  <img src="Screenshots/14.png" alt="Task drills em trios — cronômetro e troca" width="90%" />
+</p>
+
+### Task drills em duplas — preparação
+
+Pares A vs B em uma grade limpa com rótulos **[A]** e **[B]**. Após a primeira etapa, os papéis se invertem. Sem zona de descanso.
+
+<p align="center">
+  <img src="Screenshots/15.png" alt="Task drills em duplas — preparação" width="90%" />
+</p>
+
+### Task drills em duplas — cronômetro
+
+Cronômetro **Etapa 1/2 — TRABALHO**. Papéis atuais e próxima troca exibidos logo abaixo do cronômetro.
+
+<p align="center">
+  <img src="Screenshots/16.png" alt="Task drills em duplas — cronômetro e troca de papéis" width="90%" />
+</p>
+
+### Alguém saiu do treino
+
+A qualquer momento do treino você pode marcar lutadores que saíram (lesão, cansaço, telefone). O cronômetro pausa, dá para marcar várias pessoas e confirmar com um único **OK**. O sistema refaz os pares na hora — sem reiniciar o treino.
+
+<p align="center">
+  <img src="Screenshots/17.png" alt="Modal — quem saiu do treino" width="90%" />
+</p>
+
+### Lutadores sem pausa (VIP)
+
+Modal com todos os lutadores como pílulas. Um toque marca quem **não descansa** entre os rounds (o professor, os mais avançados, um convidado especial). O sistema os ignora na rotação de pausa.
+
+<p align="center">
+  <img src="Screenshots/18.png" alt="Modal — lutadores sem pausa (VIP)" width="90%" />
+</p>
+
+### Painel VERSÃO V2
+
+Card informativo com contato (e-mail), link para o repositório GitHub e para a loja **mantoshop.pl**. Aberto pelo ícone “i” na barra inferior.
+
+<p align="center">
+  <img src="Screenshots/19.png" alt="Painel informativo — versão V2" width="90%" />
+</p>
+
+### Tela final
+
+Após o treino terminar — um grande **OBRIGADO** e um botão para voltar ao menu. Curto, legível, sem telas de lixo.
+
+<p align="center">
+  <img src="Screenshots/20.png" alt="Tela final — OBRIGADO, BOM TRABALHO!" width="90%" />
+</p>
 
 ---
 

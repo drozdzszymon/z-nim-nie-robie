@@ -10,15 +10,19 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/wersja-2.0.4%20Beta-orange" alt="Wersja" />
+  <img src="https://img.shields.io/badge/wersja-2.0.5%20Production-brightgreen" alt="Wersja" />
   <img src="https://img.shields.io/badge/platforma-Android%20%7C%20iOS%20%7C%20Web-blue" alt="Platforma" />
   <img src="https://img.shields.io/badge/framework-Expo%20%2B%20React%20Native-blueviolet" alt="Framework" />
-  <img src="https://img.shields.io/badge/język-TypeScript-3178C6" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/j%C4%99zyk-TypeScript-3178C6" alt="TypeScript" />
   <img src="https://img.shields.io/badge/i18n-PL%20%7C%20EN%20%7C%20PT-orange" alt="Języki" />
 </p>
 
 <p align="center">
   <a href="https://znimnierobie.pl"><b>▶ Wypróbuj wersję webową</b></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Google%20Play-Coming%20soon-34a853?logo=google-play&logoColor=white" alt="Google Play — wkrótce" />
 </p>
 
 <p align="center">
@@ -29,7 +33,7 @@
 
 ## Spis treści
 
-- [Co nowego w v2.0.4 Beta](#co-nowego-w-v204-beta)
+- [Co nowego w v2.0.5 Production](#co-nowego-w-v205-production)
 - [O aplikacji](#o-aplikacji)
 - [Zrzuty ekranu](#zrzuty-ekranu)
 - [Tryby treningowe](#tryby-treningowe)
@@ -44,7 +48,25 @@
 
 ---
 
-## Co nowego w v2.0.4 Beta
+## Co nowego w v2.0.5 Production
+
+### 🎉 Wydanie produkcyjne (v2.0.5)
+
+Pierwsza wersja zaakceptowana przez **Google Play**. Aplikacja dostępna na Androida w 3 językach (PL / EN / PT-BR).
+
+### 🎨 Odświeżony wygląd ekranu ustawień (v2.0.5)
+
+Ekran startowy (dodawanie zawodników, czas rund, tryb treningu) został odświeżony — teraz wygląda spokojniej, bardziej profesjonalnie i mniej „cięśnie”.
+
+- **Cieńsze, czytelniejsze fonty** — koniec z agresywnym `weight: 900` wszędzie. Nagłówki i etykiety używają teraz lżejszych grubości (500/600), które lepiej oddychają.
+- **Więcej przestrzeni między sekcjami** — większe paddingi, większe marginesy między grupami pól.
+- **Płaskie, czyste przyciski** — usunięte ramki i mocne cienie z przycisków SPARINGI / ZADANIÓWKI / DRILLE, kart czasu (RUNDA / PRZYGOT / PRZERWA / RUNDY), pól tekstowych. Spójny look w stylu „Apple/iOS minimal”.
+- **Przycisk GOŚĆ przerobiony** — teraz wygląda i działa jak inne przełączniki (M/K, ADULT/KID, GI/NO-GI). Klika się go i podświetla na fioletowo bez dziwnego okrągłego znacznika.
+- **Subtelniejsze pigułki** — badges z typem zawodnika (ADULT, NO-GI, ♂/♀) nie mają już cieni, są spokojniejsze.
+
+### 🐛 Naprawione (v2.0.5)
+
+- **Bug z obracaniem ekranu** — po zmianie orientacji portrait → landscape (albo odwrotnie) ekran ustawień bywał scrollnięty „za końcem”. Teraz outer ScrollView automatycznie wraca na górę przy każdej zmianie orientacji.
 
 ### ✈ Goście z innego klubu (v2.0.4)
 
