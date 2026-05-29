@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/vers%C3%A3o-2.0.5%20Production-brightgreen" alt="Versão" />
+  <img src="https://img.shields.io/badge/vers%C3%A3o-2.1%20Production-brightgreen" alt="Versão" />
   <img src="https://img.shields.io/badge/plataforma-Android%20%7C%20iOS%20%7C%20Web-blue" alt="Plataforma" />
   <img src="https://img.shields.io/badge/framework-Expo%20%2B%20React%20Native-blueviolet" alt="Framework" />
   <img src="https://img.shields.io/badge/linguagem-TypeScript-3178C6" alt="TypeScript" />
@@ -33,7 +33,7 @@
 
 ## Sumário
 
-- [Novidades na v2.0.5 Production](#novidades-na-v205-production)
+- [Novidades na v2.1](#novidades-na-v21)
 - [Sobre o app](#sobre-o-app)
 - [Capturas de tela](#capturas-de-tela)
 - [Modos de treino](#modos-de-treino)
@@ -48,7 +48,19 @@
 
 ---
 
-## Novidades na v2.0.5 Production
+## Novidades na v2.1
+
+### 🌍 Localização EN / PT completa (v2.1)
+
+Polimento final da experiência multilíngue. Alguns textos da tela de treino / cronômetro ainda estavam fixos em polonês — agora estão totalmente traduzidos para inglês e português (BR):
+
+- rótulo da fase **INTERVALO** (era `PRZERWA`)
+- rótulo de grupo **MISTO** (era `MIESZANE`)
+- dicas de rotação nos TRIOS: **LUTANDO AGORA / TROCA DE GRUPOS / ENTRANDO / PRÓXIMOS**
+- rótulo **TROCA DE GRUPOS**
+- contador de progresso **Etapa X/Y** (era `Etap`)
+
+Usuários em inglês e português (BR) agora veem um cronômetro 100% traduzido em todos os modos de treino.
 
 ### 🎉 Lançamento de produção (v2.0.5)
 
@@ -134,7 +146,7 @@ O app funciona offline, não exige conta nem login. Dados dos lutadores são sal
 Primeira inicialização — escolha rápida do idioma da interface. O app pode ser alternado entre **PL / EN / PT** a qualquer momento pela barra inferior.
 
 <p align="center">
-  <img src="Screenshots/1.png" alt="Tela de seleção de idioma" width="90%" />
+  <img src="Screenshots/pt/1.png" alt="Tela de seleção de idioma" width="90%" />
 </p>
 
 ### Tela inicial (tatame vazio)
@@ -142,7 +154,7 @@ Primeira inicialização — escolha rápida do idioma da interface. O app pode 
 Configuração do treino: adicionar lutadores (painel esquerdo), tempo e ritmo dos rounds, modo de treino e opções do matchmaker. À direita ficam os blocos dos lutadores.
 
 <p align="center">
-  <img src="Screenshots/2.png" alt="Tela inicial vazia do app" width="90%" />
+  <img src="Screenshots/pt/2.png" alt="Tela inicial vazia do app" width="90%" />
 </p>
 
 ### Editar lutador
@@ -150,7 +162,7 @@ Configuração do treino: adicionar lutadores (painel esquerdo), tempo e ritmo d
 Ficha completa do lutador: apelido, peso, categoria (KID / ADULT), kimono (GI / NO-GI), gênero (M / F) e nível (INICIANTE / INTERMEDIÁRIO / AVANÇADO / PRO). Tocar em um card abre o mesmo formulário para edição.
 
 <p align="center">
-  <img src="Screenshots/3.png" alt="Editar lutador — formulário" width="90%" />
+  <img src="Screenshots/pt/3.png" alt="Editar lutador — formulário" width="90%" />
 </p>
 
 ### Banco do clube — busca
@@ -158,7 +170,7 @@ Ficha completa do lutador: apelido, peso, categoria (KID / ADULT), kimono (GI / 
 Modal **BANCO DO CLUBE** com a lista de lutadores salvos. Busca por nome, adição individual com **SELECIONAR**.
 
 <p align="center">
-  <img src="Screenshots/4.png" alt="Banco do clube — lista e busca" width="90%" />
+  <img src="Screenshots/pt/4.png" alt="Banco do clube — lista e busca" width="90%" />
 </p>
 
 ### Banco do clube — adição em lote
@@ -166,7 +178,7 @@ Modal **BANCO DO CLUBE** com a lista de lutadores salvos. Busca por nome, adiç�
 Marque várias pessoas de uma vez e adicione todas ao tatame com um único clique em **ADICIONAR (n)**. Os blocos selecionados ficam azuis.
 
 <p align="center">
-  <img src="Screenshots/5.png" alt="Banco do clube — adição em lote" width="90%" />
+  <img src="Screenshots/pt/5.png" alt="Banco do clube — adição em lote" width="90%" />
 </p>
 
 ### Lutadores no tatame
@@ -174,7 +186,7 @@ Marque várias pessoas de uma vez e adicione todas ao tatame com um único cliqu
 Lutadores ordenados alfabeticamente com filtros no topo (KID / ADULT / GI / NO-GI / nível). Cada card mostra kimono, categoria, gênero, peso e nível. O “×” vermelho remove, tocar edita.
 
 <p align="center">
-  <img src="Screenshots/6.png" alt="Lutadores no tatame — grade de cards" width="90%" />
+  <img src="Screenshots/pt/6.png" alt="Lutadores no tatame — grade de cards" width="90%" />
 </p>
 
 ### Modo SPARRING
@@ -182,7 +194,7 @@ Lutadores ordenados alfabeticamente com filtros no topo (KID / ADULT / GI / NO-G
 Sparring clássico com painel completo de opções: **SEM PAUSA (VIP)**, **PRIORIDADE DE FORMAÇÃO** (slider HABILIDADE ↔ PESO), **ORDEM DAS LUTAS** (SEMELHANTES / DIFERENTES / ALEATÓRIO), **DIVISÃO POR PESO** e **LUTAS POR GÊNERO** (DESL / PRIORIDADE / SEMPRE).
 
 <p align="center">
-  <img src="Screenshots/7.png" alt="Modo sparring — opções do matchmaker" width="60%" />
+  <img src="Screenshots/pt/7.png" alt="Modo sparring — opções do matchmaker" width="60%" />
 </p>
 
 ### Modo TASK DRILLS (trios / duplas)
@@ -190,7 +202,7 @@ Sparring clássico com painel completo de opções: **SEM PAUSA (VIP)**, **PRIOR
 Ao escolher task drills, aparece o seletor **TRIOS / DUPLAS**. O texto do botão de início muda conforme (`INICIAR TASK DRILLS (TRIOS)` / `(DUPLAS)`).
 
 <p align="center">
-  <img src="Screenshots/8.png" alt="Modo task drills — seletor trios/duplas" width="60%" />
+  <img src="Screenshots/pt/8.png" alt="Modo task drills — seletor trios/duplas" width="60%" />
 </p>
 
 ### Modo DRILLS
@@ -198,7 +210,7 @@ Ao escolher task drills, aparece o seletor **TRIOS / DUPLAS**. O texto do botão
 Pares formados **uma vez por treino inteiro**, papéis A/B trocam a cada round. Ideal para repetir técnica com o mesmo parceiro.
 
 <p align="center">
-  <img src="Screenshots/9.png" alt="Modo drills — descrição e botão de início" width="60%" />
+  <img src="Screenshots/pt/9.png" alt="Modo drills — descrição e botão de início" width="60%" />
 </p>
 
 ### Sparring — preparação
@@ -206,7 +218,7 @@ Pares formados **uma vez por treino inteiro**, papéis A/B trocam a cada round. 
 Fase **PREP** do round 1/5: grade de pares dividida em seções **KID**, **ADULT** e **MISTO**. Cronômetro conta o tempo para se posicionar. Pares formados pelo motor matchmaker.
 
 <p align="center">
-  <img src="Screenshots/10.png" alt="Sparring — preparação dos pares" width="90%" />
+  <img src="Screenshots/pt/10.png" alt="Sparring — preparação dos pares" width="90%" />
 </p>
 
 ### Sparring — cronômetro de trabalho
@@ -214,7 +226,7 @@ Fase **PREP** do round 1/5: grade de pares dividida em seções **KID**, **ADULT
 Cronômetro grande e legível, visível à distância. Número do round em cima. Botões **PAUSAR** e **ENCERRAR** ao alcance.
 
 <p align="center">
-  <img src="Screenshots/11.png" alt="Sparring — cronômetro de trabalho" width="90%" />
+  <img src="Screenshots/pt/11.png" alt="Sparring — cronômetro de trabalho" width="90%" />
 </p>
 
 ### Sparring — intervalo com próximos pares
@@ -222,7 +234,7 @@ Cronômetro grande e legível, visível à distância. Número do round em cima.
 Fase **INTERVALO** do round 2/5: a tela já mostra a próxima formação de pares. O professor pode discutir o que melhorar antes do próximo gongo.
 
 <p align="center">
-  <img src="Screenshots/12.png" alt="Sparring — intervalo com prévia dos próximos pares" width="90%" />
+  <img src="Screenshots/pt/12.png" alt="Sparring — intervalo com prévia dos próximos pares" width="90%" />
 </p>
 
 ### Task drills em trios — preparação
@@ -230,7 +242,7 @@ Fase **INTERVALO** do round 2/5: a tela já mostra a próxima formação de pare
 Grade de trios com divisão por papel: **[A] EMBAIXO**, **[B] EM CIMA**, **[C] DESCANSO / AUXÍLIO**. Seções KID e ADULT lado a lado, legível mesmo do outro lado da sala.
 
 <p align="center">
-  <img src="Screenshots/13.png" alt="Task drills em trios — preparação" width="90%" />
+  <img src="Screenshots/pt/13.png" alt="Task drills em trios — preparação" width="90%" />
 </p>
 
 ### Task drills em trios — cronômetro com troca
@@ -238,7 +250,7 @@ Grade de trios com divisão por papel: **[A] EMBAIXO**, **[B] EM CIMA**, **[C] D
 Cronômetro de etapa com o passo atual da rotação (**Etapa 2/6 — TROCAR!**). Abaixo do cronômetro: papéis atuais e **PRÓXIMA TROCA**, para que ninguém se perca.
 
 <p align="center">
-  <img src="Screenshots/14.png" alt="Task drills em trios — cronômetro e troca" width="90%" />
+  <img src="Screenshots/pt/14.png" alt="Task drills em trios — cronômetro e troca" width="90%" />
 </p>
 
 ### Task drills em duplas — preparação
@@ -246,7 +258,7 @@ Cronômetro de etapa com o passo atual da rotação (**Etapa 2/6 — TROCAR!**).
 Pares A vs B em uma grade limpa com rótulos **[A]** e **[B]**. Após a primeira etapa, os papéis se invertem. Sem zona de descanso.
 
 <p align="center">
-  <img src="Screenshots/15.png" alt="Task drills em duplas — preparação" width="90%" />
+  <img src="Screenshots/pt/15.png" alt="Task drills em duplas — preparação" width="90%" />
 </p>
 
 ### Task drills em duplas — cronômetro
@@ -254,7 +266,7 @@ Pares A vs B em uma grade limpa com rótulos **[A]** e **[B]**. Após a primeira
 Cronômetro **Etapa 1/2 — TRABALHO**. Papéis atuais e próxima troca exibidos logo abaixo do cronômetro.
 
 <p align="center">
-  <img src="Screenshots/16.png" alt="Task drills em duplas — cronômetro e troca de papéis" width="90%" />
+  <img src="Screenshots/pt/16.png" alt="Task drills em duplas — cronômetro e troca de papéis" width="90%" />
 </p>
 
 ### Alguém saiu do treino
@@ -262,7 +274,7 @@ Cronômetro **Etapa 1/2 — TRABALHO**. Papéis atuais e próxima troca exibidos
 A qualquer momento do treino você pode marcar lutadores que saíram (lesão, cansaço, telefone). O cronômetro pausa, dá para marcar várias pessoas e confirmar com um único **OK**. O sistema refaz os pares na hora — sem reiniciar o treino.
 
 <p align="center">
-  <img src="Screenshots/17.png" alt="Modal — quem saiu do treino" width="90%" />
+  <img src="Screenshots/pt/17.png" alt="Modal — quem saiu do treino" width="90%" />
 </p>
 
 ### Lutadores sem pausa (VIP)
@@ -270,7 +282,7 @@ A qualquer momento do treino você pode marcar lutadores que saíram (lesão, ca
 Modal com todos os lutadores como pílulas. Um toque marca quem **não descansa** entre os rounds (o professor, os mais avançados, um convidado especial). O sistema os ignora na rotação de pausa.
 
 <p align="center">
-  <img src="Screenshots/18.png" alt="Modal — lutadores sem pausa (VIP)" width="90%" />
+  <img src="Screenshots/pt/18.png" alt="Modal — lutadores sem pausa (VIP)" width="90%" />
 </p>
 
 ### Painel VERSÃO V2
@@ -278,7 +290,7 @@ Modal com todos os lutadores como pílulas. Um toque marca quem **não descansa*
 Card informativo com contato (e-mail), link para o repositório GitHub e para a loja **mantoshop.pl**. Aberto pelo ícone “i” na barra inferior.
 
 <p align="center">
-  <img src="Screenshots/19.png" alt="Painel informativo — versão V2" width="90%" />
+  <img src="Screenshots/pt/19.png" alt="Painel informativo — versão V2" width="90%" />
 </p>
 
 ### Tela final
@@ -286,7 +298,7 @@ Card informativo com contato (e-mail), link para o repositório GitHub e para a 
 Após o treino terminar — um grande **OBRIGADO** e um botão para voltar ao menu. Curto, legível, sem telas de lixo.
 
 <p align="center">
-  <img src="Screenshots/20.png" alt="Tela final — OBRIGADO, BOM TRABALHO!" width="90%" />
+  <img src="Screenshots/pt/20.png" alt="Tela final — OBRIGADO, BOM TRABALHO!" width="90%" />
 </p>
 
 ---
@@ -401,7 +413,7 @@ assets/
 docs/
   privacy-policy.md        # Política de privacidade
   play-store/              # Materiais para Google Play
-Screenshots/               # Capturas de tela (v2.0.4 Beta)
+Screenshots/               # Capturas de tela (v2.1)
 Images/                    # Logo e ícones do app
 plugins/                   # Plugins do Expo (ex.: ADI registration)
 ```
@@ -457,6 +469,6 @@ Todos os direitos reservados. Código-fonte publicado apenas para fins de revis�
 ---
 
 <p align="center">
-  <b>Z NIM NIE ROBIĘ</b> · v2.0.4 Beta · App de treino BJJ<br/>
+  <b>Z NIM NIE ROBIĘ</b> · v2.1 · App de treino BJJ<br/>
   Construído com 🥋 no tatame e no teclado
 </p>

@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/wersja-2.0.5%20Production-brightgreen" alt="Wersja" />
+  <img src="https://img.shields.io/badge/wersja-2.1%20Production-brightgreen" alt="Wersja" />
   <img src="https://img.shields.io/badge/platforma-Android%20%7C%20iOS%20%7C%20Web-blue" alt="Platforma" />
   <img src="https://img.shields.io/badge/framework-Expo%20%2B%20React%20Native-blueviolet" alt="Framework" />
   <img src="https://img.shields.io/badge/j%C4%99zyk-TypeScript-3178C6" alt="TypeScript" />
@@ -33,7 +33,7 @@
 
 ## Spis treści
 
-- [Co nowego w v2.0.5 Production](#co-nowego-w-v205-production)
+- [Co nowego w v2.1](#co-nowego-w-v21)
 - [O aplikacji](#o-aplikacji)
 - [Zrzuty ekranu](#zrzuty-ekranu)
 - [Tryby treningowe](#tryby-treningowe)
@@ -48,7 +48,19 @@
 
 ---
 
-## Co nowego w v2.0.5 Production
+## Co nowego w v2.1
+
+### 🌍 Dokończona lokalizacja EN / PT (v2.1)
+
+Finalne dopracowanie wersji wielojęzycznej. Kilka napisów na ekranie treningu / timera było jeszcze zaszytych po polsku — teraz są w pełni przetłumaczone na angielski i portugalski (BR):
+
+- etykieta fazy **PRZERWA** (`BREAK` / `INTERVALO`)
+- etykieta grupy **MIESZANE** (`MIXED` / `MISTO`)
+- podpowiedzi rotacji w TRÓJKACH: **WALCZY / ZMIANA GRUP / WCHODZĄ / NASTĘPNI**
+- etykieta **ZMIANA GRUP**
+- licznik postępu **Etap X/Y** (`Stage` / `Etapa`)
+
+Użytkownicy EN i PT-BR widzą teraz w 100% przetłumaczony timer we wszystkich trybach treningu.
 
 ### 🎉 Wydanie produkcyjne (v2.0.5)
 
@@ -134,7 +146,7 @@ Aplikacja działa offline, nie wymaga konta ani logowania. Dane zawodników zapi
 Pierwsze uruchomienie — szybki wybór wersji językowej. Aplikację można w dowolnej chwili przełączyć między **PL / EN / PT** z dolnego paska.
 
 <p align="center">
-  <img src="Screenshots/1.png" alt="Ekran wyboru języka" width="90%" />
+  <img src="Screenshots/pl/1.png" alt="Ekran wyboru języka" width="90%" />
 </p>
 
 ### Ekran startowy (pusta mata)
@@ -142,7 +154,7 @@ Pierwsze uruchomienie — szybki wybór wersji językowej. Aplikację można w d
 Konfiguracja treningu: dodawanie zawodników (lewy panel), czas i rytm rund, wybór trybu treningowego oraz opcji matchmakera. Po prawej miejsce na kafelki zawodników.
 
 <p align="center">
-  <img src="Screenshots/2.png" alt="Pusty ekran startowy aplikacji" width="90%" />
+  <img src="Screenshots/pl/2.png" alt="Pusty ekran startowy aplikacji" width="90%" />
 </p>
 
 ### Edycja zawodnika
@@ -150,7 +162,7 @@ Konfiguracja treningu: dodawanie zawodników (lewy panel), czas i rytm rund, wyb
 Pełna karta zawodnika: pseudonim, waga, kategoria (KID / ADULT), strój (GI / NO-GI), płeć (M / K) i poziom (POCZ. / ŚR.ZAAW. / ZAAW. / PRO). Dotknięcie kafelka otwiera tę samą formę do edycji.
 
 <p align="center">
-  <img src="Screenshots/3.png" alt="Edycja zawodnika — formularz" width="90%" />
+  <img src="Screenshots/pl/3.png" alt="Edycja zawodnika — formularz" width="90%" />
 </p>
 
 ### Baza klubowa — wyszukiwanie
@@ -158,7 +170,7 @@ Pełna karta zawodnika: pseudonim, waga, kategoria (KID / ADULT), strój (GI / N
 Modal **BAZA KLUBOWA** z listą zapamiętanych zawodników. Wyszukiwarka po imieniu, dodawanie pojedynczo przyciskiem **WYBIERZ**.
 
 <p align="center">
-  <img src="Screenshots/4.png" alt="Baza klubowa — lista i wyszukiwarka" width="90%" />
+  <img src="Screenshots/pl/4.png" alt="Baza klubowa — lista i wyszukiwarka" width="90%" />
 </p>
 
 ### Baza klubowa — wsadowe dodawanie
@@ -166,7 +178,7 @@ Modal **BAZA KLUBOWA** z listą zapamiętanych zawodników. Wyszukiwarka po imie
 Zaznaczenie wielu osób naraz i dorzucenie ich na matę jednym kliknięciem **DODAJ (n)**. Kafelki podświetlają się na niebiesko.
 
 <p align="center">
-  <img src="Screenshots/5.png" alt="Baza klubowa — wsadowe dodawanie zawodników" width="90%" />
+  <img src="Screenshots/pl/5.png" alt="Baza klubowa — wsadowe dodawanie zawodników" width="90%" />
 </p>
 
 ### Skład zawodników na macie
@@ -174,7 +186,7 @@ Zaznaczenie wielu osób naraz i dorzucenie ich na matę jednym kliknięciem **DO
 Zawodnicy posegregowani alfabetycznie z filtrami u góry (KID / ADULT / GI / NO-GI / poziom). Każda karta pokazuje strój, kategorię, płeć, wagę i poziom. Czerwony „×" usuwa, dotknięcie edytuje.
 
 <p align="center">
-  <img src="Screenshots/6.png" alt="Skład zawodników na macie — siatka kafelków" width="90%" />
+  <img src="Screenshots/pl/6.png" alt="Skład zawodników na macie — siatka kafelków" width="90%" />
 </p>
 
 ### Tryb SPARINGI
@@ -182,7 +194,7 @@ Zawodnicy posegregowani alfabetycznie z filtrami u góry (KID / ADULT / GI / NO-
 Klasyczny sparing z pełnym panelem opcji: **BEZ PAUZY (VIP)**, **PRIORYTET DOBORU** (suwak UMIEJĘTNOŚCI ↔ WAGA), **KOLEJNOŚĆ WALK** (ZBLIŻONE / RÓŻNE / LOSOWO), **PODZIAŁ WAGOWY** oraz **WALKI WG PŁCI** (WYŁ / PRIORYTET / ZAWSZE).
 
 <p align="center">
-  <img src="Screenshots/7.png" alt="Tryb sparingów — opcje matchmakera" width="60%" />
+  <img src="Screenshots/pl/7.png" alt="Tryb sparingów — opcje matchmakera" width="60%" />
 </p>
 
 ### Tryb ZADANIÓWKI (trójki / dwójki)
@@ -190,7 +202,7 @@ Klasyczny sparing z pełnym panelem opcji: **BEZ PAUZY (VIP)**, **PRIORYTET DOBO
 Po wybraniu zadaniówek pojawia się przełącznik **TRÓJKI / DWÓJKI**. Etykieta przycisku startu zmienia się odpowiednio (`START ZADANIÓWEK (TRÓJKI)` / `(DWÓJKI)`).
 
 <p align="center">
-  <img src="Screenshots/8.png" alt="Tryb zadaniówek — wybór trójki/dwójki" width="60%" />
+  <img src="Screenshots/pl/8.png" alt="Tryb zadaniówek — wybór trójki/dwójki" width="60%" />
 </p>
 
 ### Tryb DRILLE
@@ -198,7 +210,7 @@ Po wybraniu zadaniówek pojawia się przełącznik **TRÓJKI / DWÓJKI**. Etykie
 Pary dobierane **raz na cały trening**, role A/B zamieniają się co rundę. Idealne do powtarzania techniki z tym samym partnerem.
 
 <p align="center">
-  <img src="Screenshots/9.png" alt="Tryb drille — opis i przycisk startu" width="60%" />
+  <img src="Screenshots/pl/9.png" alt="Tryb drille — opis i przycisk startu" width="60%" />
 </p>
 
 ### Sparingi — przygotowanie
@@ -206,7 +218,7 @@ Pary dobierane **raz na cały trening**, role A/B zamieniają się co rundę. Id
 Faza **PRZYGOTOWANIE** rundy 1/5: siatka par podzielona na sekcje **KID**, **ADULT** i **MIESZANE**. Timer odlicza czas na rozejście się na pozycje. Pary dobrane przez silnik matchmakera.
 
 <p align="center">
-  <img src="Screenshots/10.png" alt="Sparingi — przygotowanie par" width="90%" />
+  <img src="Screenshots/pl/10.png" alt="Sparingi — przygotowanie par" width="90%" />
 </p>
 
 ### Sparingi — timer pracy
@@ -214,7 +226,7 @@ Faza **PRZYGOTOWANIE** rundy 1/5: siatka par podzielona na sekcje **KID**, **ADU
 Duży, czytelny timer widoczny z dystansu. Numer rundy na górze. Przyciski **PAUZA** i **ZAKOŃCZ** pod ręką.
 
 <p align="center">
-  <img src="Screenshots/11.png" alt="Sparingi — timer pracy" width="90%" />
+  <img src="Screenshots/pl/11.png" alt="Sparingi — timer pracy" width="90%" />
 </p>
 
 ### Sparingi — przerwa i nowe pary
@@ -222,7 +234,7 @@ Duży, czytelny timer widoczny z dystansu. Numer rundy na górze. Przyciski **PA
 Faza **PRZERWA** rundy 2/5: na ekranie już widać nowy układ par dobrany na kolejną rundę. Trener może omówić co poprawić zanim padnie gong.
 
 <p align="center">
-  <img src="Screenshots/12.png" alt="Sparingi — przerwa z podglądem nowych par" width="90%" />
+  <img src="Screenshots/pl/12.png" alt="Sparingi — przerwa z podglądem nowych par" width="90%" />
 </p>
 
 ### Zadaniówki w trójkach — przygotowanie
@@ -230,7 +242,7 @@ Faza **PRZERWA** rundy 2/5: na ekranie już widać nowy układ par dobrany na ko
 Siatka trójek z podziałem na role: **[A] DÓŁ**, **[B] GÓRA**, **[C] PAUZA / ASYSTA**. Sekcje KID i ADULT obok siebie, czytelne nawet z drugiego końca sali.
 
 <p align="center">
-  <img src="Screenshots/13.png" alt="Zadaniówki w trójkach — przygotowanie" width="90%" />
+  <img src="Screenshots/pl/13.png" alt="Zadaniówki w trójkach — przygotowanie" width="90%" />
 </p>
 
 ### Zadaniówki w trójkach — timer ze zmianą
@@ -238,7 +250,7 @@ Siatka trójek z podziałem na role: **[A] DÓŁ**, **[B] GÓRA**, **[C] PAUZA /
 Timer etapu z informacją o aktualnym kroku rotacji (**Etap 2/6 — ZMIANA!**). Pod timerem aktualny układ ról oraz **NASTĘPNA ZMIANA**, dzięki czemu nikt się nie gubi.
 
 <p align="center">
-  <img src="Screenshots/14.png" alt="Zadaniówki w trójkach — timer i informacja o zmianie" width="90%" />
+  <img src="Screenshots/pl/14.png" alt="Zadaniówki w trójkach — timer i informacja o zmianie" width="90%" />
 </p>
 
 ### Zadaniówki w dwójkach — przygotowanie
@@ -246,7 +258,7 @@ Timer etapu z informacją o aktualnym kroku rotacji (**Etap 2/6 — ZMIANA!**). 
 Pary A vs B w czytelnej siatce z oznaczeniem ról **[A]** i **[B]**. Po pierwszym etapie role się zamieniają. Bez strefy odpoczynku.
 
 <p align="center">
-  <img src="Screenshots/15.png" alt="Zadaniówki w dwójkach — przygotowanie" width="90%" />
+  <img src="Screenshots/pl/15.png" alt="Zadaniówki w dwójkach — przygotowanie" width="90%" />
 </p>
 
 ### Zadaniówki w dwójkach — timer
@@ -254,7 +266,7 @@ Pary A vs B w czytelnej siatce z oznaczeniem ról **[A]** i **[B]**. Po pierwszy
 Timer **Etap 1/2 — PRACA**. Informacja o aktualnych rolach i nadchodzącej zamianie tuż pod timerem.
 
 <p align="center">
-  <img src="Screenshots/16.png" alt="Zadaniówki w dwójkach — timer i zamiana ról" width="90%" />
+  <img src="Screenshots/pl/16.png" alt="Zadaniówki w dwójkach — timer i zamiana ról" width="90%" />
 </p>
 
 ### Ktoś wypadł z treningu
@@ -262,7 +274,7 @@ Timer **Etap 1/2 — PRACA**. Informacja o aktualnych rolach i nadchodzącej zam
 W dowolnym momencie treningu można oznaczyć zawodników, którzy wypadli (kontuzja, zmęczenie, telefon). Czas się zatrzymuje, można zaznaczyć kilka osób naraz i zatwierdzić jednym kliknięciem **OK**. System przebudowuje pary na żywo — bez restartu treningu.
 
 <p align="center">
-  <img src="Screenshots/17.png" alt="Modal — kto wypadł z treningu" width="90%" />
+  <img src="Screenshots/pl/17.png" alt="Modal — kto wypadł z treningu" width="90%" />
 </p>
 
 ### Zawodnicy bez pauzy (VIP)
@@ -270,7 +282,7 @@ W dowolnym momencie treningu można oznaczyć zawodników, którzy wypadli (kont
 Modal z listą wszystkich zawodników jako pigułki. Tapnięcie oznacza, że ktoś **nie odpoczywa** między rundami (trener, najbardziej zaawansowani, gość specjalny). System pomija ich przy rotacji pauz.
 
 <p align="center">
-  <img src="Screenshots/18.png" alt="Modal — zawodnicy bez pauzy (VIP)" width="90%" />
+  <img src="Screenshots/pl/18.png" alt="Modal — zawodnicy bez pauzy (VIP)" width="90%" />
 </p>
 
 ### Panel WERSJA V2
@@ -278,7 +290,7 @@ Modal z listą wszystkich zawodników jako pigułki. Tapnięcie oznacza, że kto
 Karta informacyjna z kontaktem (e-mail), linkiem do repozytorium GitHub oraz do sklepu **mantoshop.pl**. Otwierana ikoną „i" z dolnego paska.
 
 <p align="center">
-  <img src="Screenshots/19.png" alt="Panel informacyjny — wersja V2" width="90%" />
+  <img src="Screenshots/pl/19.png" alt="Panel informacyjny — wersja V2" width="90%" />
 </p>
 
 ### Ekran końcowy
@@ -286,7 +298,7 @@ Karta informacyjna z kontaktem (e-mail), linkiem do repozytorium GitHub oraz do 
 Po zakończeniu treningu — duże **DZIĘKUJĘ** i przycisk powrotu do menu. Krótko, czytelnie, bez ekranów-śmieci.
 
 <p align="center">
-  <img src="Screenshots/20.png" alt="Ekran końcowy — DZIĘKUJĘ, DOBRA ROBOTA!" width="90%" />
+  <img src="Screenshots/pl/20.png" alt="Ekran końcowy — DZIĘKUJĘ, DOBRA ROBOTA!" width="90%" />
 </p>
 
 ---
@@ -401,7 +413,7 @@ assets/
 docs/
   privacy-policy.md        # Polityka prywatności
   play-store/              # Materiały do Google Play
-Screenshots/               # Zrzuty ekranu (v2.0.4 Beta)
+Screenshots/               # Zrzuty ekranu (v2.1)
 Images/                    # Logo i ikony aplikacji
 plugins/                   # Pluginy Expo (np. ADI registration)
 ```
@@ -457,6 +469,6 @@ Wszelkie prawa zastrzeżone. Kod źródłowy udostępniony wyłącznie w celach 
 ---
 
 <p align="center">
-  <b>Z NIM NIE ROBIĘ</b> · v2.0.4 Beta · Aplikacja treningowa BJJ<br/>
+  <b>Z NIM NIE ROBIĘ</b> · v2.1 · Aplikacja treningowa BJJ<br/>
   Zbudowane z 🥋 na macie i przy klawiaturze
 </p>

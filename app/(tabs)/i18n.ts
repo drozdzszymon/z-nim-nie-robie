@@ -118,7 +118,7 @@ const translations = {
   dropoutTitle: { PL: 'KTO WYPADŁ Z TRENINGU?', EN: 'WHO DROPPED OUT?', PT: 'QUEM SAIU DO TREINO?' },
   dropoutSubtitle: { PL: 'Czas został zatrzymany. Możesz zaznaczyć kilka osób i zatwierdzić jednym kliknięciem.', EN: 'Time has been stopped. Select players and confirm with one click.', PT: 'O tempo foi parado. Selecione os lutadores e confirme com um clique.' },
   dropoutModeFull: { PL: 'WYPADŁ', EN: 'OUT', PT: 'SAIU' },
-  dropoutModeOneRound: { PL: 'ODPOCZYWA 1 RUNDĘ', EN: 'RESTS 1 ROUND', PT: 'DESCANSA 1 ROUND' },
+  dropoutModeOneRound: { PL: 'ODPOCZYWA 1 RUNDĘ', EN: 'RESTS 1 ROUND', PT: 'DESCANSA 1 RODADA' },
   selected: { PL: 'ZAZNACZONY', EN: 'SELECTED', PT: 'SELECIONADO' },
   select: { PL: 'WYBIERZ', EN: 'SELECT', PT: 'SELECIONAR' },
   clubDBTitle: { PL: 'BAZA KLUBOWA', EN: 'CLUB DATABASE', PT: 'BANCO DO CLUBE' },
@@ -132,7 +132,7 @@ const translations = {
 
   // ── ABOUT MODAL ──
   aboutTitle: { PL: 'Z NIM NIE ROBIĘ', EN: 'Z NIM NIE ROBIĘ', PT: 'Z NIM NIE ROBIĘ' },
-  aboutVersion: { PL: 'Wersja 2.0.5', EN: 'Version 2.0.5', PT: 'Versão 2.0.5' },
+  aboutVersion: { PL: 'Wersja 2.1', EN: 'Version 2.1', PT: 'Versão 2.1' },
   aboutDescription: { PL: 'Aplikacja treningowa do zarządzania parami, rundami i rotacją zawodników podczas treningów BJJ.', EN: 'Training app for managing pairs, rounds and player rotation during BJJ training sessions.', PT: 'Aplicativo de treino para gerenciar duplas, rodadas e rotação de lutadores durante treinos de BJJ.' },
 
   // ── VALIDATION MESSAGES ──
@@ -167,6 +167,15 @@ const translations = {
 
   // ── TIMER BOTTOM BAR ──
   restLabel: { PL: 'Pauza:', EN: 'Rest:', PT: 'Descanso:' },
+
+  // ── TIMER / TRAINING SCREEN ──
+  breakPhase: { PL: 'PRZERWA', EN: 'BREAK', PT: 'INTERVALO' },
+  mixedSection: { PL: 'MIESZANE', EN: 'MIXED', PT: 'MISTO' },
+  wdFighting: { PL: 'WALCZY', EN: 'FIGHTING', PT: 'LUTANDO' },
+  wdGroupChange: { PL: 'ZMIANA GRUP', EN: 'GROUP SWITCH', PT: 'TROCA DE GRUPOS' },
+  wdNext: { PL: 'NASTĘPNI', EN: 'NEXT', PT: 'PRÓXIMOS' },
+  wdEntering: { PL: 'WCHODZĄ', EN: 'ENTERING', PT: 'ENTRANDO' },
+  stage: { PL: 'Etap', EN: 'Stage', PT: 'Etapa' },
 
   // ── STATS ──
   statsTitle: { PL: '📊 STATYSTYKI', EN: '📊 STATISTICS', PT: '📊 ESTATÍSTICAS' },

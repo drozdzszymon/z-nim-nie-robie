@@ -183,6 +183,102 @@ GitHub: github.com/drozdzszymon/z-nim-nie-robie
 
 ---
 
+## 🇧🇷 Versão em português (Brasil)
+
+### Título (max 30 caracteres)
+```
+BJJ Timer — Duplas Inteligentes
+```
+*(31 chars — encurtar para:)*
+```
+BJJ Timer & Formador de Duplas
+```
+*(30 chars)*
+
+### Descrição curta (max 80 caracteres)
+```
+Timer de BJJ com formação automática de duplas, sparring e drills.
+```
+*(66 chars)*
+
+### Descrição completa (max 4000 caracteres)
+```
+BJJ Timer é um app de treino feito por professores de jiu-jítsu brasileiro para professores de jiu-jítsu brasileiro. Chega de papel, relógio no pulso e tentar lembrar quem ainda não rolou com quem.
+
+🥋 FORMAÇÃO INTELIGENTE DE DUPLAS
+O formador de duplas monta os pares automaticamente, levando em conta:
+• peso e diferença de peso
+• nível técnico (INICIANTE / INTERMEDIÁRIO / AVANÇADO / PRO)
+• kimono (GI / NO-GI)
+• faixa etária (KID / ADULT)
+• histórico de rolagens — sem repetir até que todos tenham rolado com todos
+
+⏱️ MODOS DE TREINO
+• SPARRING — duplas clássicas, fases PREPARAÇÃO → ROLA → DESCANSO
+• DRILLS EM TRIOS — rotação de 6 etapas com papéis EMBAIXO / EM CIMA / DESCANSO
+• DRILLS EM DUPLAS — troca de papéis A / B após cada etapa
+
+🎯 LEGÍVEL DO OUTRO LADO DO TATAME
+Números enormes, cartas de dupla grandes, fases coloridas — visíveis de longe. Otimizado para tablets de 10". Coloque no banco ou fixe na parede.
+
+🔔 SINAIS SONOROS
+• Gongo de início de round
+• Aviso de 10 segundos
+• Gongo de descanso
+• Redução automática do volume da música (ducking)
+
+👥 GESTÃO DO GRUPO
+• Adicionar e editar atletas rápido
+• Visualização em cartões com status atual (rolando / descansando)
+• Marcar atletas que pulam o descanso (ex. faixas mais altas)
+• Remover atletas durante o treino com recálculo automático das duplas
+• Rotação justa do descanso para número ímpar de atletas
+
+⚙️ CONFIGURAÇÃO DO TREINO
+• Tempo de round, preparação, descanso e número de rounds
+• Modo de treino salvo entre as sessões
+• Base completa de atletas salva localmente
+
+🔒 PRIVACIDADE
+• ZERO contas, logins, emails
+• ZERO anúncios
+• ZERO rastreadores ou analytics
+• ZERO internet — funciona 100% offline
+• Todos os dados ficam salvos localmente no dispositivo
+
+🌐 VERSÃO WEB
+Também disponível online: znimnierobie.pl
+
+---
+
+PARA QUEM É ESSE APP?
+• Professores de jiu-jítsu brasileiro
+• Treinadores de grappling e luta livre
+• Academias e clubes que dão aulas em grupo
+• Qualquer pessoa que conduz drills com rotação de duplas
+
+REQUISITOS
+• Android 7.0 ou mais novo
+• Recomendado: tablet 10" (no banco ou fixado na parede)
+• Também funciona em celular em modo estacionário
+
+---
+
+Sugestão de funcionalidade? Email: drozdz.szymon@gmail.com
+GitHub: github.com/drozdzszymon/z-nim-nie-robie
+```
+
+### Categoria
+- **Principal:** Saúde e fitness (Health & Fitness)
+- **Alternativa:** Esportes (Sports)
+
+### Tags / palavras-chave (store)
+```
+BJJ, jiu-jitsu, grappling, sparring, timer, treino, duplas, academia, MMA, drill
+```
+
+---
+
 ## 📞 Dane kontaktowe dla Play Console
 
 | Pole | Wartość |

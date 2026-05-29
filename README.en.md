@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.0.5%20Production-brightgreen" alt="Version" />
+  <img src="https://img.shields.io/badge/version-2.1%20Production-brightgreen" alt="Version" />
   <img src="https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20Web-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/framework-Expo%20%2B%20React%20Native-blueviolet" alt="Framework" />
   <img src="https://img.shields.io/badge/language-TypeScript-3178C6" alt="TypeScript" />
@@ -33,7 +33,7 @@
 
 ## Table of contents
 
-- [What's new in v2.0.5 Production](#whats-new-in-v205-production)
+- [What's new in v2.1](#whats-new-in-v21)
 - [About the app](#about-the-app)
 - [Screenshots](#screenshots)
 - [Training modes](#training-modes)
@@ -48,7 +48,19 @@
 
 ---
 
-## What's new in v2.0.5 Production
+## What's new in v2.1
+
+### 🌍 Complete EN / PT localisation (v2.1)
+
+Final polish of the multilingual experience. A handful of strings on the live training / timer screen were still hard-coded in Polish — they are now fully translated in English and Brazilian Portuguese:
+
+- **BREAK** phase label (was `PRZERWA`)
+- **MIXED** group label (was `MIESZANE`)
+- **FIGHTING NOW / NEXT SWITCH / ENTERING / NEXT** rotation hints in TRIADS
+- **GROUP SWITCH** label
+- **Stage X/Y** progress label (was `Etap`)
+
+English and Brazilian-Portuguese users now see a 100% translated timer across all training modes.
 
 ### 🎉 Production release (v2.0.5)
 
@@ -134,7 +146,7 @@ The app works offline, requires no account or login. Player data is stored local
 First launch — quick choice of UI language. The app can be switched between **PL / EN / PT** at any time from the bottom bar.
 
 <p align="center">
-  <img src="Screenshots/1.png" alt="Language picker screen" width="90%" />
+  <img src="Screenshots/en/1.png" alt="Language picker screen" width="90%" />
 </p>
 
 ### Start screen (empty mat)
@@ -142,7 +154,7 @@ First launch — quick choice of UI language. The app can be switched between **
 Training setup: adding players (left panel), round time and rhythm, training mode and matchmaker options. The right side is where the player tiles go.
 
 <p align="center">
-  <img src="Screenshots/2.png" alt="Empty start screen of the app" width="90%" />
+  <img src="Screenshots/en/2.png" alt="Empty start screen of the app" width="90%" />
 </p>
 
 ### Edit player
@@ -150,7 +162,7 @@ Training setup: adding players (left panel), round time and rhythm, training mod
 Full player card: nickname, weight, category (KID / ADULT), kimono (GI / NO-GI), gender (M / F) and skill level (BEGINNER / INTERMEDIATE / ADVANCED / PRO). Tapping a tile opens the same form for editing.
 
 <p align="center">
-  <img src="Screenshots/3.png" alt="Edit player — form" width="90%" />
+  <img src="Screenshots/en/3.png" alt="Edit player — form" width="90%" />
 </p>
 
 ### Club database — search
@@ -158,7 +170,7 @@ Full player card: nickname, weight, category (KID / ADULT), kimono (GI / NO-GI),
 **CLUB DATABASE** modal with the list of remembered players. Search by name, add one by one with **SELECT**.
 
 <p align="center">
-  <img src="Screenshots/4.png" alt="Club database — list and search" width="90%" />
+  <img src="Screenshots/en/4.png" alt="Club database — list and search" width="90%" />
 </p>
 
 ### Club database — batch add
@@ -166,7 +178,7 @@ Full player card: nickname, weight, category (KID / ADULT), kimono (GI / NO-GI),
 Tick multiple people at once and add them all to the mat with a single **ADD (n)** click. Selected tiles turn blue.
 
 <p align="center">
-  <img src="Screenshots/5.png" alt="Club database — batch add players" width="90%" />
+  <img src="Screenshots/en/5.png" alt="Club database — batch add players" width="90%" />
 </p>
 
 ### Players on the mat
@@ -174,7 +186,7 @@ Tick multiple people at once and add them all to the mat with a single **ADD (n)
 Players sorted alphabetically with filters at the top (KID / ADULT / GI / NO-GI / level). Each card shows kimono, category, gender, weight and level. Red “×” removes, tap to edit.
 
 <p align="center">
-  <img src="Screenshots/6.png" alt="Players on the mat — tile grid" width="90%" />
+  <img src="Screenshots/en/6.png" alt="Players on the mat — tile grid" width="90%" />
 </p>
 
 ### SPARRING mode
@@ -182,7 +194,7 @@ Players sorted alphabetically with filters at the top (KID / ADULT / GI / NO-GI 
 Classic sparring with the full options panel: **NO-REST (VIP)**, **MATCHMAKING PRIORITY** (SKILL ↔ WEIGHT slider), **FIGHT ORDER** (SIMILAR / DIFFERENT / RANDOM), **WEIGHT SPLIT** and **GENDER-BASED FIGHTS** (OFF / PRIORITY / ALWAYS).
 
 <p align="center">
-  <img src="Screenshots/7.png" alt="Sparring mode — matchmaker options" width="60%" />
+  <img src="Screenshots/en/7.png" alt="Sparring mode — matchmaker options" width="60%" />
 </p>
 
 ### TASK DRILLS mode (triads / duos)
@@ -190,7 +202,7 @@ Classic sparring with the full options panel: **NO-REST (VIP)**, **MATCHMAKING P
 After picking task drills, a **TRIADS / DUOS** switch appears. The start button label changes accordingly (`START TASK DRILLS (TRIADS)` / `(DUOS)`).
 
 <p align="center">
-  <img src="Screenshots/8.png" alt="Task drills mode — triads/duos selector" width="60%" />
+  <img src="Screenshots/en/8.png" alt="Task drills mode — triads/duos selector" width="60%" />
 </p>
 
 ### DRILLS mode
@@ -198,7 +210,7 @@ After picking task drills, a **TRIADS / DUOS** switch appears. The start button 
 Pairs are picked **once for the whole session**, A/B roles swap each round. Perfect for repeating technique with the same partner.
 
 <p align="center">
-  <img src="Screenshots/9.png" alt="Drills mode — description and start button" width="60%" />
+  <img src="Screenshots/en/9.png" alt="Drills mode — description and start button" width="60%" />
 </p>
 
 ### Sparring — prep
@@ -206,7 +218,7 @@ Pairs are picked **once for the whole session**, A/B roles swap each round. Perf
 **PREP** phase of round 1/5: pair grid split into **KID**, **ADULT** and **MIXED** sections. Timer counts down the time to walk to positions. Pairs picked by the matchmaker engine.
 
 <p align="center">
-  <img src="Screenshots/10.png" alt="Sparring — pair prep" width="90%" />
+  <img src="Screenshots/en/10.png" alt="Sparring — pair prep" width="90%" />
 </p>
 
 ### Sparring — work timer
@@ -214,7 +226,7 @@ Pairs are picked **once for the whole session**, A/B roles swap each round. Perf
 Big, readable timer visible from across the mat. Round number on top. **PAUSE** and **END** buttons at hand.
 
 <p align="center">
-  <img src="Screenshots/11.png" alt="Sparring — work timer" width="90%" />
+  <img src="Screenshots/en/11.png" alt="Sparring — work timer" width="90%" />
 </p>
 
 ### Sparring — break with next pairs
@@ -222,7 +234,7 @@ Big, readable timer visible from across the mat. Round number on top. **PAUSE** 
 **BREAK** phase of round 2/5: the screen already shows the next pair layout. The coach can discuss what to improve before the gong rings.
 
 <p align="center">
-  <img src="Screenshots/12.png" alt="Sparring — break with preview of next pairs" width="90%" />
+  <img src="Screenshots/en/12.png" alt="Sparring — break with preview of next pairs" width="90%" />
 </p>
 
 ### Triad drills — prep
@@ -230,7 +242,7 @@ Big, readable timer visible from across the mat. Round number on top. **PAUSE** 
 Triad grid with role split: **[A] BOTTOM**, **[B] TOP**, **[C] REST / ASSIST**. KID and ADULT sections side by side, readable even from the other end of the room.
 
 <p align="center">
-  <img src="Screenshots/13.png" alt="Triad drills — prep" width="90%" />
+  <img src="Screenshots/en/13.png" alt="Triad drills — prep" width="90%" />
 </p>
 
 ### Triad drills — stage timer with rotation
@@ -238,7 +250,7 @@ Triad grid with role split: **[A] BOTTOM**, **[B] TOP**, **[C] REST / ASSIST**. 
 Stage timer with current rotation step (**Stage 2/6 — SWITCH!**). Below the timer: current roles plus **NEXT SWITCH** so nobody gets lost.
 
 <p align="center">
-  <img src="Screenshots/14.png" alt="Triad drills — timer and switch info" width="90%" />
+  <img src="Screenshots/en/14.png" alt="Triad drills — timer and switch info" width="90%" />
 </p>
 
 ### Duo drills — prep
@@ -246,7 +258,7 @@ Stage timer with current rotation step (**Stage 2/6 — SWITCH!**). Below the ti
 A vs B pairs in a clean grid with **[A]** and **[B]** role labels. After the first stage roles swap. No rest zone.
 
 <p align="center">
-  <img src="Screenshots/15.png" alt="Duo drills — prep" width="90%" />
+  <img src="Screenshots/en/15.png" alt="Duo drills — prep" width="90%" />
 </p>
 
 ### Duo drills — timer
@@ -254,7 +266,7 @@ A vs B pairs in a clean grid with **[A]** and **[B]** role labels. After the fir
 Timer **Stage 1/2 — WORK**. Current roles and upcoming swap shown just below the timer.
 
 <p align="center">
-  <img src="Screenshots/16.png" alt="Duo drills — timer and role swap" width="90%" />
+  <img src="Screenshots/en/16.png" alt="Duo drills — timer and role swap" width="90%" />
 </p>
 
 ### Someone dropped out
@@ -262,7 +274,7 @@ Timer **Stage 1/2 — WORK**. Current roles and upcoming swap shown just below t
 At any point during training you can mark players who dropped out (injury, exhaustion, phone). The timer pauses, you can flag multiple at once and confirm with a single **OK**. The system rebuilds pairs on the fly — no training restart.
 
 <p align="center">
-  <img src="Screenshots/17.png" alt="Modal — who dropped out" width="90%" />
+  <img src="Screenshots/en/17.png" alt="Modal — who dropped out" width="90%" />
 </p>
 
 ### No-rest players (VIP)
@@ -270,7 +282,7 @@ At any point during training you can mark players who dropped out (injury, exhau
 Modal with all players as pills. A tap means someone **does not rest** between rounds (the coach, the most advanced players, a special guest). The system skips them in rest rotation.
 
 <p align="center">
-  <img src="Screenshots/18.png" alt="Modal — no-rest (VIP) players" width="90%" />
+  <img src="Screenshots/en/18.png" alt="Modal — no-rest (VIP) players" width="90%" />
 </p>
 
 ### VERSION V2 panel
@@ -278,7 +290,7 @@ Modal with all players as pills. A tap means someone **does not rest** between r
 Info card with contact (email), GitHub repo link and link to the **mantoshop.pl** store. Opened with the “i” icon in the bottom bar.
 
 <p align="center">
-  <img src="Screenshots/19.png" alt="Info panel — version V2" width="90%" />
+  <img src="Screenshots/en/19.png" alt="Info panel — version V2" width="90%" />
 </p>
 
 ### End screen
@@ -286,7 +298,7 @@ Info card with contact (email), GitHub repo link and link to the **mantoshop.pl*
 After training is done — a big **THANK YOU** and a return-to-menu button. Short, readable, no junk screens.
 
 <p align="center">
-  <img src="Screenshots/20.png" alt="End screen — THANK YOU, GOOD WORK!" width="90%" />
+  <img src="Screenshots/en/20.png" alt="End screen — THANK YOU, GOOD WORK!" width="90%" />
 </p>
 
 ---
@@ -401,7 +413,7 @@ assets/
 docs/
   privacy-policy.md        # Privacy policy
   play-store/              # Google Play assets
-Screenshots/               # Screenshots (v2.0.4 Beta)
+Screenshots/               # Screenshots (v2.1)
 Images/                    # Logo and app icons
 plugins/                   # Expo plugins (e.g. ADI registration)
 ```
@@ -457,6 +469,6 @@ All rights reserved. Source code published for review purposes only.
 ---
 
 <p align="center">
-  <b>Z NIM NIE ROBIĘ</b> · v2.0.4 Beta · BJJ training app<br/>
+  <b>Z NIM NIE ROBIĘ</b> · v2.1 · BJJ training app<br/>
   Built with 🥋 on the mat and at the keyboard
 </p>

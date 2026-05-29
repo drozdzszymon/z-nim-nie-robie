@@ -139,8 +139,8 @@ const getPairLegendItems = (
   return items;
 };
 
-const formatRestingInline = (resting: { id: string }[]): string =>
-  resting.length === 0 ? '' : `ODPOCZYWA: ${resting.map(r => r.id).join(', ')}`;
+const formatRestingInline = (resting: { id: string }[], lang: Language = 'PL'): string =>
+  resting.length === 0 ? '' : `${t('restingSection', lang)}: ${resting.map(r => r.id).join(', ')}`;
 
 // For zadaniówki triad/duo cards: returns per-player color array.
 // Same-type group → all players colored by group category (KID GI / KID NO-GI / ADULT GI / ADULT NO-GI).
@@ -1125,6 +1125,7 @@ type ResponsiveTriadPrepCardProps = {
   cardHeight: number;
   reserveRestSpace?: boolean;
   showRoles?: boolean;
+  lang?: Language;
 };
 
 const ResponsiveTriadPrepCard = ({
@@ -1144,6 +1145,7 @@ const ResponsiveTriadPrepCard = ({
   cardHeight,
   reserveRestSpace = true,
   showRoles = true,
+  lang = 'PL',
 }: ResponsiveTriadPrepCardProps) => {
   const hasRestRole = Boolean(restRole);
   const hasRestPlayer = Boolean(restRole && restName);
@@ -1309,7 +1311,7 @@ const ResponsiveTriadPrepCard = ({
               },
             ]}
           >
-            ODPOCZYWA
+            {t('restingSection', lang)}
           </Text>
           <View style={styles.triadPrepRestHeadingLine} />
         </View>
@@ -1418,10 +1420,12 @@ const PairCategoryLegend = ({
   items,
   fontSize = 11,
   compact = false,
+  lang = 'PL',
 }: {
   items: ReturnType<typeof getPairLegendItems>;
   fontSize?: number;
   compact?: boolean;
+  lang?: Language;
 }) => {
   if (items.length === 0) return null;
   return (
@@ -1437,7 +1441,7 @@ const PairCategoryLegend = ({
             <View style={[pairLegendStyles.swatch, { backgroundColor: item.primary }]} />
           )}
           <Text style={[pairLegendStyles.label, { fontSize, color: item.primary }]} numberOfLines={1}>
-            {item.label}
+            {item.key === 'MIXED' ? t('mixedSection', lang) : item.label}
           </Text>
         </View>
       ))}
@@ -2914,7 +2918,7 @@ export default function App() {
             style={[styles.rosterFilterTag, rosterFilterSkill === opt.value && styles.rosterFilterTagActiveSkill]}
             onPress={() => toggleRosterFilterSkill(opt.value)}
           >
-            <Text style={[styles.rosterFilterTagText, rosterFilterSkill === opt.value && styles.rosterFilterTagTextActive]}>{opt.shortLabel}</Text>
+            <Text style={[styles.rosterFilterTagText, rosterFilterSkill === opt.value && styles.rosterFilterTagTextActive]}>{SKILL_KEYS[opt.value] ? t(SKILL_KEYS[opt.value], lang) : opt.shortLabel}</Text>
           </TouchableOpacity>
         ))}
 
@@ -2922,7 +2926,7 @@ export default function App() {
           <React.Fragment>
             <View style={styles.rosterFilterSep} />
             <TouchableOpacity style={styles.rosterFilterClearBtn} onPress={clearAllRosterFilters}>
-              <Text style={styles.rosterFilterClearText}>WYCZYŚĆ</Text>
+              <Text style={styles.rosterFilterClearText}>{t('clearFilters', lang)}</Text>
             </TouchableOpacity>
           </React.Fragment>
         )}
@@ -4495,10 +4499,10 @@ export default function App() {
                 
                 <View style={{width: '100%', alignItems: 'center', paddingTop: 4}}>
                   <Text style={[styles.roundInfoGigantic, {marginTop: 0, fontSize: phaseHeaderFont}]}>
-                      <Text style={{color: COLORS.textPrimary}}>RUNDA {currentRound} / {roundsTotal} </Text>
-                      <Text style={{color: COLORS.textMuted}}>(Etap {step}/{stepsTotal}) - </Text>
+                      <Text style={{color: COLORS.textPrimary}}>{t('roundOf', lang)} {currentRound} / {roundsTotal} </Text>
+                      <Text style={{color: COLORS.textMuted}}>({t('stage', lang)} {step}/{stepsTotal}) - </Text>
                       <Text style={{color: phase === 'PREP' ? COLORS.accentMain : COLORS.textPrimary}}>
-                          {phase === 'PREP' ? 'ZMIANA!' : 'PRACA'}
+                          {phase === 'PREP' ? t('change', lang) : t('work', lang)}
                       </Text>
                   </Text>
                 </View>
@@ -4560,25 +4564,25 @@ export default function App() {
                     
                     <View style={{ flexGrow: isWideInstructionLayout ? 1 : 0, flexShrink: 0, alignItems: 'center', borderRightWidth: isWideInstructionLayout && hasNext ? 2 : 0, borderBottomWidth: !isWideInstructionLayout && hasNext ? 2 : 0, borderColor: COLORS.borderStrong, paddingHorizontal: 8, paddingBottom: !isWideInstructionLayout && hasNext ? 8 : 0, marginBottom: !isWideInstructionLayout && hasNext ? 8 : 0 }}>
                         <Text style={{ fontSize: instructionLabelFont, color: COLORS.textSecondary, marginBottom: 3, fontWeight: '900', textAlign: 'center' }}>
-                            {phase === 'PREP' ? 'ZARAZ WALCZĄ:' : 'TERAZ WALCZĄ:'}
+                            {phase === 'PREP' ? t('aboutToFight', lang) : t('nowFighting', lang)}
                         </Text>
                         
                         <Text style={{ fontSize: mainInstructionFont, fontWeight: '900', color: COLORS.textPrimary, textAlign: 'center' }} adjustsFontSizeToFit minimumFontScale={0.45} numberOfLines={isWideInstructionLayout ? 1 : 2} ellipsizeMode="clip">
                             <Text style={{color: getRoleColor(btmWord)}}>{btmWord}</Text>
-                            <Text style={{color: COLORS.textSecondary}}> DÓŁ </Text>
+                            <Text style={{color: COLORS.textSecondary}}> {t('bottom', lang)} </Text>
                             <Text style={{color: COLORS.textMuted}}> vs </Text>
                             <Text style={{color: getRoleColor(topWord)}}>{topWord}</Text>
-                            <Text style={{color: COLORS.textSecondary}}> GÓRA</Text>
+                            <Text style={{color: COLORS.textSecondary}}> {t('top', lang)}</Text>
                         </Text>
                         
                         {!isDwojki && (
                             <Text style={{ fontSize: mainRestFont, fontWeight: '900', color: COLORS.textSecondary, textAlign: 'center', marginTop: 4 }} adjustsFontSizeToFit minimumFontScale={0.45} numberOfLines={isWideInstructionLayout ? 1 : 2} ellipsizeMode="clip">
-                                odpoczywa: <Text style={{color: getRoleColor(restWord)}}>{restWord}</Text>
+                                {t('resting', lang)} <Text style={{color: getRoleColor(restWord)}}>{restWord}</Text>
                             </Text>
                         )}
                         {isDwojki && currentResting.length > 0 && (
                             <Text style={{ fontSize: mainRestFont, fontWeight: '900', color: COLORS.accentAlert, textAlign: 'center', marginTop: 4 }}>
-                                OSOBY ODPOCZYWAJĄCE NA MATY!
+                                {t('restingOnMat', lang)}
                             </Text>
                         )}
                     </View>
@@ -4586,20 +4590,20 @@ export default function App() {
                     {hasNext && (
                         <View style={{ flexGrow: isWideInstructionLayout ? 1 : 0, flexShrink: 0, alignItems: 'center', paddingHorizontal: 8 }}>
                             <Text style={{ fontSize: instructionLabelFont, color: COLORS.textMuted, marginBottom: 3, fontWeight: '900', textAlign: 'center' }}>
-                                NASTĘPNA ZMIANA:
+                                {t('nextChange', lang)}
                             </Text>
                             
                             <Text style={{ fontSize: nextInstructionFont, fontWeight: '900', color: COLORS.textPrimary, textAlign: 'center', opacity: 0.6 }} adjustsFontSizeToFit minimumFontScale={0.45} numberOfLines={isWideInstructionLayout ? 1 : 2} ellipsizeMode="clip">
                                 <Text style={{color: getRoleColor(nextBtmWord)}}>{nextBtmWord}</Text>
-                                <Text style={{color: COLORS.textSecondary}}> DÓŁ </Text>
+                                <Text style={{color: COLORS.textSecondary}}> {t('bottom', lang)} </Text>
                                 <Text style={{color: COLORS.textMuted}}> vs </Text>
                                 <Text style={{color: getRoleColor(nextTopWord)}}>{nextTopWord}</Text>
-                                <Text style={{color: COLORS.textSecondary}}> GÓRA</Text>
+                                <Text style={{color: COLORS.textSecondary}}> {t('top', lang)}</Text>
                             </Text>
                             
                             {!isDwojki && (
                                 <Text style={{ fontSize: nextRestFont, fontWeight: '900', color: COLORS.textSecondary, textAlign: 'center', marginTop: 4, opacity: 0.6 }} adjustsFontSizeToFit minimumFontScale={0.45} numberOfLines={isWideInstructionLayout ? 1 : 2} ellipsizeMode="clip">
-                                    odpoczywa: <Text style={{color: getRoleColor(nextRestWord)}}>{nextRestWord}</Text>
+                                    {t('resting', lang)} <Text style={{color: getRoleColor(nextRestWord)}}>{nextRestWord}</Text>
                                 </Text>
                             )}
                         </View>
@@ -4663,6 +4667,7 @@ export default function App() {
                         restNameColor={colors.perPlayer[rest]}
                         cardWidth={cardWidth}
                         cardHeight={cardHeight}
+                        lang={lang}
                       />
                   );
               } else if (group.length === 2) {
@@ -4871,7 +4876,7 @@ export default function App() {
           : { cols: 1, rows: 0, cardWidth: 0, cardHeight: 0 };
 
         const dwojkiPairLegendItems = getPairLegendItems(dwAllPairs);
-        const dwojkiRestingInline = formatRestingInline(currentResting);
+        const dwojkiRestingInline = formatRestingInline(currentResting, lang);
 
         const dwPairsContent = (() => {
           if (dwAllPairs.length === 0) return null;
@@ -4947,13 +4952,13 @@ export default function App() {
                   {!isDwojkiPhoneView && <Image source={APP_LOGOS[lang]} style={{ width: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), height: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), borderRadius: 12 }} resizeMode="contain" />}
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 12, rowGap: 2 }}>
-                      <Text style={[styles.topBarRound, { fontSize: topBarMetrics.roundFont }]}>RUNDA {currentRound} / {roundsTotal}</Text>
+                      <Text style={[styles.topBarRound, { fontSize: topBarMetrics.roundFont }]}>{t('roundOf', lang)} {currentRound} / {roundsTotal}</Text>
                       {dwojkiPairLegendItems.length > 0 && (
-                        <PairCategoryLegend items={dwojkiPairLegendItems} fontSize={Math.max(10, topBarMetrics.roundFont * 0.55)} compact />
+                        <PairCategoryLegend items={dwojkiPairLegendItems} fontSize={Math.max(10, topBarMetrics.roundFont * 0.55)} compact lang={lang} />
                       )}
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 10 }}>
-                      <Text style={[styles.topBarPhase, { color: COLORS.accentMain, fontSize: topBarMetrics.phaseFont }]}>PRZYGOTOWANIE</Text>
+                      <Text style={[styles.topBarPhase, { color: COLORS.accentMain, fontSize: topBarMetrics.phaseFont }]}>{t('preparation', lang)}</Text>
                       {dwojkiRestingInline.length > 0 && (
                         <Text style={{ color: COLORS.accentAlert, fontSize: Math.max(10, topBarMetrics.phaseFont * 0.62), fontWeight: '800', letterSpacing: 0.5, flexShrink: 1 }} numberOfLines={2}>
                           • {dwojkiRestingInline}
@@ -5046,7 +5051,7 @@ export default function App() {
       // Category legend + inline resting for triad PREP topbar.
       const triadAllGroups = [...(kData as RealPlayer[][]), ...(aData as RealPlayer[][])];
       const triadPairLegendItems = getGroupLegendItems(triadAllGroups);
-      const triadRestingInline = formatRestingInline(currentResting);
+      const triadRestingInline = formatRestingInline(currentResting, lang);
 
       return (
         <SafeAreaView style={styles.safeArea}>
@@ -5057,13 +5062,13 @@ export default function App() {
                 {screenWidth >= 760 && <Image source={APP_LOGOS[lang]} style={{ width: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), height: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), borderRadius: 12 }} resizeMode="contain" />}
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 12, rowGap: 2 }}>
-                    <Text style={[styles.topBarRound, { fontSize: topBarMetrics.roundFont }]}>RUNDA {currentRound} / {roundsTotal}</Text>
+                    <Text style={[styles.topBarRound, { fontSize: topBarMetrics.roundFont }]}>{t('roundOf', lang)} {currentRound} / {roundsTotal}</Text>
                     {triadPairLegendItems.length > 0 && (
-                      <PairCategoryLegend items={triadPairLegendItems} fontSize={Math.max(10, topBarMetrics.roundFont * 0.55)} compact />
+                      <PairCategoryLegend items={triadPairLegendItems} fontSize={Math.max(10, topBarMetrics.roundFont * 0.55)} compact lang={lang} />
                     )}
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 10 }}>
-                    <Text style={[styles.topBarPhase, { color: COLORS.accentMain, fontSize: topBarMetrics.phaseFont }]}>PRZYGOTOWANIE</Text>
+                    <Text style={[styles.topBarPhase, { color: COLORS.accentMain, fontSize: topBarMetrics.phaseFont }]}>{t('preparation', lang)}</Text>
                     {triadRestingInline.length > 0 && (
                       <Text style={{ color: COLORS.accentAlert, fontSize: Math.max(10, topBarMetrics.phaseFont * 0.62), fontWeight: '800', letterSpacing: 0.5, flexShrink: 1 }} numberOfLines={2}>
                         • {triadRestingInline}
@@ -5243,7 +5248,7 @@ export default function App() {
     const isEnding = timeLeft <= 15 && phase === 'WORK';
     let timerColor = isEnding ? COLORS.accentAlert : (isPrep ? COLORS.accentMain : COLORS.textPrimary);
     
-    let phaseText = phase === 'PREP' ? 'PRZYGOTOWANIE' : 'PRZERWA';
+    let phaseText = phase === 'PREP' ? t('preparation', lang) : t('breakPhase', lang);
     const displayRound = phase === 'PREP' ? currentRound : currentRound + 1;
 
     const kidsPairs = currentMatches.filter(m => m.p1.type === 'KID' && m.p2.type === 'KID');
@@ -5273,7 +5278,7 @@ export default function App() {
       const wdDisplayMatches = phase === 'WORK' ? wdNextMatches : wdActiveMatches;
       const wdDisplayResting = phase === 'WORK' ? wdNextResting : wdActiveResting;
       const wdDisplayLabel = phase === 'WORK' ? wdNextGroupLabel : wdGroupLabel;
-      const wdDisplayTitle = phase === 'WORK' ? `⏳ ${wdDisplayLabel} — NASTĘPNI` : `🥊 ${wdDisplayLabel} — WCHODZĄ`;
+      const wdDisplayTitle = phase === 'WORK' ? `⏳ ${wdDisplayLabel} — ${t('wdNext', lang)}` : `🥊 ${wdDisplayLabel} — ${t('wdEntering', lang)}`;
       const wdTotalRows = wdDisplayMatches.length + 1 + (wdDisplayResting.length > 0 ? 1 : 0);
       const wdRowHeight = Math.max(20, Math.floor(wdAvailableHeight / wdTotalRows) - 3);
       const wdPairNameFont = clamp(11, wdRowHeight * 0.55, 22);
@@ -5284,12 +5289,12 @@ export default function App() {
             {/* Header */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: COLORS.bgPanel }}>
               <Text style={{ color: COLORS.textPrimary, fontSize: clamp(14, screenWidth * 0.016, 20), fontWeight: '700' }}>
-                RUNDA {currentRound} / {wdRounds}
+                {t('roundOf', lang)} {currentRound} / {wdRounds}
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <View style={{ backgroundColor: withAlpha(COLORS.accentMain, 0.2), borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4 }}>
                   <Text style={{ color: COLORS.accentMain, fontSize: clamp(11, screenWidth * 0.013, 15), fontWeight: '800' }}>
-                    {phase === 'WORK' ? `WALCZY: ${wdGroupLabel}` : `ZMIANA GRUP`}
+                    {phase === 'WORK' ? `${t('wdFighting', lang)}: ${wdGroupLabel}` : t('wdGroupChange', lang)}
                   </Text>
                 </View>
               </View>
@@ -5300,7 +5305,7 @@ export default function App() {
               {/* Left: Timer */}
               <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 12 }}>
                 <Text style={{ color: COLORS.textMuted, fontSize: clamp(14, screenWidth * 0.016, 20), fontWeight: '600', marginBottom: 4 }}>
-                  {phase === 'PREP' ? 'PRZYGOTOWANIE' : wdGroupLabel}
+                  {phase === 'PREP' ? t('preparation', lang) : wdGroupLabel}
                 </Text>
                 <Text
                   style={{
@@ -5336,7 +5341,7 @@ export default function App() {
                   ))}
                   {wdDisplayResting.length > 0 && (
                     <Text style={{ color: COLORS.textMuted, fontSize: wdPairNameFont - 2, paddingHorizontal: 4, height: wdRowHeight, lineHeight: wdRowHeight }} numberOfLines={1}>
-                      Pauza: {wdDisplayResting.map(r => r.id).join(', ')}
+                      {t('restLabel', lang)} {wdDisplayResting.map(r => r.id).join(', ')}
                     </Text>
                   )}
                 </View>
@@ -5395,7 +5400,7 @@ export default function App() {
           <View style={styles.workTimerScreen}>
             <View style={styles.workTimerHeader}>
               <View style={[styles.controlPanelAccent, { backgroundColor: workTimerAccent }]} />
-              <Text style={[styles.workTimerRoundTitle, { color: COLORS.textPrimary }]}>RUNDA {currentRound} / {roundsTotal}</Text>
+              <Text style={[styles.workTimerRoundTitle, { color: COLORS.textPrimary }]}>{t('roundOf', lang)} {currentRound} / {roundsTotal}</Text>
             </View>
 
             <View style={styles.workTimerHeroWrap}>
@@ -5896,7 +5901,7 @@ export default function App() {
       >
         <View style={[styles.matchSectionAccent, { backgroundColor: COLORS.accentMain }]} />
         <View style={[styles.matchSectionHeader, { minHeight: pairHeaderHeight }]}>
-          <Text style={[styles.matchSectionTitle, { color: COLORS.accentMain }]}>MIESZANE</Text>
+          <Text style={[styles.matchSectionTitle, { color: COLORS.accentMain }]}>{t('mixedSection', lang)}</Text>
         </View>
         <View style={{ marginHorizontal: -pairCellPadding }}>
           {mixedPairs.map((match: Match, index: number) => (
@@ -5943,7 +5948,7 @@ export default function App() {
       >
         <View style={[styles.matchSectionAccent, { backgroundColor: COLORS.accentAlert }]} />
         <View style={[styles.matchSectionHeader, { minHeight: pairHeaderHeight }]}>
-          <Text style={[styles.matchSectionTitle, { color: COLORS.accentAlert }]}>ODPOCZYWA</Text>
+          <Text style={[styles.matchSectionTitle, { color: COLORS.accentAlert }]}>{t('restingSection', lang)}</Text>
         </View>
         <View style={[styles.restingWrapMath, { marginTop: 2 }]}>
           {currentResting.map((playerObj) => (
@@ -5962,7 +5967,7 @@ export default function App() {
     // Per-pair color coding: KID GI / KID NO-GI / ADULT GI / ADULT NO-GI; mixed = gradient.
     // Legend lives in the topbar (next to RUNDA), resting list inline next to PRZYGOTOWANIE.
     const sparingPairLegendItems = getPairLegendItems(currentMatches);
-    const sparingRestingInline = formatRestingInline(currentResting);
+    const sparingRestingInline = formatRestingInline(currentResting, lang);
     const sortedSparingPairs = [...currentMatches].sort((a, b) => getPairSortKey(a) - getPairSortKey(b));
 
     const renderUnifiedPairCard = (match: Match, cardWidth: number, cardHeight: number) => {
@@ -6169,9 +6174,9 @@ export default function App() {
               {isPrep && !isPhonePairsView && <Image source={APP_LOGOS[lang]} style={{ width: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), height: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), borderRadius: 12 }} resizeMode="contain" />}
               <View style={{ flex: 1, minWidth: 0 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 12, rowGap: 2 }}>
-                  <Text style={[styles.topBarRound, { fontSize: topBarMetrics.roundFont }]}>RUNDA {displayRound} / {roundsTotal}</Text>
+                  <Text style={[styles.topBarRound, { fontSize: topBarMetrics.roundFont }]}>{t('roundOf', lang)} {displayRound} / {roundsTotal}</Text>
                   {isPrep && sparingPairLegendItems.length > 0 && (
-                    <PairCategoryLegend items={sparingPairLegendItems} fontSize={Math.max(10, topBarMetrics.roundFont * 0.55)} compact />
+                    <PairCategoryLegend items={sparingPairLegendItems} fontSize={Math.max(10, topBarMetrics.roundFont * 0.55)} compact lang={lang} />
                   )}
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 10 }}>
@@ -6566,7 +6571,7 @@ export default function App() {
               </View>
 
               <Text style={{ color: COLORS.textMuted, fontSize: 12, textAlign: 'center', lineHeight: 18 }}>
-                Aplikacja treningowa do zarządzania parami, rundami i rotacją zawodników podczas treningów BJJ.
+                {t('aboutDescription', lang)}
               </Text>
 
               <TouchableOpacity style={[styles.closeModalButton, { marginTop: 20 }]} onPress={() => setIsAboutModalVisible(false)}>

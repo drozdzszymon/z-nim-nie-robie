@@ -8,6 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [2.1.0] — 2026-05-29 — Complete EN / PT localisation
+
+Final release. Localisation wrap-up — the last strings still hard-coded in Polish on the training / timer screen are now fully translated into EN and PT-BR.
+
+### Fixed
+- **BREAK** phase label → translated (was `PRZERWA`).
+- **MIXED** group label → translated (was `MIESZANE`).
+- TRIAD rotation hints (**FIGHTING NOW / GROUP SWITCH / ENTERING / NEXT**) → full EN/PT translations.
+- **GROUP SWITCH** label → `GROUP SWITCH` / `TROCA DE GRUPOS`.
+- **Stage X/Y** progress label (was `Etap`).
+
+### Changed
+- README screenshots split into per-language folders (`Screenshots/pl|en|pt`).
+- Android `versionCode`: 10 → 11; app version: 2.0.5 → 2.1.0.
+
 ## [2.0.5] — 2026-05-25 — Production release (Google Play)
 
 First version accepted by Google Play. Available on Android in 3 languages (PL / EN / PT-BR).
@@ -79,6 +94,7 @@ First closed version (development, APK distribution). Not on Google Play.
 
 ---
 
+[2.1.0]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.1
 [2.0.5]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.0.5
 [2.0.4-beta]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.0.4-beta
 [2.0.3-beta]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.0.3-beta

@@ -8,6 +8,21 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), wersj
 
 ---
 
+## [2.1.0] — 2026-05-29 — Dokończona lokalizacja EN / PT
+
+Wersja finalna. Domknięcie tłumaczeń — ostatnie napisy zaszyte po polsku na ekranie treningu / timera są teraz w pełni przetłumaczone na EN i PT-BR.
+
+### Naprawione
+- Etykieta fazy **PRZERWA** → `BREAK` / `INTERVALO`.
+- Etykieta grupy **MIESZANE** → `MIXED` / `MISTO`.
+- Podpowiedzi rotacji w TRÓJKACH (**WALCZY / ZMIANA GRUP / WCHODZĄ / NASTĘPNI**) → pełne tłumaczenia EN/PT.
+- Etykieta **ZMIANA GRUP** → `GROUP SWITCH` / `TROCA DE GRUPOS`.
+- Licznik postępu **Etap X/Y** → `Stage` / `Etapa`.
+
+### Zmienione
+- Zrzuty ekranu w README rozdzielone na osobne katalogi językowe (`Screenshots/pl|en|pt`).
+- Android `versionCode`: 10 → 11; wersja aplikacji: 2.0.5 → 2.1.0.
+
 ## [2.0.5] — 2026-05-25 — Wydanie produkcyjne (Google Play)
 
 Pierwsza wersja zaakceptowana przez Google Play. Aplikacja dostępna na Androida w 3 językach (PL / EN / PT-BR).
@@ -79,6 +94,7 @@ Pierwsza zamknięta wersja (development, dystrybucja przez APK). Nieobecna w Goo
 
 ---
 
+[2.1.0]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.1
 [2.0.5]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.0.5
 [2.0.4-beta]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.0.4-beta
 [2.0.3-beta]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.0.3-beta

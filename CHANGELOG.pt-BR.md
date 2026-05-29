@@ -8,6 +8,21 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e o
 
 ---
 
+## [2.1.0] — 2026-05-29 — Localização EN / PT completa
+
+Versão final. Conclusão da localização — os últimos textos ainda fixos em polonês na tela de treino / cronômetro agora estão totalmente traduzidos para EN e PT-BR.
+
+### Corrigido
+- Rótulo da fase **INTERVALO** (era `PRZERWA`).
+- Rótulo de grupo **MISTO** (era `MIESZANE`).
+- Dicas de rotação nos TRIOS (**LUTANDO AGORA / TROCA DE GRUPOS / ENTRANDO / PRÓXIMOS**) → traduções completas EN/PT.
+- Rótulo **TROCA DE GRUPOS** (era `ZMIANA GRUP`).
+- Contador de progresso **Etapa X/Y** (era `Etap`).
+
+### Alterado
+- Capturas de tela do README separadas por idioma (`Screenshots/pl|en|pt`).
+- Android `versionCode`: 10 → 11; versão do app: 2.0.5 → 2.1.0.
+
 ## [2.0.5] — 2026-05-25 — Lançamento de produção (Google Play)
 
 Primeira versão aceita pelo Google Play. Disponível no Android em 3 idiomas (PL / EN / PT-BR).
@@ -79,6 +94,7 @@ Primeira versão fechada (desenvolvimento, distribuição via APK). Não esteve 
 
 ---
 
+[2.1.0]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.1
 [2.0.5]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.0.5
 [2.0.4-beta]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.0.4-beta
 [2.0.3-beta]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.0.3-beta
