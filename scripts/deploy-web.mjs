@@ -9,8 +9,8 @@
 // The script never hardcodes credentials; they live only in .secrets/ftp.json.
 
 import { Client } from "basic-ftp";
-import { readFile, access } from "node:fs/promises";
 import { constants } from "node:fs";
+import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -26,7 +26,7 @@ async function main() {
   let config;
   try {
     config = JSON.parse(await readFile(configPath, "utf8"));
-  } catch (err) {
+  } catch (_err) {
     console.error(`✖ Cannot read FTP config at ${configPath}`);
     console.error("  Create .secrets/ftp.json with { host, port, user, password, secure, remoteDir }.");
     process.exit(1);

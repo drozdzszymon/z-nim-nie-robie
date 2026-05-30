@@ -6,7 +6,7 @@ const tsPlugin = require('@typescript-eslint/eslint-plugin');
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ['dist/*'],
+    ignores: ['dist/*', 'backups/**', 'web-build/**', 'BUILD/**', '.venv/**'],
   },
   {
     // Honor `_` prefix as "intentionally unused" — keeps dead code visible but silenced.
