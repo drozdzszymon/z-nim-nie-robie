@@ -112,9 +112,16 @@
     font-weight: 600;
   }
   .lang-switch button:hover:not(.active) { color: var(--text); }
-  .section-en { display: none; }
-  body.en .section-pl { display: none; }
+  .lang-switch button:focus-visible, a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  .section-en, .section-pt { display: none; }
+  body.en .section-pl, body.en .section-pt { display: none; }
   body.en .section-en { display: block; }
+  body.pt .section-pl, body.pt .section-en { display: none; }
+  body.pt .section-pt { display: block; }
   footer {
     margin-top: 64px;
     padding-top: 24px;
@@ -135,9 +142,10 @@
     <div class="meta" id="meta">Wersja z dnia 17 kwietnia 2026</div>
   </header>
 
-  <div class="lang-switch">
-    <button id="btn-pl" class="active" onclick="setLang('pl')">Polski</button>
-    <button id="btn-en" onclick="setLang('en')">English</button>
+  <div class="lang-switch" role="group" aria-label="Language">
+    <button id="btn-pl" class="active" type="button" onclick="setLang('pl')">Polski</button>
+    <button id="btn-en" type="button" onclick="setLang('en')">English</button>
+    <button id="btn-pt" type="button" onclick="setLang('pt')">Português</button>
   </div>
 
   <!-- ============ PL ============ -->
@@ -259,10 +267,69 @@
 
   </section>
 
+  <!-- ============ PT ============ -->
+  <section class="section-pt">
+
+    <h2>1. Informações gerais</h2>
+    <p>O aplicativo móvel <strong>"Z NIM NIE ROBIĘ"</strong> (doravante: o "Aplicativo") é uma ferramenta para gerenciar duplas, rodadas e rotações durante treinos de jiu-jitsu brasileiro (BJJ), grappling e treinos posicionais.</p>
+    <p>O Aplicativo é administrado pelo seu autor (doravante: o "Administrador"). Contato: <strong><a href="mailto:drozdz.szymon@gmail.com">drozdz.szymon@gmail.com</a></strong>.</p>
+
+    <h2>2. Coleta de dados</h2>
+    <p>O Aplicativo <strong>não coleta, transmite nem compartilha</strong> quaisquer dados pessoais do usuário com servidores externos.</p>
+    <p>Todos os dados inseridos pelo usuário (apelidos dos lutadores, peso, nível de habilidade, categoria, configurações de treino) são armazenados <strong>exclusivamente localmente</strong>, no dispositivo do usuário, no armazenamento do aplicativo (mecanismo <code>AsyncStorage</code> do sistema operacional).</p>
+
+    <h2>3. Dados coletados automaticamente</h2>
+    <p>O Aplicativo <strong>não utiliza</strong>:</p>
+    <ul>
+      <li>análises de uso (sem Google Analytics, Firebase Analytics, etc.),</li>
+      <li>ferramentas de rastreamento ou identificadores publicitários,</li>
+      <li>relatórios externos de falhas (sem Crashlytics, Sentry, etc.),</li>
+      <li>anúncios,</li>
+      <li>SDKs externos de marketing.</li>
+    </ul>
+    <p>O Aplicativo <strong>não requer</strong> login, cadastro de conta nem conexão com a internet para funcionar.</p>
+
+    <h2>4. Permissões do sistema</h2>
+    <p>O Aplicativo pode solicitar as seguintes permissões no Android:</p>
+    <table>
+      <tr><th>Permissão</th><th>Finalidade</th></tr>
+      <tr><td>Acesso ao armazenamento do aplicativo</td><td>Salvar o banco local de lutadores e configurações</td></tr>
+      <tr><td>Reprodução de áudio</td><td>Sinais sonoros de gongo e contagem regressiva</td></tr>
+      <tr><td>Vibração / resposta tátil</td><td>Feedback tátil</td></tr>
+      <tr><td>Manter a tela ligada</td><td>Evita que o cronômetro apague durante a rodada</td></tr>
+    </table>
+    <p>O Aplicativo <strong>não solicita</strong> acesso a: localização, contatos, câmera, microfone, fotos, SMS ou quaisquer outros dados pessoais.</p>
+
+    <h2>5. Cookies e identificadores</h2>
+    <p>A versão móvel do Aplicativo não utiliza cookies nem identificadores publicitários.</p>
+    <p>A versão web (znimnierobie.pl) utiliza apenas o <code>localStorage</code> do navegador para salvar configurações — esses dados nunca saem do dispositivo do usuário.</p>
+
+    <h2>6. Compartilhamento com terceiros</h2>
+    <p>O Administrador <strong>não compartilha</strong> dados com terceiros, pois nenhum dado é coletado.</p>
+
+    <h2>7. Crianças</h2>
+    <p>O Aplicativo destina-se a instrutores e treinadores de BJJ e esportes de combate. Não é direcionado a menores de 13 anos. Embora permita gerenciar lutadores na categoria KID, esses dados são inseridos por um instrutor adulto e permanecem em seu dispositivo.</p>
+
+    <h2>8. Direitos do usuário</h2>
+    <p>Como o Administrador não possui nem processa dados pessoais fora do dispositivo do usuário:</p>
+    <ul>
+      <li>o usuário tem controle total sobre seus dados a qualquer momento,</li>
+      <li>os dados podem ser excluídos a qualquer momento pela função de exclusão de lutador no Aplicativo ou desinstalando o Aplicativo,</li>
+      <li>a desinstalação do Aplicativo remove permanentemente todos os dados locais associados.</li>
+    </ul>
+
+    <h2>9. Alterações nesta Política de Privacidade</h2>
+    <p>O Administrador reserva-se o direito de alterar esta política. A versão atual estará sempre disponível em: <strong><a href="https://znimnierobie.pl/privacy">znimnierobie.pl/privacy</a></strong></p>
+
+    <h2>10. Contato</h2>
+    <p>Para questões relacionadas à privacidade, entre em contato pelo e-mail: <strong><a href="mailto:drozdz.szymon@gmail.com">drozdz.szymon@gmail.com</a></strong></p>
+
+  </section>
+
   <footer>
     <a href="https://znimnierobie.pl">znimnierobie.pl</a> ·
     <a href="https://github.com/drozdzszymon/z-nim-nie-robie">GitHub</a> ·
-    <a href="mailto:drozdz.szymon@gmail.com">Kontakt</a>
+    <a id="footer-contact" href="mailto:drozdz.szymon@gmail.com">Kontakt</a>
   </footer>
 
 </div>
@@ -270,18 +337,33 @@
 <script>
   function setLang(lang) {
     document.body.classList.toggle('en', lang === 'en');
+    document.body.classList.toggle('pt', lang === 'pt');
     document.getElementById('btn-pl').classList.toggle('active', lang === 'pl');
     document.getElementById('btn-en').classList.toggle('active', lang === 'en');
-    document.documentElement.lang = lang;
-    document.getElementById('title').textContent = lang === 'en' ? 'Privacy Policy' : 'Polityka Prywatności';
-    document.getElementById('meta').textContent = lang === 'en' ? 'Effective date: April 17, 2026' : 'Wersja z dnia 17 kwietnia 2026';
-    document.title = (lang === 'en' ? 'Privacy Policy' : 'Polityka Prywatności') + ' — Z NIM NIE ROBIĘ';
-    try { localStorage.setItem('privacy-lang', lang); } catch(e) {}
+    document.getElementById('btn-pt').classList.toggle('active', lang === 'pt');
+    document.documentElement.lang = lang === 'pt' ? 'pt-BR' : lang;
+    var titles = { pl: 'Polityka Prywatności', en: 'Privacy Policy', pt: 'Política de Privacidade' };
+    var metas = {
+      pl: 'Wersja z dnia 17 kwietnia 2026',
+      en: 'Effective date: April 17, 2026',
+      pt: 'Vigente desde: 17 de abril de 2026'
+    };
+    var contacts = { pl: 'Kontakt', en: 'Contact', pt: 'Contato' };
+    var resolved = titles[lang] ? lang : 'en';
+    document.getElementById('title').textContent = titles[resolved];
+    document.getElementById('meta').textContent = metas[resolved];
+    document.getElementById('footer-contact').textContent = contacts[resolved];
+    document.title = titles[resolved] + ' — Z NIM NIE ROBIĘ';
+    try { localStorage.setItem('privacy-lang', resolved); } catch(e) {}
   }
   try {
     var saved = localStorage.getItem('privacy-lang');
-    if (saved === 'en') setLang('en');
-    else if (!saved && (navigator.language || '').toLowerCase().indexOf('pl') !== 0) setLang('en');
+    if (saved === 'en' || saved === 'pt' || saved === 'pl') setLang(saved);
+    else {
+      var navLang = (navigator.language || '').toLowerCase();
+      if (navLang.indexOf('pt') === 0) setLang('pt');
+      else if (navLang.indexOf('pl') !== 0) setLang('en');
+    }
   } catch(e) {}
 </script>
 

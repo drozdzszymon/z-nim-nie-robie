@@ -8,6 +8,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [2.2.0] - 2026-11-15 - Faster matchmaker, logic fixes and mobile UI polish
+
+Major engine performance and reliability update, permanent deletion from the club database, and responsive fixes for narrow phones and web browsers.
+
+### Added
+- Permanent player deletion in the club database modal (trash icon with confirmation).
+- Cancel button while editing a player and inline validation error banner under the lineup form.
+- Web keyboard shortcuts: `Space` pauses and resumes the timer, `Escape` closes open modals and tooltips, `Enter` submits the player form, arrow keys adjust the priority slider.
+- Full Brazilian Portuguese (PT-BR) translation on the `/privacy` policy page.
+- Automated unit test suite covering matchmaking, triad rotation and data validation (`npm test`).
+
+### Changed
+- Reworked matchmaking solver using bitmask dynamic programming and pre-indexed pair tables: exact solver now covers up to 12 players per group (up from 10) and full-mat 46-player rounds run ~13x faster.
+- Wall-clock timer tracking prevents drift on long rounds and backgrounded browser tabs.
+- Improved narrow mobile layouts (360 px): weight division stacks vertically and modal action buttons fit cleanly without clipping.
+- Web deploy script now backs up only app-owned paths and validates the hosting TLS certificate.
+- Android `versionCode`: 12 -> 13; iOS `buildNumber`: 1 -> 2; app version: 2.1.0 -> 2.2.0.
+
+### Fixed
+- Mixed pairs (`KID + ADULT`) now render properly in `POSITIONAL (PAIRS)` and `DRILLS` modes.
+- A single adult training alongside kids in `POSITIONAL (TRIADS)` is now always placed into a group instead of disappearing from the grid.
+- Gender matching in `PREFER` mode now tracks round-robin completion separately for `KID` and `ADULT`, composes with weight division, and respects `NO REST (VIP)`.
+- Promoted `GI` kids keep their `GI` adult pairing preference in later rounds.
+- The `DROPOUT?` modal now works in weight division mode and during active `WORK` phases, and `RESTS 1 ROUND` restores players across all training modes.
+- `DRILLS` break screen now shows `BREAK` and upcoming `WORK / ASSIST` roles, and respects the configured prep time on start.
+- Weight input accepts comma decimals (e.g. `82,5`), enforces the `10-300 kg` range, and blocks duplicate nicknames when editing a player.
+- Web version no longer throws an uncaught `WakeLock` error in hidden tabs and re-acquires screen wake lock when returning to the tab.
+- Fixed `Audio.Sound` instance leak across repeated session starts.
+
 ## [2.1.0] — 2026-05-29 — Complete EN / PT localisation
 
 Final release. Localisation wrap-up — the last strings still hard-coded in Polish on the training / timer screen are now fully translated into EN and PT-BR.
@@ -94,6 +123,7 @@ First closed version (development, APK distribution). Not on Google Play.
 
 ---
 
+[2.2.0]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.2
 [2.1.0]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.1
 [2.0.5]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.0.5
 [2.0.4-beta]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.0.4-beta

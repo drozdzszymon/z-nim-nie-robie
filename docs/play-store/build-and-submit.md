@@ -172,12 +172,35 @@ eas build --platform android --profile production
 # 4. Submit
 eas submit --platform android --profile production --latest
 
-# 5. W Play Console: promote Internal → Production gdy gotowe
+# 5. W Play Console: promote Internal -> Production gdy gotowe
 ```
 
 ---
 
-## 🆘 Typowe problemy przy pierwszym submicie
+## Dostępność krajów (Countries / regions) - ręcznie w Play Console
+
+> **Nie da się tego ustawić przez `eas submit` ani `app.json`.** Dostępność per kraj/region
+> to wyłącznie ustawienie w Play Console. Język aplikacji (EN/PT) to co innego niż dostępność, kraje wybiera się osobno.
+> Jeśli przy publikacji wybierzesz tylko część krajów, w pozostałych aplikacja będzie niewidoczna w sklepie.
+
+**Cel: aplikacja dostępna we wszystkich krajach świata.**
+
+Kroki (jednorazowo, ale sprawdzaj przy każdym wydaniu czy lista nie spadła):
+
+1. **Play Console -> Release -> Production**
+2. Zakładka **Countries / regions**
+3. **Add countries / regions** -> na górze **Select all** (~175 krajów) -> **Add countries**
+4. **Review release** -> **Start rollout to Production**
+
+Uwagi:
+- Zmiana wchodzi dopiero po **Start rollout** (nie wymaga nowego buildu AAB, wystarczy edycja i rollout).
+- **Propagacja:** kilka godzin, czasem do 24h, zanim użytkownicy zobaczą aplikację.
+- **Kraje sankcyjne** (Iran, Kuba, Korea Płn., Syria, Krym) Google blokuje systemowo i nie pojawią się na liście. To normalne.
+- **Check przy każdym wydaniu:** po `npm run release:android` zerknij, czy Production -> Countries/regions wciąż pokazuje ~175 krajów.
+
+---
+
+## Typowe problemy przy pierwszym submicie
 
 | Problem | Rozwiązanie |
 |---|---|
@@ -185,4 +208,5 @@ eas submit --platform android --profile production --latest
 | "Target API level too low" | SDK 54 celuje w API 35+, powinno być OK |
 | "App is using deprecated API" | Sprawdź logi; `expo-av` jest deprecated ale nadal przyjmowane |
 | "Privacy policy URL not accessible" | Upewnij się że `znimnierobie.pl/privacy` działa PRZED submitem |
-| "Screenshot resolution too small" | Min. 320 px bok; użyj 1080×1920 dla telefonu |
+| "Screenshot resolution too small" | Min. 320 px bok; użyj 1080x1920 dla telefonu |
+| "Użytkownik z kraju X nie widzi appki w sklepie" | Production -> Countries/regions -> Select all -> Start rollout (patrz sekcja wyżej); poczekaj do 24h na propagację |

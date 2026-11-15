@@ -1,4 +1,10 @@
-import { DEFAULT_SPARRING_OPTIONS, HistoryRecord, Match, RealPlayer, SparringOptions } from '../types';
+import {
+    DEFAULT_SPARRING_OPTIONS,
+    type HistoryRecord,
+    type Match,
+    type RealPlayer,
+    type SparringOptions,
+} from '../types';
 
 type GroupType = 'KID' | 'ADULT';
 type BucketType = 'A' | 'B' | 'C' | 'D';
@@ -54,27 +60,21 @@ type AdultMatchingScore = {
     totalLastMetRound: number;
 };
 
-type AdultSearchState = {
-    remaining: MatchingPlayer[];
-    pairs: [MatchingPlayer, MatchingPlayer][];
-    score: AdultMatchingScore;
-    key: string;
-};
-
 type PromotionSafetyConfig = {
     promotedKidId: string | null;
     safeAdultIds: Set<string>;
     safeAdultRank: Map<string, number>;
 };
 
-const ADULT_EXACT_LIMIT = 10;
-const ADULT_BEAM_WIDTH = 32;
-const ADULT_CANDIDATE_LIMIT = 4;
-const FREE_OUTFIT = 'FREE';
+const EXACT_MATCHING_LIMIT = 12;
+const BEAM_WIDTH = 32;
+const BEAM_CANDIDATE_LIMIT = 4;
 
-// --- RUNTIME CONFIG (set before each generateRound call) ---
-let _sparringPrioritySlider = 0;
-let _intensityProfile: 'BEST_FIRST' | 'BEST_LAST' | 'RANDOM' = 'BEST_FIRST';
+const BUCKET_A = 0;
+const BUCKET_B = 1;
+const BUCKET_C = 2;
+const BUCKET_D = 3;
+const BUCKET_INVALID = 255;
 
 // --- FUNKCJE POMOCNICZE DO HISTORII ---
 
@@ -121,7 +121,7 @@ const getWeightDifference = (p1: MatchingPlayer, p2: MatchingPlayer) => {
 
 // Para GOŚĆ–GOŚĆ liczy się jako "miękko zakazana" — silnik unika takich par
 // chyba że matematycznie nie ma innej możliwości. Goście przyjeżdżają sparować
-// z domową ekipą, a nie ze sobą nawzajem.
+// z domową ekipą, a nie ze sobą nawazajem.
 const isGuestVsGuestPair = (p1: MatchingPlayer, p2: MatchingPlayer) => {
     return p1.isGuest && p2.isGuest;
 };
@@ -156,37 +156,10 @@ const getBucketType = (
     return 'D';
 };
 
-const hasCompletedSameOutfitRoundRobin = (
-    players: RealPlayer[],
-    history: Map<string, HistoryRecord>
-) => {
-    const byOutfit = new Map<string, RealPlayer[]>();
-
-    for (const player of players) {
-        const group = byOutfit.get(player.gear) ?? [];
-        group.push(player);
-        byOutfit.set(player.gear, group);
-    }
-
-    return [...byOutfit.values()].some(group => {
-        if (group.length < 2) return false;
-
-        for (let i = 0; i < group.length; i++) {
-            for (let j = i + 1; j < group.length; j++) {
-                if (getTimesMet(group[i], group[j], history) === 0) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    });
-};
-
 const buildPromotionSafetyConfig = (
     adults: RealPlayer[],
     promotedKid: RealPlayer | null,
-    ignoreOutfitPriority: boolean
+    history: Map<string, HistoryRecord>
 ): PromotionSafetyConfig => {
     if (!promotedKid || adults.length === 0) {
         return {
@@ -196,9 +169,13 @@ const buildPromotionSafetyConfig = (
         };
     }
 
+    const hasUnmetSameOutfitAdult = adults.some(
+        adult => adult.gear === promotedKid.gear && getTimesMet(promotedKid, adult, history) === 0
+    );
+
     const safestAdults = [...adults]
         .sort((a, b) => {
-            if (!ignoreOutfitPriority) {
+            if (hasUnmetSameOutfitAdult) {
                 const outfitCmp = Number(a.gear !== promotedKid.gear) - Number(b.gear !== promotedKid.gear);
                 if (outfitCmp !== 0) return outfitCmp;
             }
@@ -303,17 +280,6 @@ const getBucketCountsForPlayer = (
     return counts;
 };
 
-const compareBucketCounts = (
-    a: { A: number; B: number; C: number; D: number },
-    b: { A: number; B: number; C: number; D: number }
-) => {
-    if (a.A !== b.A) return a.A - b.A;
-    if (a.B !== b.B) return a.B - b.B;
-    if (a.C !== b.C) return a.C - b.C;
-    if (a.D !== b.D) return a.D - b.D;
-    return 0;
-};
-
 // --- KID GLOBAL SCORE ---
 
 const emptyKidPairScore = (): KidPairScore => ({
@@ -366,69 +332,6 @@ const getSingleKidPairScore = (
         totalLastMetRound: lastMet,
         totalWeightDiff: getWeightDifference(p1, p2)
     };
-};
-
-const findBestKidMatching = (
-    players: MatchingPlayer[],
-    history: Map<string, HistoryRecord>,
-    roundNumber: number,
-    tieMap: Map<string, number>
-): { pairs: [MatchingPlayer, MatchingPlayer][]; score: KidPairScore } => {
-    if (players.length === 0) {
-        return { pairs: [], score: emptyKidPairScore() };
-    }
-
-    const sortedPlayers = [...players].sort((a, b) => {
-        const aCounts = getBucketCountsForPlayer(a, players, history);
-        const bCounts = getBucketCountsForPlayer(b, players, history);
-        const cmp = compareBucketCounts(aCounts, bCounts);
-        if (cmp !== 0) return cmp;
-        return tieBreak(a.id, b.id, tieMap);
-    });
-
-    const [p1, ...rest] = sortedPlayers;
-    let best: { pairs: [MatchingPlayer, MatchingPlayer][]; score: KidPairScore } | null = null;
-
-    const candidates = [...rest].sort((a, b) => {
-        const scoreA = getSingleKidPairScore(p1, a, history, roundNumber);
-        const scoreB = getSingleKidPairScore(p1, b, history, roundNumber);
-        const cmp = compareKidScores(scoreA, scoreB);
-        if (cmp !== 0) return cmp;
-        return tieBreak(a.id, b.id, tieMap);
-    });
-
-    for (const p2 of candidates) {
-        const remaining = rest.filter(p => p.id !== p2.id);
-        const child = findBestKidMatching(remaining, history, roundNumber, tieMap);
-
-        const pairScore = getSingleKidPairScore(p1, p2, history, roundNumber);
-        const totalScore = addKidPairScore(pairScore, child.score);
-
-        const candidateResult = {
-            pairs: [[p1, p2] as [MatchingPlayer, MatchingPlayer], ...child.pairs],
-            score: totalScore
-        };
-
-        if (!best) {
-            best = candidateResult;
-            continue;
-        }
-
-        const cmp = compareKidScores(candidateResult.score, best.score);
-        if (cmp < 0) {
-            best = candidateResult;
-            continue;
-        }
-
-        if (cmp === 0) {
-            const bestSecondId = best.pairs[0]?.[1]?.id ?? '';
-            if (tieBreak(p2.id, bestSecondId, tieMap) < 0) {
-                best = candidateResult;
-            }
-        }
-    }
-
-    return best!;
 };
 
 // --- ADULT GLOBAL SCORE ---
@@ -490,7 +393,8 @@ const addAdultMatchingScore = (
 
 const compareAdultMatchingScores = (
     a: AdultMatchingScore,
-    b: AdultMatchingScore
+    b: AdultMatchingScore,
+    sparringOptions: SparringOptions
 ) => {
     // Zero powtórek, jeśli tylko matematycznie da się je utrzymać.
     if (a.repeatCount !== b.repeatCount) return a.repeatCount - b.repeatCount;
@@ -546,20 +450,18 @@ const compareAdultMatchingScores = (
     // Dynamiczny priorytet: 4 snap points
     // 0 = czyste umiejętności, 33 = umiejętności+waga, 67 = waga+umiejętności, 100 = czysta waga
     // Kolejność doboru: BEST_LAST odwraca kierunek, RANDOM pomija ten blok
-    if (_intensityProfile === 'RANDOM') {
-        // Losowy dobór — pomijamy scoring skill/waga, pary będą losowe
-        // (recentPenalty i outfit matching nadal działają powyżej)
-    } else {
-        const direction = _intensityProfile === 'BEST_LAST' ? -1 : 1;
+    if (sparringOptions.intensityProfile !== 'RANDOM') {
+        const direction = sparringOptions.intensityProfile === 'BEST_LAST' ? -1 : 1;
+        const slider = sparringOptions.prioritySlider;
 
-        if (_sparringPrioritySlider <= 16) {
+        if (slider <= 16) {
             if (a.totalSkillDiff !== b.totalSkillDiff) return (a.totalSkillDiff - b.totalSkillDiff) * direction;
             if (a.totalWeightDiff !== b.totalWeightDiff) return (a.totalWeightDiff - b.totalWeightDiff) * direction;
-        } else if (_sparringPrioritySlider <= 50) {
+        } else if (slider <= 50) {
             const aScore = a.totalSkillDiff * 10 + a.totalWeightDiff * 2;
             const bScore = b.totalSkillDiff * 10 + b.totalWeightDiff * 2;
             if (aScore !== bScore) return (aScore - bScore) * direction;
-        } else if (_sparringPrioritySlider <= 83) {
+        } else if (slider <= 83) {
             const aScore = a.totalWeightDiff * 10 + a.totalSkillDiff * 2;
             const bScore = b.totalWeightDiff * 10 + b.totalSkillDiff * 2;
             if (aScore !== bScore) return (aScore - bScore) * direction;
@@ -617,238 +519,356 @@ const getSingleAdultPairScore = (
     };
 };
 
-const compareSingleAdultCandidates = (
-    p1: MatchingPlayer,
-    a: MatchingPlayer,
-    b: MatchingPlayer,
-    history: Map<string, HistoryRecord>,
-    roundNumber: number,
-    tieMap: Map<string, number>,
-    promotionSafety: PromotionSafetyConfig
-) => {
-    const scoreA = getSingleAdultPairScore(p1, a, history, roundNumber, promotionSafety);
-    const scoreB = getSingleAdultPairScore(p1, b, history, roundNumber, promotionSafety);
-    const cmp = compareAdultMatchingScores(scoreA, scoreB);
-    if (cmp !== 0) return cmp;
-    return tieBreak(a.id, b.id, tieMap);
+// --- ZUNIFIKOWANY, PRE-INDEKSOWANY SOLVER (BITMASK DP + BEAM) ---
+
+type IndexedMatchingContext<S> = {
+    n: number;
+    players: MatchingPlayer[];
+    bits: bigint[];
+    tieRanks: Int32Array;
+    promotedIndex: number;
+    pairBuckets: Uint8Array;
+    pairScores: (S | null)[];
+    orderedPartners: number[][];
+    emptyScore: () => S;
+    addScore: (base: S, add: S) => S;
+    compareScores: (a: S, b: S) => number;
 };
 
-const pickMostConstrainedPlayer = (
-    players: MatchingPlayer[],
-    history: Map<string, HistoryRecord>,
-    tieMap: Map<string, number>
-) => {
-    const promotedKid = players.find(player => player.isPromotedKid);
-    if (promotedKid) {
-        return promotedKid;
+const bucketCharToCode = (bucket: BucketType): number => {
+    if (bucket === 'A') return BUCKET_A;
+    if (bucket === 'B') return BUCKET_B;
+    if (bucket === 'C') return BUCKET_C;
+    return BUCKET_D;
+};
+
+const buildIndexedMatchingContext = <S>({
+    players,
+    groupType,
+    history,
+    tieMap,
+    promotionSafety,
+    emptyScore,
+    addScore,
+    compareScores,
+    computePairScore,
+}: {
+    players: MatchingPlayer[];
+    groupType: GroupType;
+    history: Map<string, HistoryRecord>;
+    tieMap: Map<string, number>;
+    promotionSafety: PromotionSafetyConfig;
+    emptyScore: () => S;
+    addScore: (base: S, add: S) => S;
+    compareScores: (a: S, b: S) => number;
+    computePairScore: (p1: MatchingPlayer, p2: MatchingPlayer) => S;
+}): IndexedMatchingContext<S> => {
+    const n = players.length;
+    const bits: bigint[] = new Array(n);
+    const tieRanks = new Int32Array(n);
+    let promotedIndex = -1;
+
+    for (let i = 0; i < n; i++) {
+        bits[i] = 1n << BigInt(i);
+        tieRanks[i] = tieMap.get(players[i].id) ?? i;
+        if (groupType === 'ADULT' && players[i].isPromotedKid) {
+            promotedIndex = i;
+        }
     }
 
-    return [...players].sort((a, b) => {
-        const aCounts = getBucketCountsForPlayer(a, players, history);
-        const bCounts = getBucketCountsForPlayer(b, players, history);
-        const cmp = compareBucketCounts(aCounts, bCounts);
-        if (cmp !== 0) return cmp;
-        return tieBreak(a.id, b.id, tieMap);
-    })[0];
-};
+    const pairBuckets = new Uint8Array(n * n);
+    pairBuckets.fill(BUCKET_INVALID);
+    const pairScores: (S | null)[] = new Array(n * n).fill(null);
 
-const getAdultOrderedCandidates = (
-    p1: MatchingPlayer,
-    players: MatchingPlayer[],
-    history: Map<string, HistoryRecord>,
-    roundNumber: number,
-    tieMap: Map<string, number>,
-    promotionSafety: PromotionSafetyConfig
-) => {
-    return players
-        .filter(
-            p2 =>
-                p2.id !== p1.id &&
-                p2.matchingAgeGroup === p1.matchingAgeGroup &&
-                isAllowedPromotedKidAdultPair(p1, p2, promotionSafety)
-        )
-        .sort((a, b) =>
-            compareSingleAdultCandidates(
-                p1,
-                a,
-                b,
-                history,
-                roundNumber,
-                tieMap,
-                promotionSafety
-            )
-        );
-};
+    for (let i = 0; i < n; i++) {
+        const p1 = players[i];
+        for (let j = i + 1; j < n; j++) {
+            const p2 = players[j];
+            if (p1.matchingAgeGroup !== p2.matchingAgeGroup) continue;
 
-const makeAdultStateKey = (remaining: MatchingPlayer[]) => {
-    return remaining.map(p => p.id).sort().join('|');
-};
+            const bucketCode = bucketCharToCode(getBucketType(p1, p2, history));
+            pairBuckets[i * n + j] = bucketCode;
+            pairBuckets[j * n + i] = bucketCode;
 
-const findBestAdultMatchingExact = (
-    players: MatchingPlayer[],
-    history: Map<string, HistoryRecord>,
-    roundNumber: number,
-    tieMap: Map<string, number>,
-    promotionSafety: PromotionSafetyConfig
-): { pairs: [MatchingPlayer, MatchingPlayer][]; score: AdultMatchingScore } => {
-    if (players.length === 0) {
-        return { pairs: [], score: emptyAdultMatchingScore() };
+            if (groupType === 'ADULT' && !isAllowedPromotedKidAdultPair(p1, p2, promotionSafety)) {
+                continue;
+            }
+
+            const score = computePairScore(p1, p2);
+            pairScores[i * n + j] = score;
+            pairScores[j * n + i] = score;
+        }
     }
 
-    const p1 = pickMostConstrainedPlayer(players, history, tieMap);
-    const candidates = getAdultOrderedCandidates(
-        p1,
-        players,
-        history,
-        roundNumber,
-        tieMap,
-        promotionSafety
-    );
-
-    let best: { pairs: [MatchingPlayer, MatchingPlayer][]; score: AdultMatchingScore } | null = null;
-
-    for (const p2 of candidates) {
-        const remaining = players.filter(p => p.id !== p1.id && p.id !== p2.id);
-        const child = findBestAdultMatchingExact(
-            remaining,
-            history,
-            roundNumber,
-            tieMap,
-            promotionSafety
-        );
-        const pairScore = getSingleAdultPairScore(
-            p1,
-            p2,
-            history,
-            roundNumber,
-            promotionSafety
-        );
-        const totalScore = addAdultMatchingScore(pairScore, child.score);
-
-        const candidateResult = {
-            pairs: [[p1, p2] as [MatchingPlayer, MatchingPlayer], ...child.pairs],
-            score: totalScore
-        };
-
-        if (!best) {
-            best = candidateResult;
-            continue;
-        }
-
-        const cmp = compareAdultMatchingScores(candidateResult.score, best.score);
-        if (cmp < 0) {
-            best = candidateResult;
-            continue;
-        }
-
-        if (cmp === 0) {
-            const bestSecondId = best.pairs[0]?.[1]?.id ?? '';
-            if (tieBreak(p2.id, bestSecondId, tieMap) < 0) {
-                best = candidateResult;
+    const orderedPartners: number[][] = new Array(n);
+    for (let i = 0; i < n; i++) {
+        const candidates: number[] = [];
+        const rowOffset = i * n;
+        for (let j = 0; j < n; j++) {
+            if (i !== j && pairScores[rowOffset + j] !== null) {
+                candidates.push(j);
             }
         }
+        candidates.sort((a, b) => {
+            const scoreA = pairScores[rowOffset + a]!;
+            const scoreB = pairScores[rowOffset + b]!;
+            const cmp = compareScores(scoreA, scoreB);
+            if (cmp !== 0) return cmp;
+            return tieRanks[a] - tieRanks[b];
+        });
+        orderedPartners[i] = candidates;
     }
 
-    return best!;
+    return {
+        n,
+        players,
+        bits,
+        tieRanks,
+        promotedIndex,
+        pairBuckets,
+        pairScores,
+        orderedPartners,
+        emptyScore,
+        addScore,
+        compareScores,
+    };
 };
 
-const findBestAdultMatchingBeam = (
-    players: MatchingPlayer[],
-    history: Map<string, HistoryRecord>,
-    roundNumber: number,
-    tieMap: Map<string, number>,
-    promotionSafety: PromotionSafetyConfig
-): { pairs: [MatchingPlayer, MatchingPlayer][]; score: AdultMatchingScore } => {
-    let beam: AdultSearchState[] = [
-        {
-            remaining: [...players],
-            pairs: [],
-            score: emptyAdultMatchingScore(),
-            key: makeAdultStateKey(players)
+const pickMostConstrainedIndexed = <S>(ctx: IndexedMatchingContext<S>, mask: bigint): number => {
+    const { n, bits, tieRanks, promotedIndex, pairBuckets } = ctx;
+
+    if (promotedIndex >= 0 && (mask & bits[promotedIndex]) !== 0n) {
+        return promotedIndex;
+    }
+
+    let bestIdx = -1;
+    let bestA = 999999;
+    let bestB = 999999;
+    let bestC = 999999;
+    let bestD = 999999;
+    let bestTie = 999999;
+
+    for (let i = 0; i < n; i++) {
+        if ((mask & bits[i]) === 0n) continue;
+
+        let cA = 0;
+        let cB = 0;
+        let cC = 0;
+        let cD = 0;
+        const rowOffset = i * n;
+
+        for (let j = 0; j < n; j++) {
+            if (i === j || (mask & bits[j]) === 0n) continue;
+            const bCode = pairBuckets[rowOffset + j];
+            if (bCode === BUCKET_A) cA++;
+            else if (bCode === BUCKET_B) cB++;
+            else if (bCode === BUCKET_C) cC++;
+            else if (bCode === BUCKET_D) cD++;
         }
+
+        const tie = tieRanks[i];
+        const isBetter =
+            bestIdx === -1 ||
+            cA < bestA ||
+            (cA === bestA &&
+                (cB < bestB ||
+                    (cB === bestB &&
+                        (cC < bestC ||
+                            (cC === bestC && (cD < bestD || (cD === bestD && tie < bestTie)))))));
+
+        if (isBetter) {
+            bestIdx = i;
+            bestA = cA;
+            bestB = cB;
+            bestC = cC;
+            bestD = cD;
+            bestTie = tie;
+        }
+    }
+
+    return bestIdx;
+};
+
+const solveIndexedExact = <S>(
+    ctx: IndexedMatchingContext<S>
+): { pairs: [MatchingPlayer, MatchingPlayer][]; score: S } => {
+    const { n, players, bits, tieRanks, pairScores, orderedPartners, emptyScore, addScore, compareScores } = ctx;
+    if (n === 0) {
+        return { pairs: [], score: emptyScore() };
+    }
+
+    const fullMask = (1n << BigInt(n)) - 1n;
+    const memo = new Map<bigint, { pairs: [number, number][]; score: S }>();
+
+    const dfs = (mask: bigint): { pairs: [number, number][]; score: S } => {
+        if (mask === 0n) {
+            return { pairs: [], score: emptyScore() };
+        }
+
+        const cached = memo.get(mask);
+        if (cached) return cached;
+
+        const p1 = pickMostConstrainedIndexed(ctx, mask);
+        const maskWithoutP1 = mask & ~bits[p1];
+        const rowOffset = p1 * n;
+        const partners = orderedPartners[p1];
+
+        let best: { pairs: [number, number][]; score: S } | null = null;
+
+        for (let k = 0; k < partners.length; k++) {
+            const p2 = partners[k];
+            if ((maskWithoutP1 & bits[p2]) === 0n) continue;
+
+            const child = dfs(maskWithoutP1 & ~bits[p2]);
+            const pairScore = pairScores[rowOffset + p2]!;
+            const totalScore = addScore(pairScore, child.score);
+
+            if (!best) {
+                best = { pairs: [[p1, p2], ...child.pairs], score: totalScore };
+                continue;
+            }
+
+            const cmp = compareScores(totalScore, best.score);
+            if (cmp < 0) {
+                best = { pairs: [[p1, p2], ...child.pairs], score: totalScore };
+            } else if (cmp === 0) {
+                const bestSecondIdx = best.pairs[0]?.[1] ?? p2;
+                if (tieRanks[p2] < tieRanks[bestSecondIdx]) {
+                    best = { pairs: [[p1, p2], ...child.pairs], score: totalScore };
+                }
+            }
+        }
+
+        const resolved = best ?? { pairs: [], score: emptyScore() };
+        memo.set(mask, resolved);
+        return resolved;
+    };
+
+    const result = dfs(fullMask);
+    return {
+        pairs: result.pairs.map(([i, j]) => [players[i], players[j]]),
+        score: result.score,
+    };
+};
+
+type IndexedBeamState<S> = {
+    mask: bigint;
+    remainingCount: number;
+    pairs: [number, number][];
+    score: S;
+};
+
+const solveIndexedBeam = <S>(
+    ctx: IndexedMatchingContext<S>
+): { pairs: [MatchingPlayer, MatchingPlayer][]; score: S } => {
+    const { n, players, bits, tieRanks, pairScores, orderedPartners, emptyScore, addScore, compareScores } = ctx;
+    if (n === 0) {
+        return { pairs: [], score: emptyScore() };
+    }
+
+    const fullMask = (1n << BigInt(n)) - 1n;
+    let beam: IndexedBeamState<S>[] = [
+        {
+            mask: fullMask,
+            remainingCount: n,
+            pairs: [],
+            score: emptyScore(),
+        },
     ];
 
-    while (beam.length > 0 && beam[0].remaining.length > 0) {
-        const nextStates: AdultSearchState[] = [];
+    while (beam.length > 0 && beam[0].remainingCount > 0) {
+        const dedup = new Map<bigint, IndexedBeamState<S>>();
 
-        for (const state of beam) {
-            if (state.remaining.length === 0) {
-                nextStates.push(state);
+        for (let sIdx = 0; sIdx < beam.length; sIdx++) {
+            const state = beam[sIdx];
+            if (state.remainingCount === 0) {
+                const prev = dedup.get(0n);
+                if (!prev || compareScores(state.score, prev.score) < 0) {
+                    dedup.set(0n, state);
+                }
                 continue;
             }
 
-            const p1 = pickMostConstrainedPlayer(state.remaining, history, tieMap);
-            const orderedCandidates = getAdultOrderedCandidates(
-                p1,
-                state.remaining,
-                history,
-                roundNumber,
-                tieMap,
-                promotionSafety
-            );
+            const p1 = pickMostConstrainedIndexed(ctx, state.mask);
+            const maskWithoutP1 = state.mask & ~bits[p1];
+            const rowOffset = p1 * n;
+            const partners = orderedPartners[p1];
+            const maxBranch = state.remainingCount <= 8 ? partners.length : BEAM_CANDIDATE_LIMIT;
 
-            const candidateLimit =
-                state.remaining.length <= 8
-                    ? orderedCandidates.length
-                    : Math.min(ADULT_CANDIDATE_LIMIT, orderedCandidates.length);
+            let branched = 0;
+            for (let k = 0; k < partners.length && branched < maxBranch; k++) {
+                const p2 = partners[k];
+                if ((maskWithoutP1 & bits[p2]) === 0n) continue;
+                branched++;
 
-            const candidates = orderedCandidates.slice(0, candidateLimit);
+                const nextMask = maskWithoutP1 & ~bits[p2];
+                const nextScore = addScore(state.score, pairScores[rowOffset + p2]!);
+                const existing = dedup.get(nextMask);
 
-            for (const p2 of candidates) {
-                const remaining = state.remaining.filter(
-                    p => p.id !== p1.id && p.id !== p2.id
-                );
+                if (!existing) {
+                    dedup.set(nextMask, {
+                        mask: nextMask,
+                        remainingCount: state.remainingCount - 2,
+                        pairs: [...state.pairs, [p1, p2]],
+                        score: nextScore,
+                    });
+                    continue;
+                }
 
-                const pairScore = getSingleAdultPairScore(
-                    p1,
-                    p2,
-                    history,
-                    roundNumber,
-                    promotionSafety
-                );
-
-                nextStates.push({
-                    remaining,
-                    pairs: [...state.pairs, [p1, p2]],
-                    score: addAdultMatchingScore(state.score, pairScore),
-                    key: makeAdultStateKey(remaining)
-                });
-            }
-        }
-
-        const dedup = new Map<string, AdultSearchState>();
-
-        for (const state of nextStates) {
-            const existing = dedup.get(state.key);
-            if (!existing) {
-                dedup.set(state.key, state);
-                continue;
-            }
-
-            const cmp = compareAdultMatchingScores(state.score, existing.score);
-            if (cmp < 0) {
-                dedup.set(state.key, state);
+                const cmp = compareScores(nextScore, existing.score);
+                if (cmp < 0) {
+                    dedup.set(nextMask, {
+                        mask: nextMask,
+                        remainingCount: state.remainingCount - 2,
+                        pairs: [...state.pairs, [p1, p2]],
+                        score: nextScore,
+                    });
+                }
             }
         }
 
         beam = [...dedup.values()].sort((a, b) => {
-            const cmp = compareAdultMatchingScores(a.score, b.score);
+            const cmp = compareScores(a.score, b.score);
             if (cmp !== 0) return cmp;
-
-            const aFirst = a.pairs[0]?.[1]?.id ?? '';
-            const bFirst = b.pairs[0]?.[1]?.id ?? '';
-            return tieBreak(aFirst, bFirst, tieMap);
+            const aFirst = a.pairs[0]?.[1] ?? 0;
+            const bFirst = b.pairs[0]?.[1] ?? 0;
+            return tieRanks[aFirst] - tieRanks[bFirst];
         });
 
-        beam = beam.slice(0, ADULT_BEAM_WIDTH);
+        if (beam.length > BEAM_WIDTH) {
+            beam.length = BEAM_WIDTH;
+        }
     }
 
-    const best = beam.find(state => state.remaining.length === 0) ?? beam[0];
-
+    const best = beam.find(st => st.remainingCount === 0) ?? beam[0];
     return {
-        pairs: best?.pairs ?? [],
-        score: best?.score ?? emptyAdultMatchingScore()
+        pairs: (best?.pairs ?? []).map(([i, j]) => [players[i], players[j]]),
+        score: best?.score ?? emptyScore(),
     };
+};
+
+const buildKidOptimizedMatching = (
+    players: MatchingPlayer[],
+    history: Map<string, HistoryRecord>,
+    roundNumber: number,
+    tieMap: Map<string, number>,
+    promotionSafety: PromotionSafetyConfig
+) => {
+    const ctx = buildIndexedMatchingContext<KidPairScore>({
+        players,
+        groupType: 'KID',
+        history,
+        tieMap,
+        promotionSafety,
+        emptyScore: emptyKidPairScore,
+        addScore: addKidPairScore,
+        compareScores: compareKidScores,
+        computePairScore: (p1, p2) => getSingleKidPairScore(p1, p2, history, roundNumber),
+    });
+
+    return players.length <= EXACT_MATCHING_LIMIT
+        ? solveIndexedExact(ctx)
+        : solveIndexedBeam(ctx);
 };
 
 const buildAdultOptimizedMatching = (
@@ -856,138 +876,25 @@ const buildAdultOptimizedMatching = (
     history: Map<string, HistoryRecord>,
     roundNumber: number,
     tieMap: Map<string, number>,
-    promotionSafety: PromotionSafetyConfig
+    promotionSafety: PromotionSafetyConfig,
+    sparringOptions: SparringOptions
 ) => {
-    if (players.length === 0) {
-        return { pairs: [], score: emptyAdultMatchingScore() };
-    }
-
-    if (players.length <= ADULT_EXACT_LIMIT) {
-        return findBestAdultMatchingExact(
-            players,
-            history,
-            roundNumber,
-            tieMap,
-            promotionSafety
-        );
-    }
-
-    return findBestAdultMatchingBeam(
+    const ctx = buildIndexedMatchingContext<AdultMatchingScore>({
         players,
+        groupType: 'ADULT',
         history,
-        roundNumber,
         tieMap,
-        promotionSafety
-    );
-};
-
-// --- GREEDY SORTOWANIE KANDYDATÓW (fallback) ---
-
-const sortBucket = (
-    bucket: MatchingPlayer[],
-    p1: MatchingPlayer,
-    groupType: GroupType,
-    history: Map<string, HistoryRecord>,
-    roundNumber: number,
-    tieMap: Map<string, number>,
-    promotionSafety: PromotionSafetyConfig
-) => {
-    if (groupType === 'ADULT') {
-        return [...bucket].sort((a, b) => {
-            const cmp = compareSingleAdultCandidates(
-                p1,
-                a,
-                b,
-                history,
-                roundNumber,
-                tieMap,
-                promotionSafety
-            );
-            if (cmp !== 0) return cmp;
-            return tieBreak(a.id, b.id, tieMap);
-        });
-    }
-
-    return [...bucket].sort((a, b) => {
-        const scoreA = getSingleKidPairScore(p1, a, history, roundNumber);
-        const scoreB = getSingleKidPairScore(p1, b, history, roundNumber);
-        const cmp = compareKidScores(scoreA, scoreB);
-        if (cmp !== 0) return cmp;
-        return tieBreak(a.id, b.id, tieMap);
+        promotionSafety,
+        emptyScore: emptyAdultMatchingScore,
+        addScore: addAdultMatchingScore,
+        compareScores: (a, b) => compareAdultMatchingScores(a, b, sparringOptions),
+        computePairScore: (p1, p2) =>
+            getSingleAdultPairScore(p1, p2, history, roundNumber, promotionSafety),
     });
-};
 
-const sortKidRepeatCandidates = (
-    bucket: MatchingPlayer[],
-    p1: MatchingPlayer,
-    history: Map<string, HistoryRecord>,
-    roundNumber: number,
-    tieMap: Map<string, number>
-) => {
-    return [...bucket].sort((a, b) => {
-        const scoreA = getSingleKidPairScore(p1, a, history, roundNumber);
-        const scoreB = getSingleKidPairScore(p1, b, history, roundNumber);
-        const cmp = compareKidScores(scoreA, scoreB);
-        if (cmp !== 0) return cmp;
-        return tieBreak(a.id, b.id, tieMap);
-    });
-};
-
-const getCandidatesByBuckets = (
-    p1: MatchingPlayer,
-    unassigned: MatchingPlayer[],
-    groupType: GroupType,
-    history: Map<string, HistoryRecord>,
-    roundNumber: number,
-    tieMap: Map<string, number>,
-    promotionSafety: PromotionSafetyConfig
-) => {
-    const rawCandidates = unassigned.filter(
-        p2 =>
-            p2.id !== p1.id &&
-            p2.matchingAgeGroup === p1.matchingAgeGroup &&
-            (groupType !== 'ADULT' || isAllowedPromotedKidAdultPair(p1, p2, promotionSafety))
-    );
-
-    const bucketA: MatchingPlayer[] = [];
-    const bucketB: MatchingPlayer[] = [];
-    const bucketC: MatchingPlayer[] = [];
-    const bucketD: MatchingPlayer[] = [];
-
-    for (const p2 of rawCandidates) {
-        const bucket = getBucketType(p1, p2, history);
-
-        if (bucket === 'A') bucketA.push(p2);
-        else if (bucket === 'B') bucketB.push(p2);
-        else if (bucket === 'C') bucketC.push(p2);
-        else bucketD.push(p2);
-    }
-
-    if (bucketA.length > 0) {
-        return sortBucket(bucketA, p1, groupType, history, roundNumber, tieMap, promotionSafety);
-    }
-
-    if (bucketB.length > 0) {
-        return sortBucket(bucketB, p1, groupType, history, roundNumber, tieMap, promotionSafety);
-    }
-
-    if (groupType === 'KID') {
-        const repeated = [...bucketC, ...bucketD];
-        if (repeated.length > 0) {
-            return sortKidRepeatCandidates(repeated, p1, history, roundNumber, tieMap);
-        }
-        return [];
-    }
-
-    if (bucketC.length > 0) {
-        return sortBucket(bucketC, p1, groupType, history, roundNumber, tieMap, promotionSafety);
-    }
-
-    if (bucketD.length > 0) {
-        return sortBucket(bucketD, p1, groupType, history, roundNumber, tieMap, promotionSafety);
-    }
-
-    return [];
+    return players.length <= EXACT_MATCHING_LIMIT
+        ? solveIndexedExact(ctx)
+        : solveIndexedBeam(ctx);
 };
 
 // --- PAUZY ---
@@ -995,10 +902,10 @@ const getCandidatesByBuckets = (
 const chooseByeCandidate = (
     unassigned: MatchingPlayer[],
     history: Map<string, HistoryRecord>,
-    noRestPlayers: string[],
+    noRestSet: Set<string>,
     tieMap: Map<string, number>
 ) => {
-    const eligibleForBye = unassigned.filter(p => !noRestPlayers.includes(p.id));
+    const eligibleForBye = unassigned.filter(p => !noRestSet.has(p.id));
     const targetPool = eligibleForBye.length > 0 ? eligibleForBye : unassigned;
 
     targetPool.sort((a, b) => {
@@ -1031,8 +938,9 @@ const buildPairsForGroup = (
     groupType: GroupType,
     history: Map<string, HistoryRecord>,
     roundNumber: number,
-    noRestPlayers: string[],
-    promotionSafety: PromotionSafetyConfig
+    noRestSet: Set<string>,
+    promotionSafety: PromotionSafetyConfig,
+    sparringOptions: SparringOptions
 ) => {
     let unassigned = [...groupPlayers];
     const pairs: Match[] = [];
@@ -1044,26 +952,17 @@ const buildPairsForGroup = (
             p.bucketCounts = getBucketCountsForPlayer(p, unassigned, history);
         }
 
-        const chosenBye = chooseByeCandidate(unassigned, history, noRestPlayers, tieMap);
+        const chosenBye = chooseByeCandidate(unassigned, history, noRestSet, tieMap);
         bye = chosenBye.originalRef;
         unassigned = unassigned.filter(p => p.id !== chosenBye.id);
     }
 
-    if (
-        groupType === 'KID' &&
-        unassigned.length > 0 &&
-        unassigned.length <= 10 &&
-        unassigned.length % 2 === 0
-    ) {
-        const bestMatching = findBestKidMatching(unassigned, history, roundNumber, tieMap);
-        for (const [p1, p2] of bestMatching.pairs) {
-            pairs.push({ p1: p1.originalRef, p2: p2.originalRef });
-        }
+    if (unassigned.length === 0) {
         return { pairs, bye };
     }
 
-    if (groupType === 'ADULT' && unassigned.length > 0 && unassigned.length % 2 === 0) {
-        const bestMatching = buildAdultOptimizedMatching(
+    if (groupType === 'KID') {
+        const bestMatching = buildKidOptimizedMatching(
             unassigned,
             history,
             roundNumber,
@@ -1076,58 +975,246 @@ const buildPairsForGroup = (
         return { pairs, bye };
     }
 
-    while (unassigned.length > 1) {
-        for (const p of unassigned) {
-            p.bucketCounts = getBucketCountsForPlayer(p, unassigned, history);
-        }
-
-        unassigned.sort((a, b) => {
-            const cmp = compareBucketCounts(
-                a.bucketCounts || { A: 0, B: 0, C: 0, D: 0 },
-                b.bucketCounts || { A: 0, B: 0, C: 0, D: 0 }
-            );
-            if (cmp !== 0) return cmp;
-            return tieBreak(a.id, b.id, tieMap);
-        });
-
-        const p1 = unassigned[0];
-        let candidates = getCandidatesByBuckets(
-            p1,
-            unassigned,
-            groupType,
-            history,
-            roundNumber,
-            tieMap,
-            promotionSafety
-        );
-
-        if (candidates.length === 0) {
-            candidates = unassigned
-                .filter(
-                    p =>
-                        p.id !== p1.id &&
-                        p.matchingAgeGroup === p1.matchingAgeGroup &&
-                        (groupType !== 'ADULT' ||
-                            isAllowedPromotedKidAdultPair(p1, p, promotionSafety))
-                )
-                .sort((a, b) => tieBreak(a.id, b.id, tieMap));
-        }
-
-        if (candidates.length === 0) {
-            break;
-        }
-
-        const p2 = candidates[0];
+    const bestMatching = buildAdultOptimizedMatching(
+        unassigned,
+        history,
+        roundNumber,
+        tieMap,
+        promotionSafety,
+        sparringOptions
+    );
+    for (const [p1, p2] of bestMatching.pairs) {
         pairs.push({ p1: p1.originalRef, p2: p2.originalRef });
-
-        unassigned = unassigned.filter(p => p.id !== p1.id && p.id !== p2.id);
-    }
-
-    if (unassigned.length === 1 && !bye) {
-        bye = unassigned[0].originalRef;
     }
 
     return { pairs, bye };
+};
+
+// --- GENDER PREFER HELPER (PER AGE GROUP) ---
+
+const splitGenderPreferPool = (
+    ageGroupPlayers: RealPlayer[],
+    history: Map<string, HistoryRecord>,
+    noRestSet: Set<string>,
+    tieMap: Map<string, number>
+): { separateFemales: RealPlayer[]; mainPool: RealPlayer[] } => {
+    const females = ageGroupPlayers.filter(p => (p.gender || 'M') === 'F');
+    const males = ageGroupPlayers.filter(p => (p.gender || 'M') === 'M');
+
+    if (females.length < 2) {
+        return { separateFemales: [], mainPool: ageGroupPlayers };
+    }
+
+    let femaleRoundRobinDone = true;
+    for (let i = 0; i < females.length && femaleRoundRobinDone; i++) {
+        for (let j = i + 1; j < females.length; j++) {
+            if (getTimesMet(females[i], females[j], history) === 0) {
+                femaleRoundRobinDone = false;
+                break;
+            }
+        }
+    }
+
+    if (femaleRoundRobinDone) {
+        return { separateFemales: [], mainPool: ageGroupPlayers };
+    }
+
+    const femalesToMatch = [...females];
+    const malesPool = [...males];
+
+    if (femalesToMatch.length % 2 !== 0 && malesPool.length > 0) {
+        // Nieparzysta liczba kobiet przy obecności mężczyzn: ta, która walczyła już z największą
+        // liczbą kobiet (najbliżej ukończenia round-robin), przechodzi do puli mieszanej.
+        const metCounts = new Map<string, number>();
+        for (const f of femalesToMatch) {
+            let count = 0;
+            for (const f2 of femalesToMatch) {
+                if (f2.id !== f.id && getTimesMet(f, f2, history) > 0) count++;
+            }
+            metCounts.set(f.id, count);
+        }
+
+        femalesToMatch.sort((a, b) => {
+            const diff = (metCounts.get(b.id) ?? 0) - (metCounts.get(a.id) ?? 0);
+            if (diff !== 0) return diff;
+            const vipDiff = Number(noRestSet.has(b.id)) - Number(noRestSet.has(a.id));
+            if (vipDiff !== 0) return vipDiff;
+            return tieBreak(a.id, b.id, tieMap);
+        });
+
+        const moved = femalesToMatch.shift()!;
+        malesPool.push(moved);
+    }
+
+    return { separateFemales: femalesToMatch, mainPool: malesPool };
+};
+
+const toMatchingKid = (k: RealPlayer): MatchingPlayer => ({
+    id: k.id,
+    nickname: k.id,
+    originalAgeGroup: 'KID',
+    matchingAgeGroup: 'KID',
+    outfit: k.gear,
+    weightKg: k.weight,
+    matchingSkillLevel: 0,
+    isPromotedKid: false,
+    isGuest: k.isGuest === true,
+    originalRef: k,
+});
+
+const toMatchingAdult = (a: RealPlayer): MatchingPlayer => ({
+    id: a.id,
+    nickname: a.id,
+    originalAgeGroup: 'ADULT',
+    matchingAgeGroup: 'ADULT',
+    outfit: a.gear,
+    weightKg: a.weight,
+    matchingSkillLevel: Number(a.skillLevel ?? 0),
+    isPromotedKid: false,
+    isGuest: a.isGuest === true,
+    originalRef: a,
+});
+
+const emptyPromotionSafety = (): PromotionSafetyConfig => ({
+    promotedKidId: null,
+    safeAdultIds: new Set<string>(),
+    safeAdultRank: new Map<string, number>(),
+});
+
+const generateAgeGroupRound = (
+    players: RealPlayer[],
+    history: Map<string, HistoryRecord>,
+    roundNum: number,
+    noRestSet: Set<string>,
+    sparringOptions: SparringOptions
+): { matches: Match[]; resting: RealPlayer[] } => {
+    let kids = players.filter(p => p.type === 'KID');
+    const adults = players.filter(p => p.type === 'ADULT');
+    let promotedKid: RealPlayer | null = null;
+
+    if (kids.length % 2 !== 0 && adults.length % 2 !== 0) {
+        kids = [...kids].sort((a, b) => b.weight - a.weight);
+        promotedKid = kids[0];
+        kids = kids.slice(1);
+    }
+
+    const promotionSafety = buildPromotionSafetyConfig(adults, promotedKid, history);
+    const kidsPool = kids.map(toMatchingKid);
+    const adultsPool = adults.map(toMatchingAdult);
+
+    if (promotedKid) {
+        adultsPool.push({
+            id: promotedKid.id,
+            nickname: promotedKid.id,
+            originalAgeGroup: 'KID',
+            matchingAgeGroup: 'ADULT',
+            outfit: promotedKid.gear,
+            weightKg: promotedKid.weight,
+            matchingSkillLevel: 0,
+            isPromotedKid: true,
+            isGuest: promotedKid.isGuest === true,
+            originalRef: promotedKid,
+        });
+    }
+
+    const { pairs: kidPairs, bye: kidBye } = buildPairsForGroup(
+        kidsPool,
+        'KID',
+        history,
+        roundNum,
+        noRestSet,
+        promotionSafety,
+        sparringOptions
+    );
+
+    const { pairs: adultPairs, bye: adultBye } = buildPairsForGroup(
+        adultsPool,
+        'ADULT',
+        history,
+        roundNum,
+        noRestSet,
+        promotionSafety,
+        sparringOptions
+    );
+
+    const resting: RealPlayer[] = [];
+    if (kidBye) resting.push(kidBye);
+    if (adultBye) resting.push(adultBye);
+
+    return {
+        matches: [...kidPairs, ...adultPairs],
+        resting,
+    };
+};
+
+const generateGenderAwareRound = (
+    players: RealPlayer[],
+    history: Map<string, HistoryRecord>,
+    roundNum: number,
+    noRestSet: Set<string>,
+    sparringOptions: SparringOptions
+): { matches: Match[]; resting: RealPlayer[] } => {
+    if (sparringOptions.genderMatching === 'STRICT') {
+        const males = players.filter(p => (p.gender || 'M') === 'M');
+        const females = players.filter(p => (p.gender || 'M') === 'F');
+        if (females.length >= 2) {
+            const maleResult = generateAgeGroupRound(males, history, roundNum, noRestSet, sparringOptions);
+            const femaleResult = generateAgeGroupRound(females, history, roundNum, noRestSet, sparringOptions);
+            return {
+                matches: [...maleResult.matches, ...femaleResult.matches],
+                resting: [...maleResult.resting, ...femaleResult.resting],
+            };
+        }
+        return generateAgeGroupRound(players, history, roundNum, noRestSet, sparringOptions);
+    }
+
+    if (sparringOptions.genderMatching === 'PREFER') {
+        const tieMap = createTieBreakerMap(players);
+        const kids = players.filter(p => p.type === 'KID');
+        const adults = players.filter(p => p.type === 'ADULT');
+
+        const kidSplit = splitGenderPreferPool(kids, history, noRestSet, tieMap);
+        const adultSplit = splitGenderPreferPool(adults, history, noRestSet, tieMap);
+
+        const mainCombined = [...kidSplit.mainPool, ...adultSplit.mainPool];
+        const mainResult = generateAgeGroupRound(mainCombined, history, roundNum, noRestSet, sparringOptions);
+
+        const matches = [...mainResult.matches];
+        const resting = [...mainResult.resting];
+        const noPromotion = emptyPromotionSafety();
+
+        if (kidSplit.separateFemales.length > 0) {
+            const kidFemResult = buildPairsForGroup(
+                kidSplit.separateFemales.map(toMatchingKid),
+                'KID',
+                history,
+                roundNum,
+                noRestSet,
+                noPromotion,
+                sparringOptions
+            );
+            matches.push(...kidFemResult.pairs);
+            if (kidFemResult.bye) resting.push(kidFemResult.bye);
+        }
+
+        if (adultSplit.separateFemales.length > 0) {
+            const adultFemResult = buildPairsForGroup(
+                adultSplit.separateFemales.map(toMatchingAdult),
+                'ADULT',
+                history,
+                roundNum,
+                noRestSet,
+                noPromotion,
+                sparringOptions
+            );
+            matches.push(...adultFemResult.pairs);
+            if (adultFemResult.bye) resting.push(adultFemResult.bye);
+        }
+
+        return { matches, resting };
+    }
+
+    return generateAgeGroupRound(players, history, roundNum, noRestSet, sparringOptions);
 };
 
 // --- GŁÓWNA FUNKCJA MATCHMAKERA ---
@@ -1138,179 +1225,44 @@ export const generateRound = (
     roundNum: number,
     noRestPlayers: string[],
     sparringOptions: SparringOptions = DEFAULT_SPARRING_OPTIONS,
-    totalRounds: number = 1
+    _totalRounds: number = 1
 ): { matches: Match[]; resting: RealPlayer[] } => {
-    _sparringPrioritySlider = sparringOptions.prioritySlider;
-    _intensityProfile = sparringOptions.intensityProfile;
-
     const activePlayers = [...players];
+    const noRestSet = new Set(noRestPlayers);
 
-    // Gender matching
-    if (sparringOptions.genderMatching !== 'OFF') {
-        let males = activePlayers.filter(p => (p.gender || 'M') === 'M');
-        let females = activePlayers.filter(p => (p.gender || 'M') === 'F');
-
-        if (females.length >= 2) {
-            if (sparringOptions.genderMatching === 'STRICT') {
-                // STRICT: kobiety TYLKO z kobietami, zawsze osobna pula, nawet jeśli ktoś siedzi
-                const maleResult = generateRoundInternal(males, history, roundNum, noRestPlayers, sparringOptions, totalRounds);
-                const femaleResult = generateRoundInternal(females, history, roundNum, noRestPlayers, sparringOptions, totalRounds);
-                return {
-                    matches: [...maleResult.matches, ...femaleResult.matches],
-                    resting: [...maleResult.resting, ...femaleResult.resting],
-                };
-            } else {
-                // PREFER: kobiety z kobietami dopóki nie wyczerpią round-robin, potem mieszane
-                const femaleRoundRobinDone = females.length < 2 || females.every(f =>
-                    females.filter(f2 => f2.id !== f.id).every(f2 => getTimesMet(f, f2, history) > 0)
-                );
-
-                if (!femaleRoundRobinDone) {
-                    // Nieparzysta liczba kobiet — nadmiarowa idzie do mężczyzn
-                    let femalesToMatch = [...females];
-                    let malesPool = [...males];
-                    if (femalesToMatch.length % 2 !== 0) {
-                        // Znajdź kobietę która walczyła z największą liczbą kobiet (najbliżej ukończenia round-robin)
-                        femalesToMatch.sort((a, b) => {
-                            const aMet = femalesToMatch.filter(f => f.id !== a.id && getTimesMet(a, f, history) > 0).length;
-                            const bMet = femalesToMatch.filter(f => f.id !== b.id && getTimesMet(b, f, history) > 0).length;
-                            return bMet - aMet; // ta co walczyła z największą liczbą idzie do mężczyzn
-                        });
-                        const moved = femalesToMatch.shift()!;
-                        malesPool.push(moved);
-                    }
-
-                    const maleResult = generateRoundInternal(malesPool, history, roundNum, noRestPlayers, sparringOptions, totalRounds);
-                    const femaleResult = generateRoundInternal(femalesToMatch, history, roundNum, noRestPlayers, sparringOptions, totalRounds);
-                    return {
-                        matches: [...maleResult.matches, ...femaleResult.matches],
-                        resting: [...maleResult.resting, ...femaleResult.resting],
-                    };
-                }
-                // Female round-robin complete — fall through to mixed matching
-            }
-        }
-        // If less than 2 females, fall through to mixed matching
-    }
-
-    // Weight division: split into weight groups if enabled
     if (sparringOptions.weightDivisionEnabled) {
         const threshold = sparringOptions.weightDivisionThreshold;
         const lightGroup = activePlayers.filter(p => p.weight <= threshold);
         const heavyGroup = activePlayers.filter(p => p.weight > threshold);
 
         if (lightGroup.length >= 2 && heavyGroup.length >= 2) {
-            const lightResult = generateRoundInternal(lightGroup, history, roundNum, noRestPlayers, sparringOptions, totalRounds);
-            const heavyResult = generateRoundInternal(heavyGroup, history, roundNum, noRestPlayers, sparringOptions, totalRounds);
+            const lightResult = generateGenderAwareRound(lightGroup, history, roundNum, noRestSet, sparringOptions);
+            const heavyResult = generateGenderAwareRound(heavyGroup, history, roundNum, noRestSet, sparringOptions);
             return {
                 matches: [...lightResult.matches, ...heavyResult.matches],
                 resting: [...lightResult.resting, ...heavyResult.resting],
             };
         }
-        // If one group too small, fall through to combined matching
     }
 
-    return generateRoundInternal(activePlayers, history, roundNum, noRestPlayers, sparringOptions, totalRounds);
-};
-
-const generateRoundInternal = (
-    players: RealPlayer[],
-    history: Map<string, HistoryRecord>,
-    roundNum: number,
-    noRestPlayers: string[],
-    _sparringOptions: SparringOptions = DEFAULT_SPARRING_OPTIONS,
-    _totalRounds: number = 1
-): { matches: Match[]; resting: RealPlayer[] } => {
-    const activePlayers = [...players];
-
-    let kids = activePlayers.filter(p => p.type === 'KID');
-    const adults = activePlayers.filter(p => p.type === 'ADULT');
-    let promotedKid: RealPlayer | null = null;
-
-    if (kids.length % 2 !== 0 && adults.length % 2 !== 0) {
-        kids.sort((a, b) => b.weight - a.weight);
-        promotedKid = kids[0];
-        kids = kids.slice(1);
-    }
-
-    const kidsIgnoreOutfit = hasCompletedSameOutfitRoundRobin(kids, history);
-    const adultsIgnoreOutfit = hasCompletedSameOutfitRoundRobin(adults, history);
-
-    const promotionSafety = buildPromotionSafetyConfig(
-        adults,
-        promotedKid,
-        adultsIgnoreOutfit
-    );
-
-    const kidsPool: MatchingPlayer[] = kids.map(k => ({
-        id: k.id,
-        nickname: k.id,
-        originalAgeGroup: 'KID',
-        matchingAgeGroup: 'KID',
-        outfit: kidsIgnoreOutfit ? FREE_OUTFIT : k.gear,
-        weightKg: k.weight,
-        matchingSkillLevel: 0,
-        isPromotedKid: false,
-        isGuest: k.isGuest === true,
-        originalRef: k
-    }));
-
-    const adultsPool: MatchingPlayer[] = adults.map(a => ({
-        id: a.id,
-        nickname: a.id,
-        originalAgeGroup: 'ADULT',
-        matchingAgeGroup: 'ADULT',
-        outfit: adultsIgnoreOutfit ? FREE_OUTFIT : a.gear,
-        weightKg: a.weight,
-        matchingSkillLevel: Number(a.skillLevel ?? 0),
-        isPromotedKid: false,
-        isGuest: a.isGuest === true,
-        originalRef: a
-    }));
-
-    if (promotedKid) {
-        adultsPool.push({
-            id: promotedKid.id,
-            nickname: promotedKid.id,
-            originalAgeGroup: 'KID',
-            matchingAgeGroup: 'ADULT',
-            outfit: adultsIgnoreOutfit ? FREE_OUTFIT : promotedKid.gear,
-            weightKg: promotedKid.weight,
-            matchingSkillLevel: 0,
-            isPromotedKid: true,
-            isGuest: promotedKid.isGuest === true,
-            originalRef: promotedKid
-        });
-    }
-
-    const { pairs: kidPairs, bye: kidBye } = buildPairsForGroup(
-        kidsPool,
-        'KID',
-        history,
-        roundNum,
-        noRestPlayers,
-        promotionSafety
-    );
-
-    const { pairs: adultPairs, bye: adultBye } = buildPairsForGroup(
-        adultsPool,
-        'ADULT',
-        history,
-        roundNum,
-        noRestPlayers,
-        promotionSafety
-    );
-
-    const matches = [...kidPairs, ...adultPairs];
-    const resting: RealPlayer[] = [];
-
-    if (kidBye) resting.push(kidBye);
-    if (adultBye) resting.push(adultBye);
-
-    return { matches, resting };
+    return generateGenderAwareRound(activePlayers, history, roundNum, noRestSet, sparringOptions);
 };
 
 // --- ZAPISYWANIE HISTORII ---
+
+const ensureHistoryRecord = (history: Map<string, HistoryRecord>, playerId: string): HistoryRecord => {
+    let record = history.get(playerId);
+    if (!record) {
+        record = {
+            pairHistory: {},
+            lastRoundMet: {},
+            byeHistory: 0,
+            lastByeRound: 0,
+        };
+        history.set(playerId, record);
+    }
+    return record;
+};
 
 export const applyRoundResult = (
     matches: Match[],
@@ -1319,29 +1271,17 @@ export const applyRoundResult = (
     history: Map<string, HistoryRecord>,
     roster: RealPlayer[]
 ): RealPlayer[] => {
-    const updatedRoster = [...roster];
+    const updatedRoster = roster.map(p => ({ ...p }));
+    const rosterById = new Map<string, RealPlayer>();
+    for (const player of updatedRoster) {
+        rosterById.set(player.id, player);
+    }
 
-    matches.forEach(m => {
-        if (!history.has(m.p1.id)) {
-            history.set(m.p1.id, {
-                pairHistory: {},
-                lastRoundMet: {},
-                byeHistory: 0,
-                lastByeRound: 0
-            });
-        }
+    const restBonus = Math.floor(updatedRoster.length / 2);
 
-        if (!history.has(m.p2.id)) {
-            history.set(m.p2.id, {
-                pairHistory: {},
-                lastRoundMet: {},
-                byeHistory: 0,
-                lastByeRound: 0
-            });
-        }
-
-        const h1 = history.get(m.p1.id)!;
-        const h2 = history.get(m.p2.id)!;
+    for (const m of matches) {
+        const h1 = ensureHistoryRecord(history, m.p1.id);
+        const h2 = ensureHistoryRecord(history, m.p2.id);
 
         h1.pairHistory[m.p2.id] = (h1.pairHistory[m.p2.id] || 0) + 1;
         h2.pairHistory[m.p1.id] = (h2.pairHistory[m.p1.id] || 0) + 1;
@@ -1349,42 +1289,31 @@ export const applyRoundResult = (
         h1.lastRoundMet[m.p2.id] = roundNum;
         h2.lastRoundMet[m.p1.id] = roundNum;
 
-        const i1 = updatedRoster.findIndex(p => p.id === m.p1.id);
-        const i2 = updatedRoster.findIndex(p => p.id === m.p2.id);
-
-        if (i1 >= 0) {
-            updatedRoster[i1].consecutiveMatches = (updatedRoster[i1].consecutiveMatches ?? 0) + 1;
-            updatedRoster[i1].restDebt = (updatedRoster[i1].restDebt ?? 0) - 1;
+        const r1 = rosterById.get(m.p1.id);
+        if (r1) {
+            r1.consecutiveMatches = (r1.consecutiveMatches ?? 0) + 1;
+            r1.restDebt = (r1.restDebt ?? 0) - 1;
         }
 
-        if (i2 >= 0) {
-            updatedRoster[i2].consecutiveMatches = (updatedRoster[i2].consecutiveMatches ?? 0) + 1;
-            updatedRoster[i2].restDebt = (updatedRoster[i2].restDebt ?? 0) - 1;
+        const r2 = rosterById.get(m.p2.id);
+        if (r2) {
+            r2.consecutiveMatches = (r2.consecutiveMatches ?? 0) + 1;
+            r2.restDebt = (r2.restDebt ?? 0) - 1;
         }
-    });
+    }
 
-    resting.forEach(r => {
-        if (!history.has(r.id)) {
-            history.set(r.id, {
-                pairHistory: {},
-                lastRoundMet: {},
-                byeHistory: 0,
-                lastByeRound: 0
-            });
-        }
-
-        const h = history.get(r.id)!;
+    for (const r of resting) {
+        const h = ensureHistoryRecord(history, r.id);
         h.byeHistory += 1;
         h.lastByeRound = roundNum;
 
-        const idx = updatedRoster.findIndex(p => p.id === r.id);
-        if (idx >= 0) {
-            updatedRoster[idx].lastRestRound = roundNum;
-            updatedRoster[idx].consecutiveMatches = 0;
-            updatedRoster[idx].restDebt =
-                (updatedRoster[idx].restDebt ?? 0) + Math.floor(updatedRoster.length / 2);
+        const player = rosterById.get(r.id);
+        if (player) {
+            player.lastRestRound = roundNum;
+            player.consecutiveMatches = 0;
+            player.restDebt = (player.restDebt ?? 0) + restBonus;
         }
-    });
+    }
 
     return updatedRoster;
 };

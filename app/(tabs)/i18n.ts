@@ -51,6 +51,8 @@ const translations = {
   clearFilters: { PL: 'WYCZYŚĆ', EN: 'CLEAR', PT: 'LIMPAR' },
   cancel: { PL: 'ANULUJ', EN: 'CANCEL', PT: 'CANCELAR' },
   close: { PL: 'ZAMKNIJ', EN: 'CLOSE', PT: 'FECHAR' },
+  done: { PL: 'GOTOWE', EN: 'DONE', PT: 'PRONTO' },
+  clear: { PL: 'Wyczyść', EN: 'Clear', PT: 'Limpar' },
   delete: { PL: 'Usuń', EN: 'Delete', PT: 'Excluir' },
   newTraining: { PL: 'NOWY TRENING', EN: 'NEW SESSION', PT: 'NOVO TREINO' },
   pause: { PL: 'PAUZA', EN: 'PAUSE', PT: 'PAUSA' },
@@ -132,12 +134,12 @@ const translations = {
 
   // ── ABOUT MODAL ──
   aboutTitle: { PL: 'Z NIM NIE ROBIĘ', EN: 'Z NIM NIE ROBIĘ', PT: 'Z NIM NIE ROBIĘ' },
-  aboutVersion: { PL: 'Wersja 2.1', EN: 'Version 2.1', PT: 'Versão 2.1' },
+  aboutVersion: { PL: 'Wersja 2.2', EN: 'Version 2.2', PT: 'Versão 2.2' },
   aboutDescription: { PL: 'Aplikacja treningowa do zarządzania parami, rundami i rotacją zawodników podczas treningów BJJ.', EN: 'Training app for managing pairs, rounds and player rotation during BJJ training sessions.', PT: 'Aplicativo de treino para gerenciar duplas, rodadas e rotação de lutadores durante treinos de BJJ.' },
 
   // ── VALIDATION MESSAGES ──
   errNoName: { PL: 'Podaj pseudonim zawodnika!', EN: 'Enter player nickname!', PT: 'Insira o apelido do lutador!' },
-  errNoWeight: { PL: 'Podaj prawidłową wagę!', EN: 'Enter a valid weight!', PT: 'Insira um peso válido!' },
+  errNoWeight: { PL: 'Podaj prawidłową wagę (10-300 kg)!', EN: 'Enter a valid weight (10-300 kg)!', PT: 'Insira um peso válido (10-300 kg)!' },
   errDuplicate: { PL: 'Zawodnik już dodany!', EN: 'Player already added!', PT: 'Lutador já adicionado!' },
   errMinPlayers: { PL: 'Musisz dodać przynajmniej dwóch zawodników!', EN: 'You need at least two players!', PT: 'Você precisa de pelo menos dois lutadores!' },
   errRoundTime: { PL: 'Czas rundy musi być większy od 0!', EN: 'Round time must be greater than 0!', PT: 'Tempo da rodada deve ser maior que 0!' },
@@ -151,8 +153,13 @@ const translations = {
   confirmDeleteTitle: { PL: 'Usuń zawodnika', EN: 'Remove player', PT: 'Remover lutador' },
   confirmDeleteMsg: { PL: 'Czy na pewno chcesz usunąć', EN: 'Are you sure you want to remove', PT: 'Tem certeza que deseja remover' },
   confirmDeleteFromMat: { PL: 'z maty?', EN: 'from the mat?', PT: 'do tatame?' },
+  confirmDeleteFromDBTitle: { PL: 'Usuń z bazy klubowej', EN: 'Delete from club database', PT: 'Excluir do banco do clube' },
+  confirmDeleteFromDBMsg: { PL: 'Czy na pewno chcesz trwale usunąć zawodnika z bazy klubowej:', EN: 'Are you sure you want to permanently delete from the club database:', PT: 'Tem certeza que deseja excluir permanentemente do banco do clube:' },
   confirmNewTraining: { PL: 'Nowy Trening', EN: 'New Session', PT: 'Novo Treino' },
   confirmClearMat: { PL: 'Czy na pewno chcesz wyczyścić matę z zawodników?', EN: 'Are you sure you want to clear the mat?', PT: 'Tem certeza que deseja limpar o tatame?' },
+  vipEmptyHint: { PL: 'Brak zawodników na macie. Dodaj najpierw zawodników w panelu składu.', EN: 'No players on the mat yet. Add players in the lineup panel first.', PT: 'Nenhum lutador no tatame. Adicione lutadores no painel de elenco primeiro.' },
+  loadingApp: { PL: 'Wczytywanie…', EN: 'Loading…', PT: 'Carregando…' },
+  weightThresholdLabel: { PL: 'PRÓG:', EN: 'LIMIT:', PT: 'LIMITE:' },
 
   // ── FINISHED SCREEN ──
   thanks: { PL: 'DZIĘKUJĘ', EN: 'THANK YOU', PT: 'OBRIGADO' },

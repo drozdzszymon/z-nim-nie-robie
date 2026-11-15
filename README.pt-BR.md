@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/vers%C3%A3o-2.1%20Production-brightgreen" alt="Versão" />
+  <img src="https://img.shields.io/badge/vers%C3%A3o-2.2%20Production-brightgreen" alt="Versão" />
   <img src="https://img.shields.io/badge/plataforma-Android%20%7C%20iOS%20%7C%20Web-blue" alt="Plataforma" />
   <img src="https://img.shields.io/badge/framework-Expo%20%2B%20React%20Native-blueviolet" alt="Framework" />
   <img src="https://img.shields.io/badge/linguagem-TypeScript-3178C6" alt="TypeScript" />
@@ -33,7 +33,7 @@
 
 ## Sumário
 
-- [Novidades na v2.1](#novidades-na-v21)
+- [Novidades na v2.2](#novidades-na-v22)
 - [Sobre o app](#sobre-o-app)
 - [Capturas de tela](#capturas-de-tela)
 - [Modos de treino](#modos-de-treino)
@@ -48,7 +48,16 @@
 
 ---
 
-## Novidades na v2.1
+## Novidades na v2.2
+
+### ⚡ Matchmaker mais rápido e correções de lógica (v2.2)
+
+- **Pareamento 13x mais rápido** em turmas grandes (46 lutadores) com programação dinâmica em bitmask e tabelas pré-indexadas. O solver exato agora cobre até 12 atletas por grupo (antes 10).
+- **Lutas por gênero (`PRIORIDADE`) corrigidas**: o rodízio é controlado separadamente para `KID` e `ADULT`, funciona junto com a divisão de peso e respeita `SEM DESCANSO (VIP)`.
+- **Duplas mistas e adulto único**: duplas `KID + ADULT` aparecem normalmente em `POSICIONAL (DUPLAS)` e `DRILLS`, e um adulto treinando sozinho com crianças em `TRIOS` entra sempre em um grupo.
+- **Cronômetro preciso pelo relógio do sistema**: sem perder segundos em rodadas longas ou com a aba do navegador em segundo plano.
+- **Limpeza do banco do clube e melhorias no cadastro**: exclua registros antigos direto no `BANCO DO CLUBE`, cancele a edição com um toque e use vírgula no peso (`82,5`) na faixa `10-300 kg`.
+- **Ajustes para celular e web**: layout vertical na divisão de peso em telas estreitas, botão `ALGUÉM SAIU?` ativo durante a luta, atalhos de teclado (`Espaço`, `Escape`, `Enter`) e `WakeLock` estável no navegador.
 
 ### 🌍 Localização EN / PT completa (v2.1)
 
@@ -402,18 +411,24 @@ O slider **PRIORIDADE DE FORMAÇÃO** permite balancear suavemente habilidade vs
 ```
 app/
   (tabs)/
-    index.tsx              # UI principal — telas, timers, grids de pares
+    index.tsx              # UI principal: telas, timers, grids de pares
     i18n.ts                # Traduções PL / EN / PT
     types.ts               # Tipos de domínio (RealPlayer, Match, SparringOptions, etc.)
     engine/
       matchmaker.ts        # Motor de formação e rotação de pares
+constants/
+  training-helpers.ts      # Validação, montagem de trios e auxiliares de sessão
+hooks/
+  use-safe-keep-awake.ts   # Bloqueio seguro de tela (mobile + web)
+tests/
+  engine-and-helpers.test.mjs # Testes unitários do motor e auxiliares
 assets/
   *.mp3                    # Sons de treino (gongo, aviso, aplausos)
   images/                  # Ícones e splash
 docs/
   privacy-policy.md        # Política de privacidade
   play-store/              # Materiais para Google Play
-Screenshots/               # Capturas de tela (v2.1)
+Screenshots/               # Capturas de tela
 Images/                    # Logo e ícones do app
 plugins/                   # Plugins do Expo (ex.: ADI registration)
 ```
@@ -428,6 +443,10 @@ npm install
 
 # Servidor de desenvolvimento
 npx expo start
+
+# Testes unitários e lint
+npm test
+npm run lint
 
 # Build APK (Android, para testes)
 eas build --platform android --profile preview
@@ -469,6 +488,6 @@ Todos os direitos reservados. Código-fonte publicado apenas para fins de revis�
 ---
 
 <p align="center">
-  <b>Z NIM NIE ROBIĘ</b> · v2.1 · App de treino BJJ<br/>
+  <b>Z NIM NIE ROBIĘ</b> · v2.2 · App de treino BJJ<br/>
   Construído com 🥋 no tatame e no teclado
 </p>

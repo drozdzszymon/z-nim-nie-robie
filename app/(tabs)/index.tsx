@@ -1,9 +1,21 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
-import { activateKeepAwakeAsync, useKeepAwake } from 'expo-keep-awake';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import { Alert, Dimensions, Image, Linking, Modal, PixelRatio, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import {
+    buildTriadZadaniowkiGroupsWithResting,
+    calcBestWeightThreshold,
+    extractActiveStagePairs,
+    getNormalizedPlayerSkillLevel,
+    getTriadStageRoles,
+    parsePlayerWeight,
+    sanitizeDecimalWeightInput,
+    sanitizeStoredPlayers,
+    sanitizeTrainingHistory,
+} from '../../constants/training-helpers';
+import { useSafeKeepAwake } from '../../hooks/use-safe-keep-awake';
 import { applyRoundResult, generateRound } from './engine/matchmaker';
 import { Language, LANGUAGE_OPTIONS, t, TranslationKey } from './i18n';
 import {
@@ -18,7 +30,6 @@ import {
     IntensityProfile,
     Match,
     RealPlayer,
-    SkillLevel,
     SparringOptions,
     TrainingMode,
     TrainingSession,
@@ -246,252 +257,6 @@ const SKILL_LEVEL_SCHEMA_VERSION = '2';
 const TRAINING_HISTORY_KEY = 'BJJ_TRAINING_HISTORY';
 const LANGUAGE_KEY = 'BJJ_LANGUAGE';
 
-const normalizeAdultSkillLevel = (skillLevel: number): AdultSkillLevel => {
-  const parsedSkillLevel = Number.isFinite(skillLevel)
-    ? Math.round(skillLevel)
-    : DEFAULT_ADULT_SKILL_LEVEL;
-
-  if (parsedSkillLevel <= 1) return 1;
-  if (parsedSkillLevel === 2) return 2;
-  if (parsedSkillLevel === 3) return 3;
-  return 4;
-};
-
-const getNormalizedPlayerSkillLevel = (
-  player: Pick<RealPlayer, 'type' | 'skillLevel'>,
-  migrateLegacyThreeLevelScale = false
-): SkillLevel => {
-  if (player.type !== 'ADULT') return 0;
-
-  const normalizedSkillLevel = normalizeAdultSkillLevel(Number(player.skillLevel));
-
-  // Jednorazowa migracja starej skali 1-3, aby dawny PRO zachował poziom PRO.
-  if (migrateLegacyThreeLevelScale && normalizedSkillLevel === 3) {
-    return 4;
-  }
-
-  return normalizedSkillLevel;
-};
-
-const normalizeStoredPlayer = (
-  player: RealPlayer,
-  migrateLegacyThreeLevelScale = false
-): RealPlayer => ({
-  ...player,
-  gender: player.gender || 'M',
-  skillLevel: getNormalizedPlayerSkillLevel(player, migrateLegacyThreeLevelScale),
-  isGuest: false, // status "gość" jest per-trening, nie persystowany w bazie klubu
-});
-
-const sortForZadaniowki = (players: RealPlayer[]) => {
-    return [...players].sort((a, b) => {
-        if (a.gear !== b.gear) return a.gear.localeCompare(b.gear);
-        if (a.skillLevel !== b.skillLevel) return b.skillLevel - a.skillLevel;
-        return b.weight - a.weight;
-    });
-};
-
-const chunkSameGearForTriads = (players: RealPlayer[]) => {
-    const groups: RealPlayer[][] = [];
-    let i = 0;
-
-    while (players.length - i >= 3) {
-        groups.push([players[i], players[i + 1], players[i + 2]]);
-        i += 3;
-    }
-
-    const remaining = players.slice(i);
-    if (remaining.length > 0) {
-        groups.push(remaining);
-    }
-
-    return groups;
-};
-
-const mergeSingletonZadaniowkiGroups = (groups: RealPlayer[][]) => {
-    const result = groups.filter(group => group.length > 1).map(group => [...group]);
-    const singletons = groups
-        .filter(group => group.length === 1)
-        .map(group => group[0])
-        .filter(Boolean);
-
-    if (result.length === 0 && singletons.length === 2) {
-        const first = singletons[0];
-        const second = singletons[1];
-        return first && second ? [[first, second]] : [];
-    }
-
-    for (const singleton of singletons) {
-        const targetIndex = result.findIndex(group => group.length === 2);
-
-        if (singleton && targetIndex >= 0) {
-            result[targetIndex] = [...result[targetIndex], singleton];
-        } else if (singleton) {
-            const sameGearTripleIndex = result.findIndex(
-                group => group.length === 3 && group.every(player => player.gear === singleton.gear)
-            );
-            const noGiTripleIndex = result.findIndex(
-                group => group.length === 3 && group.every(player => player.gear === 'NO')
-            );
-            const oppositeTripleIndex = result.findIndex(
-                group => group.length === 3 && group.every(player => player.gear !== singleton.gear)
-            );
-            const anyTripleIndex = result.findIndex(group => group.length === 3);
-            const donorIndex = singleton.gear === 'GI'
-                ? (noGiTripleIndex >= 0 ? noGiTripleIndex : anyTripleIndex)
-                : (sameGearTripleIndex >= 0 ? sameGearTripleIndex : oppositeTripleIndex);
-
-            if (donorIndex >= 0) {
-                const donorGroup = result[donorIndex];
-                const movedPlayer = donorGroup[donorGroup.length - 1];
-                result[donorIndex] = donorGroup.slice(0, -1);
-                result.push([singleton, movedPlayer]);
-            } else {
-                result.push([singleton]);
-            }
-        }
-    }
-
-    return result;
-};
-
-const completeGiPairsFromNoGiTriads = (groups: RealPlayer[][]) => {
-    const result = groups.map(group => [...group]);
-
-    while (true) {
-        const giPairIndex = result.findIndex(
-            group => group.length === 2 && group.every(player => player.gear === 'GI')
-        );
-        const noGiTriadIndex = result.findIndex(
-            group => group.length === 3 && group.every(player => player.gear === 'NO')
-        );
-
-        if (giPairIndex < 0 || noGiTriadIndex < 0) {
-            break;
-        }
-
-        const donorGroup = result[noGiTriadIndex];
-        const movedPlayer = donorGroup[donorGroup.length - 1];
-        result[noGiTriadIndex] = donorGroup.slice(0, -1);
-        result[giPairIndex] = [...result[giPairIndex], movedPlayer];
-    }
-
-    return result;
-};
-
-const chunkZadaniowkiByGear = (players: RealPlayer[]) => {
-    const giGroups = chunkSameGearForTriads(sortForZadaniowki(players.filter(player => player.gear === 'GI')));
-    const noGiGroups = chunkSameGearForTriads(sortForZadaniowki(players.filter(player => player.gear === 'NO')));
-
-    return completeGiPairsFromNoGiTriads(mergeSingletonZadaniowkiGroups([...giGroups, ...noGiGroups]));
-};
-
-const countPlayersByGear = (players: RealPlayer[]) => {
-    return players.reduce((counts, player) => {
-        counts[player.gear] += 1;
-        return counts;
-    }, { GI: 0, NO: 0 } as Record<RealPlayer['gear'], number>);
-};
-
-const countPairGroups = (groups: RealPlayer[][]) => {
-    return groups.filter(group => group.length === 2).length;
-};
-
-const getGearGroupingPenalty = (groups: RealPlayer[][]) => {
-    return groups.reduce((penalty, group) => {
-        const gearCount = new Set(group.map(player => player.gear)).size;
-
-        if (group.length === 1) return penalty + 1000;
-        if (gearCount > 1) return penalty + 100;
-        return penalty;
-    }, 0);
-};
-
-const compareScoreTuple = (a: number[], b: number[]) => {
-    for (let i = 0; i < Math.min(a.length, b.length); i++) {
-        if (a[i] !== b[i]) return a[i] - b[i];
-    }
-
-    return a.length - b.length;
-};
-
-const chooseKidToPromoteToAdults = (
-    kids: RealPlayer[],
-    adults: RealPlayer[],
-    currentKidGearPenalty: number
-) => {
-    const gearCounts = countPlayersByGear(kids);
-    const movableKids = kids.filter(kid => {
-        const gearCount = gearCounts[kid.gear];
-        return gearCount % 3 !== 0;
-    });
-    const stableCandidates = movableKids.filter(kid => {
-        const groupsWithoutKid = chunkZadaniowkiByGear(kids.filter(player => player.id !== kid.id));
-        return getGearGroupingPenalty(groupsWithoutKid) <= currentKidGearPenalty;
-    });
-    const candidates = stableCandidates.length > 0 ? stableCandidates : movableKids;
-
-    const getCandidateScore = (kid: RealPlayer) => {
-        const groupsWithoutKid = chunkZadaniowkiByGear(kids.filter(player => player.id !== kid.id));
-        const gearPenalty = getGearGroupingPenalty(groupsWithoutKid);
-        const adultPair = findSafestAdultPairForPromotedKid(adults, kid);
-        const adultGearPenalty = adultPair
-            ? adultPair.filter(adult => adult.gear !== kid.gear).length
-            : 99;
-        const gearCount = gearCounts[kid.gear];
-        const gearRemainder = gearCount % 3;
-        const remainderPriority = gearRemainder === 1 ? 0 : gearRemainder === 2 ? 1 : 2;
-        const pairBreakPenalty = gearCount === 2 ? 1 : 0;
-
-        return [
-            gearPenalty,
-            remainderPriority,
-            pairBreakPenalty,
-            adultGearPenalty,
-            -kid.weight,
-        ];
-    };
-
-    return [...candidates].sort((a, b) => {
-        const scoreCompare = compareScoreTuple(getCandidateScore(a), getCandidateScore(b));
-        if (scoreCompare !== 0) return scoreCompare;
-        return a.id.localeCompare(b.id, 'pl', { sensitivity: 'base' });
-    })[0] ?? null;
-};
-
-const findSafestAdultPairForPromotedKid = (
-    adults: RealPlayer[],
-    promotedKid: RealPlayer
-) => {
-    let bestPair: RealPlayer[] | null = null;
-    let bestScore: number[] | null = null;
-
-    for (let i = 0; i < adults.length; i++) {
-        for (let j = i + 1; j < adults.length; j++) {
-            const pair = [adults[i], adults[j]];
-            const remainingAdults = adults.filter(
-                adult => adult.id !== pair[0].id && adult.id !== pair[1].id
-            );
-            const remainingGroups = chunkZadaniowkiByGear(remainingAdults);
-            const score = [
-                getGearGroupingPenalty([...remainingGroups, [...pair, promotedKid]]),
-                pair.filter(adult => adult.gear !== promotedKid.gear).length,
-                Math.max(...pair.map(adult => Number(adult.skillLevel) || 0)),
-                pair.reduce((sum, adult) => sum + (Number(adult.skillLevel) || 0), 0),
-                Math.max(...pair.map(adult => adult.weight)),
-                pair.reduce((sum, adult) => sum + adult.weight, 0),
-            ];
-
-            if (!bestScore || compareScoreTuple(score, bestScore) < 0) {
-                bestPair = pair;
-                bestScore = score;
-            }
-        }
-    }
-
-    return bestPair;
-};
-
 const getTriadRoleAccent = (role: string, fallback: string) => {
     if (role === '[A]') return COLORS.accentMain;
     if (role === '[B]') return COLORS.accentCool;
@@ -504,48 +269,6 @@ const getTriadRoleOrder = (role: string) => {
     if (role === '[B]') return 1;
     if (role === '[C]') return 2;
     return 99;
-};
-
-const buildTriadZadaniowkiGroups = (players: RealPlayer[]) => {
-    let kids = sortForZadaniowki(players.filter(p => p.type === 'KID'));
-    let adults = sortForZadaniowki(players.filter(p => p.type === 'ADULT'));
-    const promotedAdultGroups: RealPlayer[][] = [];
-
-    let kidsGroups = chunkZadaniowkiByGear(kids);
-    let adultsGroups = chunkZadaniowkiByGear(adults);
-
-    while (countPairGroups(kidsGroups) >= 2 && adultsGroups.some(group => group.length === 2)) {
-        const currentKidGearPenalty = getGearGroupingPenalty(kidsGroups);
-        const promotedKid = chooseKidToPromoteToAdults(kids, adults, currentKidGearPenalty);
-        const safestAdultPair = promotedKid
-            ? findSafestAdultPairForPromotedKid(adults, promotedKid)
-            : null;
-
-        if (!promotedKid || !safestAdultPair) {
-            break;
-        }
-
-        const safestAdultIds = new Set(safestAdultPair.map(player => player.id));
-        kids = kids.filter(player => player.id !== promotedKid.id);
-        adults = adults.filter(player => !safestAdultIds.has(player.id));
-        promotedAdultGroups.push([...safestAdultPair, promotedKid]);
-
-        kidsGroups = chunkZadaniowkiByGear(kids);
-        adultsGroups = chunkZadaniowkiByGear(adults);
-    }
-
-    // Singleton kids who can't form a pair/triad get merged into adult groups
-    const singletonKids = kids.filter(kid =>
-      kidsGroups.some(g => g.length === 1 && g[0].id === kid.id)
-    );
-    if (singletonKids.length > 0) {
-      kids = kids.filter(k => !singletonKids.some(sk => sk.id === k.id));
-      adults = [...adults, ...singletonKids];
-      kidsGroups = chunkZadaniowkiByGear(kids);
-      adultsGroups = chunkZadaniowkiByGear(adults);
-    }
-
-    return [...kidsGroups, ...adultsGroups, ...promotedAdultGroups];
 };
 
 
@@ -1450,7 +1173,7 @@ const PairCategoryLegend = ({
 };
 
 const pairLegendStyles = StyleSheet.create({
-  row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 10, rowGap: 4, marginTop: 4 },
+  row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 10, rowGap: 4, marginTop: 4, flexShrink: 1, minWidth: 0, maxWidth: '100%' },
   rowCompact: { columnGap: 6, marginTop: 2 },
   item: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   swatch: { width: 11, height: 11, borderRadius: 2 },
@@ -1460,11 +1183,7 @@ const pairLegendStyles = StyleSheet.create({
 });
 
 export default function App() {
-  useKeepAwake('BJJ_TIMER_APP');
-  // Belt-and-suspenders: explicit async activation in case the hook is delayed.
-  useEffect(() => {
-    activateKeepAwakeAsync('BJJ_TIMER_APP_ASYNC').catch(() => {});
-  }, []);
+  useSafeKeepAwake('BJJ_TIMER_APP');
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const [zadaniowkiMainLayout, setZadaniowkiMainLayout] = useState({ width: 0, height: 0 });
   const [pairsMainLayout, setPairsMainLayout] = useState({ width: 0, height: 0 });
@@ -1512,35 +1231,16 @@ export default function App() {
   const [prepTime, setPrepTime] = useState('60'); 
   const [restTime, setRestTime] = useState('75');   
   const [roundsTotal, setRoundsTotal] = useState('5'); 
+  const [formError, setFormError] = useState<string | null>(null);
+  const [weightThresholdInput, setWeightThresholdInput] = useState(
+    String(DEFAULT_SPARRING_OPTIONS.weightDivisionThreshold),
+  );
 
   // Sanitize numeric inputs: roundTime allows decimals, others integer-only
-  const handleSetRoundTime = (v: string) => setRoundTime(v.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1'));
+  const handleSetRoundTime = (v: string) => setRoundTime(sanitizeDecimalWeightInput(v));
   const handleSetPrepTime = (v: string) => setPrepTime(v.replace(/[^0-9]/g, ''));
   const handleSetRestTime = (v: string) => setRestTime(v.replace(/[^0-9]/g, ''));
   const handleSetRoundsTotal = (v: string) => setRoundsTotal(v.replace(/[^0-9]/g, ''));
-
-  const calcBestWeightThreshold = (players: RealPlayer[]): number => {
-    if (players.length < 4) return 80;
-    const weights = players.map(p => p.weight).sort((a, b) => a - b);
-    let bestThreshold = weights[Math.floor(weights.length / 2)];
-    let bestDiff = Infinity;
-    for (let i = 0; i < weights.length - 1; i++) {
-      const threshold = Math.floor((weights[i] + weights[i + 1]) / 2);
-      const countA = weights.filter(w => w <= threshold).length;
-      const countB = weights.filter(w => w > threshold).length;
-      if (countA < 2 || countB < 2) continue;
-      const pairsA = Math.floor(countA / 2);
-      const pairsB = Math.floor(countB / 2);
-      const diff = Math.abs(pairsA - pairsB);
-      if (diff < bestDiff || (diff === bestDiff && Math.abs(countA - countB) < Math.abs(
-        weights.filter(w => w <= bestThreshold).length - weights.filter(w => w > bestThreshold).length
-      ))) {
-        bestDiff = diff;
-        bestThreshold = threshold;
-      }
-    }
-    return bestThreshold;
-  };
 
   const [activePlayers, setActivePlayers] = useState<RealPlayer[]>([]);
   const [currentMatches, setCurrentMatches] = useState<Match[]>([]);
@@ -1586,7 +1286,13 @@ export default function App() {
   const soundsRef = useRef<any>({});
   const audioDuckHoldRef = useRef<Audio.Sound | null>(null);
   const tenSecSoundFiredRef = useRef(false);
+  const tenSecTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dropoutShouldResumeRef = useRef(false);
+  const isStartingTrainingRef = useRef(false);
+  const phaseEndTimeRef = useRef<number | null>(null);
+  const remainingMsOnPauseRef = useRef<number | null>(null);
+  const timeLeftRef = useRef(0);
+  const zadaniowkiGroupsRef = useRef<RealPlayer[][]>([]);
   
   const devModeClickCount = useRef(0);
   const savedTimerValuesRef = useRef({ roundTime: '6', prepTime: '60', restTime: '75', roundsTotal: '5' });
@@ -1610,6 +1316,27 @@ export default function App() {
     currentRestingRef.current = resting;
     setCurrentResting(resting);
   }, []);
+
+  const updateZadaniowkiGroups = useCallback((groups: RealPlayer[][]) => {
+    zadaniowkiGroupsRef.current = groups;
+    setZadaniowkiGroups(groups);
+  }, []);
+
+  const startPhaseCountdown = useCallback((seconds: number) => {
+    const safeSec = Math.max(1, Math.round(Number.isFinite(seconds) ? seconds : 1));
+    phaseEndTimeRef.current = Date.now() + safeSec * 1000;
+    remainingMsOnPauseRef.current = safeSec * 1000;
+    timeLeftRef.current = safeSec;
+    setTimeLeft(safeSec);
+  }, []);
+
+  useEffect(() => {
+    timeLeftRef.current = timeLeft;
+  }, [timeLeft]);
+
+  useEffect(() => {
+    setWeightThresholdInput(String(sparringOptions.weightDivisionThreshold));
+  }, [sparringOptions.weightDivisionThreshold]);
 
   useEffect(() => {
     noRestPlayersRef.current = noRestPlayers;
@@ -1636,7 +1363,8 @@ export default function App() {
     }
   };
 
-  const showConfirm = (title: string, message: string, onConfirm: () => void, confirmLabel: string = 'Wyczyść') => {
+  const showConfirm = (title: string, message: string, onConfirm: () => void, confirmLabel?: string) => {
+    const resolvedConfirmLabel = confirmLabel ?? t('clear', lang);
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const confirmed = window.confirm(`${title}\n\n${message}`);
       if (confirmed) onConfirm();
@@ -1647,9 +1375,9 @@ export default function App() {
       title,
       message,
       [
-        { text: 'Anuluj', style: 'cancel' },
+        { text: t('cancel', lang), style: 'cancel' },
         {
-          text: confirmLabel,
+          text: resolvedConfirmLabel,
           style: 'destructive',
           onPress: onConfirm,
         },
@@ -1688,14 +1416,10 @@ export default function App() {
         ]);
 
         if (storedDB) {
-          const parsedPlayers = JSON.parse(storedDB);
           const requiresLegacySkillMigration =
             storedSkillLevelSchemaVersion !== SKILL_LEVEL_SCHEMA_VERSION;
 
-          const normalizedPlayers = parsedPlayers
-            .filter((p: any) => p.type !== 'DUMMY')
-            .map((p: RealPlayer) => normalizeStoredPlayer(p, requiresLegacySkillMigration));
-
+          const normalizedPlayers = sanitizeStoredPlayers(storedDB, requiresLegacySkillMigration);
           setSavedPlayersDB(normalizedPlayers);
 
           if (requiresLegacySkillMigration) {
@@ -1716,7 +1440,7 @@ export default function App() {
     const loadHistory = async () => {
       try {
         const stored = await AsyncStorage.getItem(TRAINING_HISTORY_KEY);
-        if (stored) setTrainingHistory(JSON.parse(stored));
+        if (stored) setTrainingHistory(sanitizeTrainingHistory(stored));
       } catch {}
     };
     loadHistory();
@@ -1733,8 +1457,31 @@ export default function App() {
         }
       } catch {}
       setLangLoaded(true);
+      SplashScreen.hideAsync().catch(() => {});
     };
     loadLang();
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const styleId = 'bjj-timer-focus-ring';
+    if (!document.getElementById(styleId)) {
+      const styleEl = document.createElement('style');
+      styleEl.id = styleId;
+      styleEl.textContent = `
+        * { scrollbar-width: thin; scrollbar-color: #31445D #07111F; }
+        [role="button"]:focus-visible,
+        [role="switch"]:focus-visible,
+        [role="adjustable"]:focus-visible,
+        [role="link"]:focus-visible,
+        input:focus-visible,
+        button:focus-visible {
+          outline: 2px solid #49C6FF !important;
+          outline-offset: 2px !important;
+        }
+      `;
+      document.head.appendChild(styleEl);
+    }
   }, []);
 
   const handleSelectLanguage = async (l: Language) => {
@@ -1747,26 +1494,57 @@ export default function App() {
     ensureAudioFocus();
   }, []);
 
+  const unloadAllSounds = useCallback(async () => {
+    const current = soundsRef.current;
+    soundsRef.current = {};
+    await Promise.allSettled([
+      current.bell?.unloadAsync?.(),
+      current.warning?.unloadAsync?.(),
+      current.tenSec?.unloadAsync?.(),
+      current.finish?.unloadAsync?.(),
+    ]);
+  }, []);
+
   const initAudio = async () => {
     try {
       await ensureAudioFocus();
-      const { sound: bell } = await Audio.Sound.createAsync(BELL_SOUND, { volume: 1 });
-      const { sound: beep } = await Audio.Sound.createAsync(BEEP_SOUND, { volume: 1 });
-      const { sound: klaps } = await Audio.Sound.createAsync(KLAPS_SOUND, { volume: 1 });
-      const { sound: finish } = await Audio.Sound.createAsync(FINISH_SOUND, { volume: 0.96 });
-      soundsRef.current = { bell, warning: beep, tenSec: klaps, finish };
+      if (
+        soundsRef.current.bell &&
+        soundsRef.current.warning &&
+        soundsRef.current.tenSec &&
+        soundsRef.current.finish
+      ) {
+        return;
+      }
+      await unloadAllSounds();
+      const [bellRes, beepRes, klapsRes, finishRes] = await Promise.all([
+        Audio.Sound.createAsync(BELL_SOUND, { volume: 1 }),
+        Audio.Sound.createAsync(BEEP_SOUND, { volume: 1 }),
+        Audio.Sound.createAsync(KLAPS_SOUND, { volume: 1 }),
+        Audio.Sound.createAsync(FINISH_SOUND, { volume: 0.96 }),
+      ]);
+      soundsRef.current = {
+        bell: bellRes.sound,
+        warning: beepRes.sound,
+        tenSec: klapsRes.sound,
+        finish: finishRes.sound,
+      };
     } catch {}
   };
 
   useEffect(() => {
       return () => {
-          if (soundsRef.current.bell) soundsRef.current.bell.unloadAsync();
-          if (soundsRef.current.warning) soundsRef.current.warning.unloadAsync();
-          if (soundsRef.current.tenSec) soundsRef.current.tenSec.unloadAsync();
-          if (soundsRef.current.finish) soundsRef.current.finish.unloadAsync();
-          if (audioDuckHoldRef.current) { audioDuckHoldRef.current.stopAsync(); audioDuckHoldRef.current.unloadAsync(); }
+          if (tenSecTimeoutRef.current) {
+            clearTimeout(tenSecTimeoutRef.current);
+            tenSecTimeoutRef.current = null;
+          }
+          unloadAllSounds();
+          if (audioDuckHoldRef.current) {
+            audioDuckHoldRef.current.stopAsync().catch(() => {});
+            audioDuckHoldRef.current.unloadAsync().catch(() => {});
+          }
       }
-  }, []);
+  }, [unloadAllSounds]);
 
   const playSound = useCallback(async (type: 'start' | 'end' | 'warning' | 'tenSeconds' | 'finish') => {
     try {
@@ -1779,13 +1557,17 @@ export default function App() {
       if (s) {
         await s.setPositionAsync(0);
         await s.replayAsync(); 
-        if (type === 'tenSeconds') setTimeout(async () => {
-          try {
-            await ensureAudioFocus();
-            await s.setPositionAsync(0);
-            await s.replayAsync();
-          } catch {}
-        }, 180);
+        if (type === 'tenSeconds') {
+          if (tenSecTimeoutRef.current) clearTimeout(tenSecTimeoutRef.current);
+          tenSecTimeoutRef.current = setTimeout(async () => {
+            tenSecTimeoutRef.current = null;
+            try {
+              await ensureAudioFocus();
+              await s.setPositionAsync(0);
+              await s.replayAsync();
+            } catch {}
+          }, 180);
+        }
       }
     } catch {}
   }, []);
@@ -1844,13 +1626,19 @@ export default function App() {
 
   const handleNameChange = (text: string) => {
     setNewName(text);
+    if (formError) setFormError(null);
     if (text.trim().length > 0) {
-      const matches = savedPlayersDB.filter(p => p.id.toLowerCase().startsWith(text.toLowerCase()));
+      const matches = savedPlayersDB.filter(p => p.id.toLowerCase().startsWith(text.trim().toLowerCase()));
       setFilteredSuggestions(matches);
       setShowSuggestions(matches.length > 0);
     } else {
       setShowSuggestions(false);
     }
+  };
+
+  const handleWeightChange = (text: string) => {
+    setNewWeight(sanitizeDecimalWeightInput(text));
+    if (formError) setFormError(null);
   };
 
   const handleSelectSuggestion = (player: RealPlayer) => {
@@ -1863,6 +1651,7 @@ export default function App() {
     if (selectedSkillLevel !== 0) setNewSkillLevel(selectedSkillLevel);
     // Status "gość" jest per-trening — z bazy zawsze startujemy jako nie-gość.
     setNewIsGuest(false);
+    setFormError(null);
     setShowSuggestions(false);
   };
 
@@ -1876,20 +1665,50 @@ export default function App() {
     if (selectedSkillLevel !== 0) setNewSkillLevel(selectedSkillLevel);
     setNewIsGuest(p.isGuest === true);
     setEditingPlayerId(p.id);
+    setFormError(null);
+    setShowSuggestions(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPlayerId(null);
+    setNewName('');
+    setNewIsGuest(false);
+    setFormError(null);
+    setShowSuggestions(false);
   };
 
   const handleAddPlayer = async () => {
-    if (!newName.trim()) return showInfo(t('errNoName', lang));
-    if (!newWeight.trim() || isNaN(Number(newWeight))) return showInfo(t('errNoWeight', lang));
-    
-    if (!editingPlayerId && roster.find(p => p.id.toLowerCase() === newName.trim().toLowerCase())) return showInfo(t('errDuplicate', lang));
+    const normalizedName = newName.trim().toUpperCase();
+    if (!normalizedName) {
+      const msg = t('errNoName', lang);
+      setFormError(msg);
+      return showInfo(msg);
+    }
+
+    const parsedWeight = parsePlayerWeight(newWeight);
+    if (parsedWeight === null) {
+      const msg = t('errNoWeight', lang);
+      setFormError(msg);
+      return showInfo(msg);
+    }
+
+    const hasDuplicate = roster.some(
+      p => p.id.toLowerCase() === normalizedName.toLowerCase() && p.id !== editingPlayerId
+    );
+    if (hasDuplicate) {
+      const msg = t('errDuplicate', lang);
+      setFormError(msg);
+      return showInfo(msg);
+    }
+
+    setFormError(null);
 
     const newPlayer: RealPlayer = {
-        id: newName.trim().toUpperCase(),
+        id: normalizedName,
         type: newType,
         gear: newGear,
         gender: newGender,
-        weight: parseFloat(newWeight),
+        weight: parsedWeight,
         skillLevel: newType === 'ADULT' ? newSkillLevel : 0,
         isGuest: newIsGuest,
         restDebt: 0,
@@ -1908,14 +1727,15 @@ export default function App() {
     if (editingPlayerId) {
         const rosterIdx = updatedRoster.findIndex(p => p.id === editingPlayerId);
         if (rosterIdx >= 0) updatedRoster[rosterIdx] = newPlayer;
-        
-        const dbIdx = updatedDB.findIndex(p => p.id === editingPlayerId);
-        if (dbIdx >= 0) {
-            updatedDB[dbIdx] = playerForDB;
+
+        if (editingPlayerId !== newPlayer.id) {
+          setNoRestPlayers(prev => prev.map(pid => (pid === editingPlayerId ? newPlayer.id : pid)));
+          updatedDB = updatedDB.filter(p => p.id !== editingPlayerId && p.id !== newPlayer.id);
+          updatedDB.push(playerForDB);
         } else {
-            const newNameDbIdx = updatedDB.findIndex(p => p.id === newPlayer.id);
-            if (newNameDbIdx >= 0) updatedDB[newNameDbIdx] = playerForDB;
-            else updatedDB.push(playerForDB);
+          const dbIdx = updatedDB.findIndex(p => p.id === editingPlayerId);
+          if (dbIdx >= 0) updatedDB[dbIdx] = playerForDB;
+          else updatedDB.push(playerForDB);
         }
         setEditingPlayerId(null);
     } else {
@@ -1935,6 +1755,20 @@ export default function App() {
     setNewName('');
     setNewIsGuest(false);
     setShowSuggestions(false);
+  };
+
+  const handleDeleteFromClubDB = (playerId: string) => {
+    showConfirm(
+      t('confirmDeleteFromDBTitle', lang),
+      `${t('confirmDeleteFromDBMsg', lang)} ${playerId}?`,
+      () => {
+        const updatedDB = savedPlayersDB.filter(p => p.id !== playerId);
+        setSavedPlayersDB(updatedDB);
+        setSelectedClubDBPlayerIds(prev => prev.filter(id => id !== playerId));
+        AsyncStorage.setItem(PLAYERS_DB_KEY, JSON.stringify(updatedDB)).catch(() => {});
+      },
+      t('delete', lang),
+    );
   };
 
   const handleOpenClubDB = () => {
@@ -2235,109 +2069,135 @@ export default function App() {
   };
 
   const handleStartTraining = async () => {
+    if (isStartingTrainingRef.current) return;
     if (roster.length < 2) return showInfo(t('errMinPlayers', lang));
     
     const rt = parseFloat(roundTime);
-    const rds = parseInt(roundsTotal, 10);
-    if (!rt || rt <= 0) return showInfo(t('errRoundTime', lang));
-    if (!rds || rds <= 0) return showInfo(t('errRoundsTotal', lang));
+    const rds = Math.min(100, parseInt(roundsTotal, 10));
+    if (!Number.isFinite(rt) || rt <= 0 || rt > 120) return showInfo(t('errRoundTime', lang));
+    if (!Number.isFinite(rds) || rds <= 0) return showInfo(t('errRoundsTotal', lang));
     
     const isWeightDivision = trainingMode === 'SPARING' && sparringOptions.weightDivisionEnabled;
 
     if (!isWeightDivision) {
       const pt = parseInt(prepTime, 10);
       const rst = parseInt(restTime, 10);
-      if (!pt || pt <= 0) return showInfo(t('errPrepTime', lang));
-      if (!rst || rst <= 0) return showInfo(t('errRestTime', lang));
+      if (!Number.isFinite(pt) || pt <= 0 || pt > 900) return showInfo(t('errPrepTime', lang));
+      if (!Number.isFinite(rst) || rst <= 0 || rst > 900) return showInfo(t('errRestTime', lang));
     }
 
-    // Dev mode: show all rounds simulation before starting
-    if (__DEV__ && isDevMode && trainingMode === 'SPARING') {
-      simulateAllRounds();
-    }
-    
-    await initAudio();
+    isStartingTrainingRef.current = true;
+    try {
+      // Dev mode: show all rounds simulation before starting
+      if (__DEV__ && isDevMode && trainingMode === 'SPARING') {
+        simulateAllRounds();
+      }
+      
+      await initAudio();
 
-    let freshRoster = roster.map(p => ({...p, restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0}));
-    setActivePlayers(freshRoster);
-    activePlayersRef.current = freshRoster;
-    setCurrentRound(1);
-    setCurrentStep(1);
-    
-    if (trainingMode === 'ZADANIOWKI') {
-        if (zadaniowkiType === 'TRÓJKI') {
-            setZadaniowkiGroups(buildTriadZadaniowkiGroups(freshRoster));
-        } else {
-            historyRef.current.clear(); 
-            const { matches, resting } = generateRound(freshRoster, historyRef.current, 1, noRestPlayers, sparringOptions, parseInt(roundsTotal));
-            setCurrentMatches(matches);
-            currentMatchesRef.current = matches;
-            updateCurrentResting(resting);
-        }
-        setCurrentScreen('zadaniowki_timer');
-        setPhase('PREP');
-        setTimeLeft(Math.floor(parseFloat(prepTime)));
-        setIsActive(true);
-    } else if (isWeightDivision) {
-        // Weight division mode: split roster, generate matches for both groups
-        historyRef.current.clear();
-        const threshold = sparringOptions.weightDivisionThreshold;
-        const groupA = freshRoster.filter(p => p.weight <= threshold);
-        const groupB = freshRoster.filter(p => p.weight > threshold);
+      trainingPairsLog.current = [];
+      oneRoundRestPlayerIdsRef.current = [];
+      setOneRoundRestPlayerIds([]);
+      tenSecSoundFiredRef.current = false;
 
-        if (groupA.length < 2 || groupB.length < 2) {
-            return showInfo(t('errWeightDivision', lang));
-        }
+      const freshRoster = roster.map(p => ({...p, restDebt: 0, lastRestRound: 0, consecutiveMatches: 0, helpedKidCount: 0, mismatchDebt: 0}));
+      setActivePlayers(freshRoster);
+      activePlayersRef.current = freshRoster;
+      setCurrentRound(1);
+      setCurrentStep(1);
+      
+      if (trainingMode === 'ZADANIOWKI') {
+          if (zadaniowkiType === 'TRÓJKI') {
+              const { groups, resting } = buildTriadZadaniowkiGroupsWithResting(freshRoster);
+              updateZadaniowkiGroups(groups);
+              setCurrentMatches([]);
+              currentMatchesRef.current = [];
+              updateCurrentResting(resting);
+          } else {
+              historyRef.current.clear(); 
+              updateZadaniowkiGroups([]);
+              const { matches, resting } = generateRound(freshRoster, historyRef.current, 1, noRestPlayers, sparringOptions, rds);
+              setCurrentMatches(matches);
+              currentMatchesRef.current = matches;
+              updateCurrentResting(resting);
+          }
+          setCurrentScreen('zadaniowki_timer');
+          setPhase('PREP');
+          startPhaseCountdown(Math.floor(parseFloat(prepTime)));
+          setIsActive(true);
+      } else if (isWeightDivision) {
+          // Weight division mode: split roster, generate matches for both groups
+          historyRef.current.clear();
+          updateZadaniowkiGroups([]);
+          const threshold = sparringOptions.weightDivisionThreshold;
+          const groupA = freshRoster.filter(p => p.weight <= threshold);
+          const groupB = freshRoster.filter(p => p.weight > threshold);
 
-        const resultA = generateRound(groupA, historyRef.current, 1, noRestPlayers, sparringOptions, rds);
-        const resultB = generateRound(groupB, historyRef.current, 1, noRestPlayers, sparringOptions, rds);
+          if (groupA.length < 2 || groupB.length < 2) {
+              return showInfo(t('errWeightDivision', lang));
+          }
 
-        setWeightGroupMatchesA(resultA.matches);
-        setWeightGroupMatchesB(resultB.matches);
-        setWeightGroupRestingA(resultA.resting);
-        setWeightGroupRestingB(resultB.resting);
-        weightGroupMatchesARef.current = resultA.matches;
-        weightGroupMatchesBRef.current = resultB.matches;
+          const resultA = generateRound(groupA, historyRef.current, 1, noRestPlayers, sparringOptions, rds);
+          const resultB = generateRound(groupB, historyRef.current, 1, noRestPlayers, sparringOptions, rds);
 
-        setCurrentWeightGroup('A');
-        currentWeightGroupRef.current = 'A';
-        setCurrentMatches(resultA.matches);
-        currentMatchesRef.current = resultA.matches;
-        updateCurrentResting(resultA.resting);
+          setWeightGroupMatchesA(resultA.matches);
+          setWeightGroupMatchesB(resultB.matches);
+          setWeightGroupRestingA(resultA.resting);
+          setWeightGroupRestingB(resultB.resting);
+          weightGroupMatchesARef.current = resultA.matches;
+          weightGroupMatchesBRef.current = resultB.matches;
 
-        setCurrentScreen('timer');
-        setPhase('PREP');
-        setTimeLeft(20); // Fixed 20s prep for weight division
-        setIsActive(true);
-    } else if (trainingMode === 'DRILLE') {
-        // Drille: pary jak w zadaniówkach dwójkowych, ale się nie zmieniają
-        historyRef.current.clear();
-        const { matches, resting } = generateRound(freshRoster, historyRef.current, 1, noRestPlayers, sparringOptions, parseInt(roundsTotal));
-        setCurrentMatches(matches);
-        currentMatchesRef.current = matches;
-        updateCurrentResting(resting);
-        setCurrentScreen('zadaniowki_timer');
-        setPhase('PREP');
-        setTimeLeft(60); // 60s prep for drille
-        setIsActive(true);
-    } else {
-        historyRef.current.clear(); 
-        setCurrentScreen('timer');
-        setPhase('PREP');
-        setTimeLeft(Math.floor(parseFloat(prepTime))); 
-        setIsActive(true);
+          setCurrentWeightGroup('A');
+          currentWeightGroupRef.current = 'A';
+          setCurrentMatches(resultA.matches);
+          currentMatchesRef.current = resultA.matches;
+          updateCurrentResting(resultA.resting);
 
-        const { matches, resting } = generateRound(freshRoster, historyRef.current, 1, noRestPlayers, sparringOptions, parseInt(roundsTotal));
-        setCurrentMatches(matches);
-        currentMatchesRef.current = matches;
-        updateCurrentResting(resting);
+          setCurrentScreen('timer');
+          setPhase('PREP');
+          startPhaseCountdown(20); // Fixed 20s prep for weight division
+          setIsActive(true);
+      } else if (trainingMode === 'DRILLE') {
+          // Drille: pary jak w zadaniówkach dwójkowych, ale się nie zmieniają
+          historyRef.current.clear();
+          updateZadaniowkiGroups([]);
+          const { matches, resting } = generateRound(freshRoster, historyRef.current, 1, noRestPlayers, sparringOptions, rds);
+          setCurrentMatches(matches);
+          currentMatchesRef.current = matches;
+          updateCurrentResting(resting);
+          setCurrentScreen('zadaniowki_timer');
+          setPhase('PREP');
+          startPhaseCountdown(Math.floor(parseFloat(prepTime)));
+          setIsActive(true);
+      } else {
+          historyRef.current.clear(); 
+          updateZadaniowkiGroups([]);
+          const { matches, resting } = generateRound(freshRoster, historyRef.current, 1, noRestPlayers, sparringOptions, rds);
+          setCurrentMatches(matches);
+          currentMatchesRef.current = matches;
+          updateCurrentResting(resting);
+
+          setCurrentScreen('timer');
+          setPhase('PREP');
+          startPhaseCountdown(Math.floor(parseFloat(prepTime))); 
+          setIsActive(true);
+      }
+    } finally {
+      isStartingTrainingRef.current = false;
     }
   };
 
-  const handleStopTraining = () => {
+  const handleStopTraining = useCallback(() => {
     setIsActive(false);
+    phaseEndTimeRef.current = null;
+    remainingMsOnPauseRef.current = null;
+    trainingPairsLog.current = [];
+    if (tenSecTimeoutRef.current) {
+      clearTimeout(tenSecTimeoutRef.current);
+      tenSecTimeoutRef.current = null;
+    }
     setCurrentScreen('settings');
-  };
+  }, []);
 
   const handleOpenDropoutModal = () => {
     dropoutShouldResumeRef.current = isActive;
@@ -2404,8 +2264,9 @@ export default function App() {
 
     if (trainingMode === 'ZADANIOWKI') {
         if (zadaniowkiType === 'TRÓJKI') {
-            setZadaniowkiGroups(buildTriadZadaniowkiGroups(effectiveRoster));
-            updateCurrentResting(mergeResting([]));
+            const { groups, resting } = buildTriadZadaniowkiGroupsWithResting(effectiveRoster);
+            updateZadaniowkiGroups(groups);
+            updateCurrentResting(mergeResting(resting));
         } else {
             const { matches, resting } = generateRound(effectiveRoster, historyRef.current, currentRound, noRestPlayersRef.current, sparringOptionsRef.current, parseInt(roundsTotal));
             setCurrentMatches(matches);
@@ -2497,191 +2358,285 @@ export default function App() {
     handleRemovePlayersFromTraining(fullIds);
   };
 
+  // Monotonic wall-clock ticker — eliminates drift across long rounds and tab throttling
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | null = null;
-    if (isActive && timeLeft > 0) {
-      interval = setInterval(() => { setTimeLeft(prev => prev - 1); }, 1000);
-    } else if (isActive && timeLeft === 0) {
-      
-      if (trainingMode === 'ZADANIOWKI') {
-          if (zadaniowkiType === 'TRÓJKI') {
-              if (phase === 'PREP') {
-                  playSound('start'); setPhase('WORK'); setTimeLeft(Math.floor(parseFloat(roundTime) * 60)); 
-              } else if (phase === 'WORK') {
-                  if (currentStep < 6) {
-                      playSound('end'); setPhase('PREP'); setTimeLeft(Math.floor(parseFloat(restTime)));
-                      setCurrentStep(prev => prev + 1);
-                  } else { 
-                      if (currentRound < parseInt(roundsTotal)) {
-                          playSound('end'); setPhase('PREP'); setTimeLeft(Math.floor(parseFloat(restTime))); 
-                          setCurrentRound(prev => prev + 1);
-                          setCurrentStep(1);
-                      } else {
-                          playSound('finish'); setIsActive(false); setCurrentScreen('finished'); 
-                      }
-                  }
-              }
-          } else { 
-              if (phase === 'PREP') {
-                  playSound('start'); setPhase('WORK'); setTimeLeft(Math.floor(parseFloat(roundTime) * 60)); 
-                  if (currentStep === 1) { 
-                      const updated = applyRoundResult(currentMatchesRef.current, currentRestingRef.current, currentRound, historyRef.current, activePlayersRef.current);
-                      activePlayersRef.current = updated;
-                      setActivePlayers(updated);
-                  }
-              } else if (phase === 'WORK') {
-                  if (currentStep === 1) { 
-                      playSound('end'); setPhase('PREP'); setTimeLeft(Math.floor(parseFloat(restTime))); 
-                      setCurrentStep(2);
-                  } else { 
-                      if (currentRound < parseInt(roundsTotal)) {
-                          playSound('end'); setPhase('PREP'); 
-                          setTimeLeft(Math.floor(parseFloat(prepTime))); 
-                          setCurrentRound(prev => prev + 1);
-                          setCurrentStep(1);
-                          consumeOneRoundRest();
-                          const { matches, resting } = generateRound(activePlayersRef.current, historyRef.current, currentRound + 1, noRestPlayersRef.current, sparringOptionsRef.current, parseInt(roundsTotal));
-                          setCurrentMatches(matches); currentMatchesRef.current = matches; updateCurrentResting(resting);
-                      } else {
-                          playSound('finish'); setIsActive(false); setCurrentScreen('finished'); 
-                      }
-                  }
-              }
-          }
-      } else if (trainingMode === 'DRILLE') {
-          // Drille: PREP(60s) → WORK → REST → WORK → REST → ... (pairs don't change, roles A↔B swap)
-          if (phase === 'PREP') {
-              playSound('start'); setPhase('WORK'); setTimeLeft(Math.floor(parseFloat(roundTime) * 60));
-          } else if (phase === 'WORK') {
-              if (currentRound < parseInt(roundsTotal)) {
-                  playSound('end'); setPhase('REST'); setTimeLeft(Math.floor(parseFloat(restTime)));
-              } else {
-                  playSound('finish'); setIsActive(false); setCurrentScreen('finished');
-              }
-          } else if (phase === 'REST') {
-              playSound('start'); setPhase('WORK');
-              setCurrentRound(prev => prev + 1);
-              setCurrentStep(prev => prev === 1 ? 2 : 1); // swap A↔B roles
-              setTimeLeft(Math.floor(parseFloat(roundTime) * 60));
-          }
-      } else if (sparringOptionsRef.current.weightDivisionEnabled) {
-          // Weight division mode: PREP(20s) → WORK_A → PREP(20s) → WORK_B → ...
-          const threshold = sparringOptionsRef.current.weightDivisionThreshold;
-          const rds = parseInt(roundsTotal);
-          const totalWeightRounds = rds * 2; // each configured round = 2 actual rounds (A+B)
-          
-          if (phase === 'PREP') {
-            playSound('start');
-            setPhase('WORK');
-            setTimeLeft(Math.floor(parseFloat(roundTime) * 60));
-            // Apply history from previous round
-            const curGroup = currentWeightGroupRef.current;
-            const curMatches = curGroup === 'A' ? weightGroupMatchesARef.current : weightGroupMatchesBRef.current;
-            setCurrentMatches(curMatches);
-            currentMatchesRef.current = curMatches;
-          } else if (phase === 'WORK') {
-            const curGroup = currentWeightGroupRef.current;
-            // Apply round result for current group
-            const curMatches = curGroup === 'A' ? weightGroupMatchesARef.current : weightGroupMatchesBRef.current;
-            const curResting = curGroup === 'A' ? weightGroupRestingA : weightGroupRestingB;
-            const updated = applyRoundResult(curMatches, curResting, currentRound, historyRef.current, activePlayersRef.current);
-            activePlayersRef.current = updated;
-            setActivePlayers(updated);
-
-            // Calculate actual round number (each A+B = 1 configured round)
-            const actualRoundIndex = (currentRound - 1) * 2 + (curGroup === 'A' ? 1 : 2);
-            
-            if (actualRoundIndex >= totalWeightRounds) {
-              // All rounds done
-              playSound('finish');
-              setIsActive(false);
-              setCurrentScreen('finished');
-            } else {
-              // Switch to next group or next round
-              playSound('end');
-              setPhase('PREP');
-              setTimeLeft(20); // Fixed 20s transition
-
-              if (curGroup === 'A') {
-                // Switch to group B
-                const nextGroup = 'B';
-                setCurrentWeightGroup(nextGroup);
-                currentWeightGroupRef.current = nextGroup;
-                setCurrentMatches(weightGroupMatchesBRef.current);
-                currentMatchesRef.current = weightGroupMatchesBRef.current;
-                updateCurrentResting(weightGroupRestingB);
-              } else {
-                // Switch to group A + advance round + generate new matches
-                const nextRound = currentRound + 1;
-                setCurrentRound(nextRound);
-                const nextGroup = 'A';
-                setCurrentWeightGroup(nextGroup);
-                currentWeightGroupRef.current = nextGroup;
-
-                const allPlayers = activePlayersRef.current;
-                const groupAPlayers = allPlayers.filter(p => p.weight <= threshold);
-                const groupBPlayers = allPlayers.filter(p => p.weight > threshold);
-
-                const resultA = generateRound(groupAPlayers, historyRef.current, nextRound, noRestPlayersRef.current, sparringOptionsRef.current, rds);
-                const resultB = generateRound(groupBPlayers, historyRef.current, nextRound, noRestPlayersRef.current, sparringOptionsRef.current, rds);
-
-                setWeightGroupMatchesA(resultA.matches);
-                setWeightGroupMatchesB(resultB.matches);
-                setWeightGroupRestingA(resultA.resting);
-                setWeightGroupRestingB(resultB.resting);
-                weightGroupMatchesARef.current = resultA.matches;
-                weightGroupMatchesBRef.current = resultB.matches;
-
-                setCurrentMatches(resultA.matches);
-                currentMatchesRef.current = resultA.matches;
-                updateCurrentResting(resultA.resting);
-              }
-            }
-          }
-      } else { 
-          if (phase === 'PREP') {
-            playSound('start'); setPhase('WORK'); setTimeLeft(Math.floor(parseFloat(roundTime) * 60)); 
-            const updated = applyRoundResult(currentMatchesRef.current, currentRestingRef.current, currentRound, historyRef.current, activePlayersRef.current);
-            activePlayersRef.current = updated;
-            setActivePlayers(updated);
-          } else if (phase === 'WORK') {
-            if (currentRound < parseInt(roundsTotal)) {
-              playSound('end'); setPhase('REST'); setTimeLeft(Math.floor(parseFloat(restTime))); 
-              consumeOneRoundRest();
-              const { matches, resting } = generateRound(activePlayersRef.current, historyRef.current, currentRound + 1, noRestPlayersRef.current, sparringOptionsRef.current, parseInt(roundsTotal));
-              setCurrentMatches(matches); currentMatchesRef.current = matches; updateCurrentResting(resting);
-            } else {
-              playSound('finish'); 
-              setIsActive(false); 
-              setCurrentScreen('finished'); 
-            }
-          } else if (phase === 'REST') {
-            const nextRound = currentRound + 1;
-            playSound('start'); setPhase('WORK'); setCurrentRound(nextRound); setTimeLeft(Math.floor(parseFloat(roundTime) * 60)); 
-            const updated = applyRoundResult(currentMatchesRef.current, currentRestingRef.current, nextRound, historyRef.current, activePlayersRef.current);
-            activePlayersRef.current = updated;
-            setActivePlayers(updated);
-          }
+    if (!isActive) {
+      if (phaseEndTimeRef.current !== null) {
+        remainingMsOnPauseRef.current = Math.max(0, phaseEndTimeRef.current - Date.now());
+        phaseEndTimeRef.current = null;
       }
+      if (tenSecTimeoutRef.current) {
+        clearTimeout(tenSecTimeoutRef.current);
+        tenSecTimeoutRef.current = null;
+      }
+      return;
     }
-    return () => { if (interval) clearInterval(interval); };
-  }, [isActive, timeLeft, phase, currentRound, roundsTotal, roundTime, restTime, prepTime, trainingMode, zadaniowkiType, currentStep, currentWeightGroup, weightGroupRestingA, weightGroupRestingB, playSound, updateCurrentResting]);
+
+    if (phaseEndTimeRef.current === null) {
+      const resumeMs = remainingMsOnPauseRef.current ?? timeLeftRef.current * 1000;
+      phaseEndTimeRef.current = Date.now() + Math.max(0, resumeMs);
+    }
+
+    const syncClock = () => {
+      if (phaseEndTimeRef.current === null) return;
+      const remainingMs = phaseEndTimeRef.current - Date.now();
+      const nextSec = Math.max(0, Math.ceil(remainingMs / 1000));
+      timeLeftRef.current = nextSec;
+      setTimeLeft(prev => (prev !== nextSec ? nextSec : prev));
+    };
+
+    syncClock();
+    const interval = setInterval(syncClock, 200);
+    return () => clearInterval(interval);
+  }, [isActive]);
+
+  // Phase transitions when countdown hits 0
+  useEffect(() => {
+    if (!isActive || timeLeft > 0) return;
+
+    phaseEndTimeRef.current = null;
+    remainingMsOnPauseRef.current = null;
+    const workSeconds = Math.max(1, Math.round(parseFloat(roundTime) * 60));
+    const restSeconds = Math.max(1, Math.floor(parseFloat(restTime)));
+    const prepSeconds = Math.max(1, Math.floor(parseFloat(prepTime)));
+    const totalRds = Math.max(1, parseInt(roundsTotal, 10) || 1);
+
+    if (trainingMode === 'ZADANIOWKI') {
+        if (zadaniowkiType === 'TRÓJKI') {
+            if (phase === 'PREP') {
+                playSound('start'); setPhase('WORK'); startPhaseCountdown(workSeconds); 
+            } else if (phase === 'WORK') {
+                if (currentStep < 6) {
+                    playSound('end'); setPhase('PREP'); startPhaseCountdown(restSeconds);
+                    setCurrentStep(prev => prev + 1);
+                } else { 
+                    if (currentRound < totalRds) {
+                        const hadOneRoundRest = oneRoundRestPlayerIdsRef.current.length > 0;
+                        consumeOneRoundRest();
+                        if (hadOneRoundRest) {
+                          const { groups, resting } = buildTriadZadaniowkiGroupsWithResting(activePlayersRef.current);
+                          updateZadaniowkiGroups(groups);
+                          updateCurrentResting(resting);
+                        }
+                        playSound('end'); setPhase('PREP'); startPhaseCountdown(restSeconds); 
+                        setCurrentRound(prev => prev + 1);
+                        setCurrentStep(1);
+                    } else {
+                        playSound('finish'); setIsActive(false); setCurrentScreen('finished'); 
+                    }
+                }
+            }
+        } else { 
+            if (phase === 'PREP') {
+                playSound('start'); setPhase('WORK'); startPhaseCountdown(workSeconds); 
+                if (currentStep === 1) { 
+                    const updated = applyRoundResult(currentMatchesRef.current, currentRestingRef.current, currentRound, historyRef.current, activePlayersRef.current);
+                    activePlayersRef.current = updated;
+                    setActivePlayers(updated);
+                }
+            } else if (phase === 'WORK') {
+                if (currentStep === 1) { 
+                    playSound('end'); setPhase('PREP'); startPhaseCountdown(restSeconds); 
+                    setCurrentStep(2);
+                } else { 
+                    if (currentRound < totalRds) {
+                        playSound('end'); setPhase('PREP'); 
+                        startPhaseCountdown(prepSeconds); 
+                        setCurrentRound(prev => prev + 1);
+                        setCurrentStep(1);
+                        consumeOneRoundRest();
+                        const { matches, resting } = generateRound(activePlayersRef.current, historyRef.current, currentRound + 1, noRestPlayersRef.current, sparringOptionsRef.current, totalRds);
+                        setCurrentMatches(matches); currentMatchesRef.current = matches; updateCurrentResting(resting);
+                    } else {
+                        playSound('finish'); setIsActive(false); setCurrentScreen('finished'); 
+                    }
+                }
+            }
+        }
+    } else if (trainingMode === 'DRILLE') {
+        // Drille: PREP → WORK → REST → WORK → REST → ... (pairs stay fixed unless 1-round rester returns, roles A↔B swap)
+        if (phase === 'PREP') {
+            playSound('start'); setPhase('WORK'); startPhaseCountdown(workSeconds);
+        } else if (phase === 'WORK') {
+            if (currentRound < totalRds) {
+                playSound('end'); setPhase('REST'); startPhaseCountdown(restSeconds);
+            } else {
+                playSound('finish'); setIsActive(false); setCurrentScreen('finished');
+            }
+        } else if (phase === 'REST') {
+            const nextRound = currentRound + 1;
+            if (oneRoundRestPlayerIdsRef.current.length > 0) {
+                consumeOneRoundRest();
+                const { matches, resting } = generateRound(activePlayersRef.current, historyRef.current, nextRound, noRestPlayersRef.current, sparringOptionsRef.current, totalRds);
+                setCurrentMatches(matches); currentMatchesRef.current = matches; updateCurrentResting(resting);
+            }
+            playSound('start'); setPhase('WORK');
+            setCurrentRound(nextRound);
+            setCurrentStep(prev => prev === 1 ? 2 : 1); // swap A↔B roles
+            startPhaseCountdown(workSeconds);
+        }
+    } else if (sparringOptionsRef.current.weightDivisionEnabled) {
+        // Weight division mode: PREP(20s) → WORK_A → PREP(20s) → WORK_B → ...
+        const threshold = sparringOptionsRef.current.weightDivisionThreshold;
+        const totalWeightRounds = totalRds * 2; // each configured round = 2 actual rounds (A+B)
+        
+        if (phase === 'PREP') {
+          playSound('start');
+          setPhase('WORK');
+          startPhaseCountdown(workSeconds);
+          const curGroup = currentWeightGroupRef.current;
+          const curMatches = curGroup === 'A' ? weightGroupMatchesARef.current : weightGroupMatchesBRef.current;
+          setCurrentMatches(curMatches);
+          currentMatchesRef.current = curMatches;
+        } else if (phase === 'WORK') {
+          const curGroup = currentWeightGroupRef.current;
+          const curMatches = curGroup === 'A' ? weightGroupMatchesARef.current : weightGroupMatchesBRef.current;
+          const curResting = curGroup === 'A' ? weightGroupRestingA : weightGroupRestingB;
+          const updated = applyRoundResult(curMatches, curResting, currentRound, historyRef.current, activePlayersRef.current);
+          activePlayersRef.current = updated;
+          setActivePlayers(updated);
+
+          const actualRoundIndex = (currentRound - 1) * 2 + (curGroup === 'A' ? 1 : 2);
+          
+          if (actualRoundIndex >= totalWeightRounds) {
+            playSound('finish');
+            setIsActive(false);
+            setCurrentScreen('finished');
+          } else {
+            playSound('end');
+            setPhase('PREP');
+            startPhaseCountdown(20); // Fixed 20s transition
+
+            if (curGroup === 'A') {
+              const nextGroup = 'B';
+              setCurrentWeightGroup(nextGroup);
+              currentWeightGroupRef.current = nextGroup;
+              setCurrentMatches(weightGroupMatchesBRef.current);
+              currentMatchesRef.current = weightGroupMatchesBRef.current;
+              updateCurrentResting(weightGroupRestingB);
+            } else {
+              consumeOneRoundRest();
+              const nextRound = currentRound + 1;
+              setCurrentRound(nextRound);
+              const nextGroup = 'A';
+              setCurrentWeightGroup(nextGroup);
+              currentWeightGroupRef.current = nextGroup;
+
+              const allPlayers = activePlayersRef.current;
+              const groupAPlayers = allPlayers.filter(p => p.weight <= threshold);
+              const groupBPlayers = allPlayers.filter(p => p.weight > threshold);
+
+              const resultA = groupAPlayers.length >= 2
+                ? generateRound(groupAPlayers, historyRef.current, nextRound, noRestPlayersRef.current, sparringOptionsRef.current, totalRds)
+                : { matches: [] as Match[], resting: groupAPlayers };
+              const resultB = groupBPlayers.length >= 2
+                ? generateRound(groupBPlayers, historyRef.current, nextRound, noRestPlayersRef.current, sparringOptionsRef.current, totalRds)
+                : { matches: [] as Match[], resting: groupBPlayers };
+
+              setWeightGroupMatchesA(resultA.matches);
+              setWeightGroupMatchesB(resultB.matches);
+              setWeightGroupRestingA(resultA.resting);
+              setWeightGroupRestingB(resultB.resting);
+              weightGroupMatchesARef.current = resultA.matches;
+              weightGroupMatchesBRef.current = resultB.matches;
+
+              setCurrentMatches(resultA.matches);
+              currentMatchesRef.current = resultA.matches;
+              updateCurrentResting(resultA.resting);
+            }
+          }
+        }
+    } else { 
+        if (phase === 'PREP') {
+          playSound('start'); setPhase('WORK'); startPhaseCountdown(workSeconds); 
+          const updated = applyRoundResult(currentMatchesRef.current, currentRestingRef.current, currentRound, historyRef.current, activePlayersRef.current);
+          activePlayersRef.current = updated;
+          setActivePlayers(updated);
+        } else if (phase === 'WORK') {
+          if (currentRound < totalRds) {
+            playSound('end'); setPhase('REST'); startPhaseCountdown(restSeconds); 
+            consumeOneRoundRest();
+            const { matches, resting } = generateRound(activePlayersRef.current, historyRef.current, currentRound + 1, noRestPlayersRef.current, sparringOptionsRef.current, totalRds);
+            setCurrentMatches(matches); currentMatchesRef.current = matches; updateCurrentResting(resting);
+          } else {
+            playSound('finish'); 
+            setIsActive(false); 
+            setCurrentScreen('finished'); 
+          }
+        } else if (phase === 'REST') {
+          const nextRound = currentRound + 1;
+          playSound('start'); setPhase('WORK'); setCurrentRound(nextRound); startPhaseCountdown(workSeconds); 
+          const updated = applyRoundResult(currentMatchesRef.current, currentRestingRef.current, nextRound, historyRef.current, activePlayersRef.current);
+          activePlayersRef.current = updated;
+          setActivePlayers(updated);
+        }
+    }
+  }, [isActive, timeLeft, phase, currentRound, roundsTotal, roundTime, restTime, prepTime, trainingMode, zadaniowkiType, currentStep, currentWeightGroup, weightGroupRestingA, weightGroupRestingB, playSound, startPhaseCountdown, updateCurrentResting, updateZadaniowkiGroups]);
 
   const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
+    const safe = Math.max(0, Math.floor(seconds));
+    const m = Math.floor(safe / 60);
+    const s = safe % 60;
     return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  // Log pairs when a WORK phase starts
-  // TODO: deps intentionally limited to phase/round/step -- adding currentScreen would log duplicate pairs on screen transitions
+  // Log pairs when a WORK phase starts (handles SPARING, PODZIAŁ WAGOWY, DRILLE, ZADANIÓWKI DWÓJKI & TRÓJKI)
   useEffect(() => {
-    if (phase === 'WORK' && currentScreen !== 'settings' && currentScreen !== 'finished') {
-      const pairs: TrainingSessionPair[] = currentMatchesRef.current.map(m => ({ p1: m.p1.id, p2: m.p2.id }));
+    if (phase === 'WORK' && (currentScreen === 'timer' || currentScreen === 'zadaniowki_timer')) {
+      if (trainingMode === 'ZADANIOWKI' && zadaniowkiType === 'DWÓJKI' && currentStep > 1) {
+        return; // same pair swaps roles in step 2; avoid double-counting the round
+      }
+      const pairs = extractActiveStagePairs({
+        trainingMode,
+        zadaniowkiType,
+        step: currentStep,
+        matches: currentMatchesRef.current,
+        zadaniowkiGroups: zadaniowkiGroupsRef.current,
+      });
       if (pairs.length > 0) trainingPairsLog.current.push(pairs);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, currentRound, currentStep]);
+  }, [phase, currentRound, currentStep, currentWeightGroup]);
+
+  // Web keyboard accessibility: Escape closes open modals/tooltips; Space toggles timer pause/resume
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isDropoutModalVisible) { e.preventDefault(); handleCloseDropoutModal(); return; }
+        if (isClubDBModalVisible) { e.preventDefault(); setIsClubDBModalVisible(false); return; }
+        if (isVipModalVisible) { e.preventDefault(); setIsVipModalVisible(false); return; }
+        if (isAboutModalVisible) { e.preventDefault(); setIsAboutModalVisible(false); return; }
+        if (isStatsModalVisible) { e.preventDefault(); setIsStatsModalVisible(false); return; }
+        if (isDevMetricsVisible) { e.preventDefault(); setIsDevMetricsVisible(false); return; }
+        if (activeInfoTooltip) { setActiveInfoTooltip(null); return; }
+        if (showSuggestions) { setShowSuggestions(false); return; }
+      }
+      if (
+        e.code === 'Space' &&
+        (currentScreen === 'timer' || currentScreen === 'zadaniowki_timer') &&
+        !isDropoutModalVisible
+      ) {
+        const tag = (e.target as HTMLElement | null)?.tagName;
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
+          e.preventDefault();
+          setIsActive(prev => !prev);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    isDropoutModalVisible,
+    isClubDBModalVisible,
+    isVipModalVisible,
+    isAboutModalVisible,
+    isStatsModalVisible,
+    isDevMetricsVisible,
+    activeInfoTooltip,
+    showSuggestions,
+    currentScreen,
+  ]);
 
   // Save training session when training finishes
   // TODO: deps intentionally limited to currentScreen -- saveTrainingSession is stable and roster.length is read inside the guard
@@ -2760,21 +2715,26 @@ export default function App() {
   const rosterGridColumns = getRosterGridColumns(rosterAvailableWidth);
   const rosterCardBasis =
     rosterGridColumns === 3 ? '31.9%' : rosterGridColumns === 2 ? '48.9%' : '100%';
-  const sortedRoster = [...roster].sort((a, b) =>
-    a.id.localeCompare(b.id, 'pl', { sensitivity: 'base' })
+  const sortedRoster = useMemo(
+    () => [...roster].sort((a, b) => a.id.localeCompare(b.id, 'pl', { sensitivity: 'base' })),
+    [roster],
   );
   const hasAnyRosterFilter = rosterFilterType !== null || rosterFilterGear !== null || rosterFilterSkill !== null;
-  const filteredSortedRoster = hasAnyRosterFilter
-    ? sortedRoster.filter((p) => {
-        if (rosterFilterType !== null && p.type !== rosterFilterType) return false;
-        if (rosterFilterGear !== null && p.gear !== rosterFilterGear) return false;
-        if (rosterFilterSkill !== null) {
-          if (p.type === 'KID') return false;
-          if (p.skillLevel !== rosterFilterSkill) return false;
-        }
-        return true;
-      })
-    : sortedRoster;
+  const filteredSortedRoster = useMemo(
+    () =>
+      hasAnyRosterFilter
+        ? sortedRoster.filter((p) => {
+            if (rosterFilterType !== null && p.type !== rosterFilterType) return false;
+            if (rosterFilterGear !== null && p.gear !== rosterFilterGear) return false;
+            if (rosterFilterSkill !== null) {
+              if (p.type === 'KID') return false;
+              if (p.skillLevel !== rosterFilterSkill) return false;
+            }
+            return true;
+          })
+        : sortedRoster,
+    [hasAnyRosterFilter, sortedRoster, rosterFilterType, rosterFilterGear, rosterFilterSkill],
+  );
   const selectedSkillOption = ADULT_SKILL_LEVEL_OPTIONS.find(option => option.value === newSkillLevel);
   const activeFormTone = newGear === 'GI' ? TOGGLE_TONES.cool : TOGGLE_TONES.warm;
   const playerTypeTone = {
@@ -2854,19 +2814,21 @@ export default function App() {
     : trainingMode === 'ZADANIOWKI' ? t('modeZadaniowki', lang)
     : t('modeDrille', lang);
   const topBarWatermark = (
-    <View style={{ position: 'absolute', left: 0, width: screenWidth, height: topBarMetrics.estimatedHeight, justifyContent: 'center', alignItems: 'center', pointerEvents: 'none', zIndex: 0 } as any}>
+    <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', pointerEvents: 'none', overflow: 'hidden', zIndex: 0 } as any}>
       <Text style={{
         fontSize: topBarMetrics.estimatedHeight * 0.55,
         fontWeight: '900', color: COLORS.textPrimary, opacity: 0.04,
-        letterSpacing: 8,
+        letterSpacing: 6,
         textAlign: 'center',
-      }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
+        maxWidth: '96%',
+      }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.4}>
         {topBarWatermarkLabel}
       </Text>
     </View>
   );
-  const sortedDropoutPlayers = [...activePlayers].sort((a, b) =>
-    a.id.localeCompare(b.id, 'pl', { sensitivity: 'base' })
+  const sortedDropoutPlayers = useMemo(
+    () => [...activePlayers].sort((a, b) => a.id.localeCompare(b.id, 'pl', { sensitivity: 'base' })),
+    [activePlayers],
   );
   const selectedDropoutCount = selectedDropoutPlayerIds.length;
 
@@ -3021,6 +2983,8 @@ export default function App() {
                       style={[styles.inputText, styles.inputTextCompact]} 
                       value={newName} 
                       onChangeText={handleNameChange} 
+                      onSubmitEditing={handleAddPlayer}
+                      returnKeyType="done"
                       placeholder={t('placeholderName', lang)} 
                       placeholderTextColor={COLORS.textMuted} 
                       autoCorrect={false}
@@ -3044,7 +3008,7 @@ export default function App() {
               
               <View style={[styles.fieldBlock, styles.fieldBlockCompact, styles.compactFieldSecondary]}>
               <Text style={styles.fieldLabelBadge}>{t('weightKg', lang)}</Text>
-              <TextInput style={[styles.inputText, styles.inputTextCompact]} keyboardType="numeric" value={newWeight} onChangeText={setNewWeight} placeholder={t('placeholderWeight', lang)} placeholderTextColor={COLORS.textMuted} />
+              <TextInput style={[styles.inputText, styles.inputTextCompact]} keyboardType="numeric" value={newWeight} onChangeText={handleWeightChange} onSubmitEditing={handleAddPlayer} returnKeyType="done" placeholder={t('placeholderWeight', lang)} placeholderTextColor={COLORS.textMuted} />
               </View>
             </View>
 
@@ -3161,6 +3125,8 @@ export default function App() {
                     style={[styles.inputText, isCompactSettingsUI && styles.inputTextCompact]} 
                     value={newName} 
                     onChangeText={handleNameChange} 
+                    onSubmitEditing={handleAddPlayer}
+                    returnKeyType="done"
                     placeholder={t('placeholderName', lang)} 
                     placeholderTextColor={COLORS.textMuted} 
                     autoCorrect={false}
@@ -3188,7 +3154,7 @@ export default function App() {
 
             <View style={[styles.fieldBlock, isCompactSettingsUI && styles.fieldBlockCompact]}>
               <Text style={styles.fieldLabelBadge}>{t('weightKg', lang)}</Text>
-              <TextInput style={[styles.inputText, isCompactSettingsUI && styles.inputTextCompact]} keyboardType="numeric" value={newWeight} onChangeText={setNewWeight} placeholder={t('placeholderWeight', lang)} placeholderTextColor={COLORS.textMuted} />
+              <TextInput style={[styles.inputText, isCompactSettingsUI && styles.inputTextCompact]} keyboardType="numeric" value={newWeight} onChangeText={handleWeightChange} onSubmitEditing={handleAddPlayer} returnKeyType="done" placeholder={t('placeholderWeight', lang)} placeholderTextColor={COLORS.textMuted} />
             </View>
             
             <View style={[styles.optionGroup, isCompactSettingsUI && styles.optionGroupCompact]}>
@@ -3319,15 +3285,25 @@ export default function App() {
           </View>
         )}
 
-        <View style={{ flexDirection: 'row', gap: isCompactSettingsUI ? 8 : 10 }}>
-          <TouchableOpacity style={[styles.addButton, isCompactSettingsUI && styles.addButtonCompact, { flex: 1 }]} onPress={handleAddPlayer}>
+        {formError ? (
+          <View accessibilityRole="alert" style={styles.formErrorBanner}>
+            <Text style={styles.formErrorText}>{formError}</Text>
+          </View>
+        ) : null}
+
+        <View style={{ flexDirection: stackSettingsActionRows ? 'column' : 'row', gap: isCompactSettingsUI ? 8 : 10 }}>
+          <TouchableOpacity accessibilityRole="button" style={[styles.addButton, isCompactSettingsUI && styles.addButtonCompact, { flex: 1 }]} onPress={handleAddPlayer}>
               <Text style={[styles.addButtonText, isCompactSettingsUI && styles.addButtonTextCompact]}>{editingPlayerId ? t('saveChanges', lang) : t('addPlayer', lang)}</Text>
           </TouchableOpacity>
-          {savedPlayersDB.length > 0 && !editingPlayerId && (
-            <TouchableOpacity style={[styles.addButton, isCompactSettingsUI && styles.addButtonCompact, styles.clubDBButton]} onPress={handleOpenClubDB}>
+          {editingPlayerId ? (
+            <TouchableOpacity accessibilityRole="button" style={[styles.addButton, isCompactSettingsUI && styles.addButtonCompact, styles.cancelEditButton]} onPress={handleCancelEdit}>
+                <Text style={[styles.addButtonText, isCompactSettingsUI && styles.addButtonTextCompact, styles.cancelEditButtonText]}>{t('cancel', lang)}</Text>
+            </TouchableOpacity>
+          ) : savedPlayersDB.length > 0 ? (
+            <TouchableOpacity accessibilityRole="button" style={[styles.addButton, isCompactSettingsUI && styles.addButtonCompact, styles.clubDBButton]} onPress={handleOpenClubDB}>
                 <Text style={[styles.addButtonText, isCompactSettingsUI && styles.addButtonTextCompact, styles.clubDBButtonText]}>{t('addFromDB', lang)}</Text>
             </TouchableOpacity>
-          )}
+          ) : null}
         </View>
       </View>
 
@@ -3349,10 +3325,10 @@ export default function App() {
               <Text style={[styles.timeCardLabel, isCompactSettingsUI && styles.timeCardLabelCompact]}>{t('roundMin', lang)}</Text>
               <TextInput style={[styles.timeCardInput, isCompactSettingsUI && styles.timeCardInputCompact]} keyboardType="numeric" value={roundTime} onChangeText={handleSetRoundTime} />
             </View>
-            <View style={[styles.timeCard, isCompactSettingsUI && styles.timeCardCompact, stackTimeCards && styles.timeCardStacked, sparringOptions.weightDivisionEnabled && { opacity: 0.35 }]}>
+            <View style={[styles.timeCard, isCompactSettingsUI && styles.timeCardCompact, stackTimeCards && styles.timeCardStacked, sparringOptions.weightDivisionEnabled && { opacity: 0.45 }]}>
               <Text style={[styles.timeCardLabel, isCompactSettingsUI && styles.timeCardLabelCompact]}>{t('prepTimeS', lang)}</Text>
               {sparringOptions.weightDivisionEnabled
-                ? <Text style={[styles.timeCardInput, isCompactSettingsUI && styles.timeCardInputCompact, { textAlign: 'center' }]}>90</Text>
+                ? <Text style={[styles.timeCardInput, isCompactSettingsUI && styles.timeCardInputCompact, { textAlign: 'center' }]}>20</Text>
                 : <TextInput style={[styles.timeCardInput, isCompactSettingsUI && styles.timeCardInputCompact]} keyboardType="numeric" value={prepTime} onChangeText={handleSetPrepTime} />
               }
             </View>
@@ -3422,16 +3398,27 @@ export default function App() {
 
         {trainingMode === 'SPARING' && (
           <View style={{ gap: isCompactSettingsUI ? 8 : 10 }}>
-            <TouchableOpacity style={[styles.vipButton, isCompactSettingsUI && styles.vipButtonCompact]} onPress={() => setIsVipModalVisible(true)}>
-              <Text style={[styles.vipButtonText, isCompactSettingsUI && styles.vipButtonTextCompact]}>{t('noRestVip', lang)}</Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              style={[styles.vipButton, isCompactSettingsUI && styles.vipButtonCompact, noRestPlayers.length > 0 && { borderWidth: 1, borderColor: 'rgba(247, 183, 51, 0.55)' }]}
+              onPress={() => setIsVipModalVisible(true)}
+            >
+              <Text style={[styles.vipButtonText, isCompactSettingsUI && styles.vipButtonTextCompact, noRestPlayers.length > 0 && { color: COLORS.accentMain }]}>
+                {noRestPlayers.length > 0 ? `${t('noRestVip', lang)} (${noRestPlayers.length})` : t('noRestVip', lang)}
+              </Text>
             </TouchableOpacity>
 
             <View style={{ gap: 6 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 2 }}>
-                <TouchableOpacity onPress={() => setActiveInfoTooltip(activeInfoTooltip === 'priority' ? null : 'priority')} style={{ width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: activeInfoTooltip === 'priority' ? COLORS.accentMain : COLORS.borderStrong, backgroundColor: activeInfoTooltip === 'priority' ? withAlpha(COLORS.accentMain, 0.15) : 'transparent', justifyContent: 'center', alignItems: 'center' }}>
-                  <Text style={{ color: activeInfoTooltip === 'priority' ? COLORS.accentMain : COLORS.textMuted, fontSize: 8, fontWeight: '800' }}>i</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  onPress={() => setActiveInfoTooltip(activeInfoTooltip === 'priority' ? null : 'priority')}
+                  style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: activeInfoTooltip === 'priority' ? COLORS.accentMain : COLORS.borderStrong, backgroundColor: activeInfoTooltip === 'priority' ? withAlpha(COLORS.accentMain, 0.18) : COLORS.bgPanel2, justifyContent: 'center', alignItems: 'center' }}
+                >
+                  <Text style={{ color: activeInfoTooltip === 'priority' ? COLORS.accentMain : COLORS.textSecondary, fontSize: 11, fontWeight: '800' }}>i</Text>
                 </TouchableOpacity>
-                <Text style={styles.optionGroupLabel}>{t('priorityLabel', lang)}</Text>
+                <Text style={[styles.optionGroupLabel, { marginBottom: 0 }]}>{t('priorityLabel', lang)}</Text>
               </View>
               {activeInfoTooltip === 'priority' && (
                 <Text style={{ color: COLORS.textMuted, fontSize: isCompactSettingsUI ? 10 : 11, marginBottom: 6, lineHeight: isCompactSettingsUI ? 14 : 16 }}>
@@ -3439,9 +3426,17 @@ export default function App() {
                 </Text>
               )}
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <Text style={{ color: sparringOptions.prioritySlider <= 16 ? COLORS.accentCool : COLORS.textMuted, fontSize: isCompactSettingsUI ? 12 : 13, fontWeight: '700' }}>{t('skillsLabel', lang)}</Text>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                  onPress={() => setSparringOptions(prev => ({ ...prev, prioritySlider: 0 }))}
+                >
+                  <Text style={{ color: sparringOptions.prioritySlider <= 16 ? COLORS.accentCool : COLORS.textMuted, fontSize: isCompactSettingsUI ? 12 : 13, fontWeight: '700' }}>{t('skillsLabel', lang)}</Text>
+                </TouchableOpacity>
                 <View
-                  style={{ flex: 1, height: 32, justifyContent: 'center' }}
+                  accessible
+                  accessibilityRole="adjustable"
+                  style={{ flex: 1, height: 34, justifyContent: 'center' }}
                   onLayout={(e) => { prioritySliderWidthRef.current = e.nativeEvent.layout.width; }}
                   onStartShouldSetResponder={() => true}
                   onMoveShouldSetResponder={() => true}
@@ -3449,7 +3444,7 @@ export default function App() {
                     const x = e.nativeEvent.locationX;
                     const w = prioritySliderWidthRef.current;
                     if (w > 0) {
-                      const pct = (x / w) * 100;
+                      const pct = clamp(0, (x / w) * 100, 100);
                       const snaps = [0, 33, 67, 100];
                       const snapped = snaps.reduce((best, s) => Math.abs(pct - s) < Math.abs(pct - best) ? s : best, snaps[0]);
                       setSparringOptions(prev => ({ ...prev, prioritySlider: snapped }));
@@ -3459,15 +3454,34 @@ export default function App() {
                     const x = e.nativeEvent.locationX;
                     const w = prioritySliderWidthRef.current;
                     if (w > 0) {
-                      const pct = (x / w) * 100;
+                      const pct = clamp(0, (x / w) * 100, 100);
                       const snaps = [0, 33, 67, 100];
                       const snapped = snaps.reduce((best, s) => Math.abs(pct - s) < Math.abs(pct - best) ? s : best, snaps[0]);
                       setSparringOptions(prev => ({ ...prev, prioritySlider: snapped }));
                     }
                   }}
+                  {...(Platform.OS === 'web'
+                    ? ({
+                        tabIndex: 0,
+                        onKeyDown: (ke: any) => {
+                          const snaps = [0, 33, 67, 100];
+                          const idx = snaps.indexOf(sparringOptions.prioritySlider);
+                          const curIdx = idx >= 0 ? idx : 0;
+                          if (ke.key === 'ArrowRight' || ke.key === 'ArrowUp') {
+                            ke.preventDefault();
+                            const next = snaps[Math.min(snaps.length - 1, curIdx + 1)];
+                            setSparringOptions(prev => ({ ...prev, prioritySlider: next }));
+                          } else if (ke.key === 'ArrowLeft' || ke.key === 'ArrowDown') {
+                            ke.preventDefault();
+                            const next = snaps[Math.max(0, curIdx - 1)];
+                            setSparringOptions(prev => ({ ...prev, prioritySlider: next }));
+                          }
+                        },
+                      } as any)
+                    : {})}
                 >
                   {/* Track */}
-                  <View style={{ height: 4, backgroundColor: COLORS.bgPanel2, borderRadius: 2 }}>
+                  <View style={{ height: 4, backgroundColor: COLORS.bgPanel2, borderRadius: 2, pointerEvents: 'none' } as any}>
                     <View style={{ height: 4, width: `${sparringOptions.prioritySlider}%`, backgroundColor: COLORS.accentMain, borderRadius: 2 }} />
                   </View>
                   {/* Snap dots */}
@@ -3482,8 +3496,9 @@ export default function App() {
                         height: 8,
                         borderRadius: 4,
                         backgroundColor: sparringOptions.prioritySlider >= snap ? COLORS.accentMain : COLORS.borderStrong,
-                        top: 12,
-                      }}
+                        top: 13,
+                        pointerEvents: 'none',
+                      } as any}
                     />
                   ))}
                   {/* Thumb */}
@@ -3496,7 +3511,7 @@ export default function App() {
                       height: 20,
                       borderRadius: 10,
                       backgroundColor: COLORS.accentMainStrong,
-                      top: 6,
+                      top: 7,
                       borderWidth: 2,
                       borderColor: COLORS.bgPanel,
                       elevation: 3,
@@ -3504,19 +3519,31 @@ export default function App() {
                       shadowOffset: { width: 0, height: 1 },
                       shadowOpacity: 0.25,
                       shadowRadius: 2,
-                    }}
+                      pointerEvents: 'none',
+                    } as any}
                   />
                 </View>
-                <Text style={{ color: sparringOptions.prioritySlider >= 84 ? COLORS.accentMain : COLORS.textMuted, fontSize: isCompactSettingsUI ? 12 : 13, fontWeight: '700' }}>{t('weightLabel', lang)}</Text>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                  onPress={() => setSparringOptions(prev => ({ ...prev, prioritySlider: 100 }))}
+                >
+                  <Text style={{ color: sparringOptions.prioritySlider >= 84 ? COLORS.accentMain : COLORS.textMuted, fontSize: isCompactSettingsUI ? 12 : 13, fontWeight: '700' }}>{t('weightLabel', lang)}</Text>
+                </TouchableOpacity>
               </View>
             </View>
 
             <View style={{ gap: 6 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 2 }}>
-                <TouchableOpacity onPress={() => setActiveInfoTooltip(activeInfoTooltip === 'order' ? null : 'order')} style={{ width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: activeInfoTooltip === 'order' ? COLORS.accentMain : COLORS.borderStrong, backgroundColor: activeInfoTooltip === 'order' ? withAlpha(COLORS.accentMain, 0.15) : 'transparent', justifyContent: 'center', alignItems: 'center' }}>
-                  <Text style={{ color: activeInfoTooltip === 'order' ? COLORS.accentMain : COLORS.textMuted, fontSize: 8, fontWeight: '800' }}>i</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  onPress={() => setActiveInfoTooltip(activeInfoTooltip === 'order' ? null : 'order')}
+                  style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: activeInfoTooltip === 'order' ? COLORS.accentMain : COLORS.borderStrong, backgroundColor: activeInfoTooltip === 'order' ? withAlpha(COLORS.accentMain, 0.18) : COLORS.bgPanel2, justifyContent: 'center', alignItems: 'center' }}
+                >
+                  <Text style={{ color: activeInfoTooltip === 'order' ? COLORS.accentMain : COLORS.textSecondary, fontSize: 11, fontWeight: '800' }}>i</Text>
                 </TouchableOpacity>
-                <Text style={styles.optionGroupLabel}>{t('fightOrder', lang)}</Text>
+                <Text style={[styles.optionGroupLabel, { marginBottom: 0 }]}>{t('fightOrder', lang)}</Text>
               </View>
               {activeInfoTooltip === 'order' && (
                 <Text style={{ color: COLORS.textMuted, fontSize: isCompactSettingsUI ? 10 : 11, marginBottom: 6, lineHeight: isCompactSettingsUI ? 14 : 16 }}>
@@ -3529,18 +3556,19 @@ export default function App() {
                   { value: 'BEST_LAST' as IntensityProfile, label: t('orderVaried', lang) },
                   { value: 'RANDOM' as IntensityProfile, label: t('orderRandom', lang) },
                 ]).map((opt) => {
-                  const isActive = sparringOptions.intensityProfile === opt.value;
+                  const isActiveOpt = sparringOptions.intensityProfile === opt.value;
                   return (
                     <TouchableOpacity
                       key={opt.value}
+                      accessibilityRole="button"
                       style={[
                         styles.vipButton,
                         isCompactSettingsUI && styles.vipButtonCompact,
-                        isActive && styles.vipButtonActive,
+                        isActiveOpt && styles.vipButtonActive,
                       ]}
                       onPress={() => setSparringOptions(prev => ({ ...prev, intensityProfile: opt.value }))}
                     >
-                      <Text style={[styles.vipButtonText, isCompactSettingsUI && styles.vipButtonTextCompact, isActive && { color: COLORS.bgMain }]}>{opt.label}</Text>
+                      <Text style={[styles.vipButtonText, isCompactSettingsUI && styles.vipButtonTextCompact, isActiveOpt && { color: COLORS.bgMain }]}>{opt.label}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -3548,11 +3576,16 @@ export default function App() {
             </View>
 
             <View style={{ gap: 6 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 2 }}>
-                <TouchableOpacity onPress={() => setActiveInfoTooltip(activeInfoTooltip === 'weight' ? null : 'weight')} style={{ width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: activeInfoTooltip === 'weight' ? COLORS.accentMain : COLORS.borderStrong, backgroundColor: activeInfoTooltip === 'weight' ? withAlpha(COLORS.accentMain, 0.15) : 'transparent', justifyContent: 'center', alignItems: 'center' }}>
-                  <Text style={{ color: activeInfoTooltip === 'weight' ? COLORS.accentMain : COLORS.textMuted, fontSize: 8, fontWeight: '800' }}>i</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  onPress={() => setActiveInfoTooltip(activeInfoTooltip === 'weight' ? null : 'weight')}
+                  style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: activeInfoTooltip === 'weight' ? COLORS.accentMain : COLORS.borderStrong, backgroundColor: activeInfoTooltip === 'weight' ? withAlpha(COLORS.accentMain, 0.18) : COLORS.bgPanel2, justifyContent: 'center', alignItems: 'center' }}
+                >
+                  <Text style={{ color: activeInfoTooltip === 'weight' ? COLORS.accentMain : COLORS.textSecondary, fontSize: 11, fontWeight: '800' }}>i</Text>
                 </TouchableOpacity>
-                <Text style={styles.optionGroupLabel}>{t('weightDivision', lang)}</Text>
+                <Text style={[styles.optionGroupLabel, { marginBottom: 0 }]}>{t('weightDivision', lang)}</Text>
               </View>
               {activeInfoTooltip === 'weight' && (
                 <Text style={{ color: COLORS.textMuted, fontSize: isCompactSettingsUI ? 10 : 11, marginBottom: 6, lineHeight: isCompactSettingsUI ? 14 : 16 }}>
@@ -3561,6 +3594,7 @@ export default function App() {
               )}
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <TouchableOpacity
+                  accessibilityRole="button"
                   style={[
                     styles.vipButton,
                     isCompactSettingsUI && styles.vipButtonCompact,
@@ -3570,6 +3604,7 @@ export default function App() {
                     const enabling = !sparringOptions.weightDivisionEnabled;
                     if (enabling) {
                       const autoThreshold = calcBestWeightThreshold(roster);
+                      setWeightThresholdInput(String(autoThreshold));
                       setSparringOptions(prev => ({ ...prev, weightDivisionEnabled: true, weightDivisionThreshold: autoThreshold }));
                     } else {
                       setSparringOptions(prev => ({ ...prev, weightDivisionEnabled: false }));
@@ -3582,14 +3617,26 @@ export default function App() {
                 </TouchableOpacity>
                 {sparringOptions.weightDivisionEnabled && (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <Text style={{ color: COLORS.textSecondary, fontSize: isCompactSettingsUI ? 11 : 12 }}>PRÓG:</Text>
+                    <Text style={{ color: COLORS.textSecondary, fontSize: isCompactSettingsUI ? 11 : 12 }}>{t('weightThresholdLabel', lang)}</Text>
                     <TextInput
-                      style={[styles.timeCardInput, isCompactSettingsUI && styles.timeCardInputCompact, { width: 50, textAlign: 'center', paddingVertical: 4 }]}
+                      style={[styles.timeCardInput, isCompactSettingsUI && styles.timeCardInputCompact, { width: 58, textAlign: 'center', paddingVertical: 4 }]}
                       keyboardType="numeric"
-                      value={String(sparringOptions.weightDivisionThreshold)}
+                      value={weightThresholdInput}
                       onChangeText={(v) => {
-                        const num = parseInt(v.replace(/[^0-9]/g, ''), 10);
-                        if (!isNaN(num)) setSparringOptions(prev => ({ ...prev, weightDivisionThreshold: num }));
+                        const cleaned = sanitizeDecimalWeightInput(v);
+                        setWeightThresholdInput(cleaned);
+                        const num = parseFloat(cleaned);
+                        if (Number.isFinite(num) && num > 0) {
+                          setSparringOptions(prev => ({ ...prev, weightDivisionThreshold: Math.round(num * 10) / 10 }));
+                        }
+                      }}
+                      onBlur={() => {
+                        const num = parseFloat(weightThresholdInput);
+                        const safe = Number.isFinite(num) && num >= 15 && num <= 250
+                          ? Math.round(num * 10) / 10
+                          : calcBestWeightThreshold(roster);
+                        setWeightThresholdInput(String(safe));
+                        setSparringOptions(prev => ({ ...prev, weightDivisionThreshold: safe }));
                       }}
                     />
                     <Text style={{ color: COLORS.textSecondary, fontSize: isCompactSettingsUI ? 11 : 12 }}>KG</Text>
@@ -3597,23 +3644,28 @@ export default function App() {
                 )}
               </View>
               {sparringOptions.weightDivisionEnabled && roster.length >= 2 && (() => {
-                const t = sparringOptions.weightDivisionThreshold;
-                const cA = roster.filter(p => p.weight <= t).length;
-                const cB = roster.filter(p => p.weight > t).length;
+                const thresholdVal = sparringOptions.weightDivisionThreshold;
+                const cA = roster.filter(p => p.weight <= thresholdVal).length;
+                const cB = roster.filter(p => p.weight > thresholdVal).length;
                 return (
                   <Text style={{ color: COLORS.textMuted, fontSize: isCompactSettingsUI ? 10 : 11, marginTop: 2 }}>
-                    ≤{t} kg: {cA} zawod. ({Math.floor(cA / 2)} par) — {'>'}{t} kg: {cB} zawod. ({Math.floor(cB / 2)} par)
+                    ≤{thresholdVal} kg: {cA} {t('weightPlayers', lang)} ({Math.floor(cA / 2)} {t('weightPairs', lang)}) — {'>'}{thresholdVal} kg: {cB} {t('weightPlayers', lang)} ({Math.floor(cB / 2)} {t('weightPairs', lang)})
                   </Text>
                 );
               })()}
             </View>
 
             <View style={{ gap: 6 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 2 }}>
-                <TouchableOpacity onPress={() => setActiveInfoTooltip(activeInfoTooltip === 'gender' ? null : 'gender')} style={{ width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: activeInfoTooltip === 'gender' ? COLORS.accentMain : COLORS.borderStrong, backgroundColor: activeInfoTooltip === 'gender' ? withAlpha(COLORS.accentMain, 0.15) : 'transparent', justifyContent: 'center', alignItems: 'center' }}>
-                  <Text style={{ color: activeInfoTooltip === 'gender' ? COLORS.accentMain : COLORS.textMuted, fontSize: 8, fontWeight: '800' }}>i</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  onPress={() => setActiveInfoTooltip(activeInfoTooltip === 'gender' ? null : 'gender')}
+                  style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: activeInfoTooltip === 'gender' ? COLORS.accentMain : COLORS.borderStrong, backgroundColor: activeInfoTooltip === 'gender' ? withAlpha(COLORS.accentMain, 0.18) : COLORS.bgPanel2, justifyContent: 'center', alignItems: 'center' }}
+                >
+                  <Text style={{ color: activeInfoTooltip === 'gender' ? COLORS.accentMain : COLORS.textSecondary, fontSize: 11, fontWeight: '800' }}>i</Text>
                 </TouchableOpacity>
-                <Text style={styles.optionGroupLabel}>{t('genderMatching', lang)}</Text>
+                <Text style={[styles.optionGroupLabel, { marginBottom: 0 }]}>{t('genderMatching', lang)}</Text>
               </View>
               {activeInfoTooltip === 'gender' && (
                 <Text style={{ color: COLORS.textMuted, fontSize: isCompactSettingsUI ? 10 : 11, marginBottom: 6, lineHeight: isCompactSettingsUI ? 14 : 16 }}>
@@ -3705,11 +3757,13 @@ export default function App() {
     </>
   );
 
+  const isCompactModalLayout = screenWidth < 540;
+
   const dropoutModal = (
     <Modal visible={isDropoutModalVisible} transparent={true} animationType="fade" onRequestClose={handleCloseDropoutModal}>
       <View style={styles.modalOverlay}>
-        <View style={[styles.modalContent, styles.dropoutModalContent]}>
-          <Text style={styles.modalTitle}>{t('dropoutTitle', lang)}</Text>
+        <View style={[styles.modalContent, styles.dropoutModalContent, isCompactModalLayout && { padding: 14, borderRadius: 20 }]}>
+          <Text style={[styles.modalTitle, isCompactModalLayout && { fontSize: 21, marginBottom: 12 }]}>{t('dropoutTitle', lang)}</Text>
           <Text style={styles.dropoutModalSubtitle}>
             {t('dropoutSubtitle', lang)}
           </Text>
@@ -3736,37 +3790,44 @@ export default function App() {
                   key={p.id}
                   style={[
                     styles.dropoutRow,
+                    isCompactModalLayout && { flexDirection: 'column', alignItems: 'stretch', gap: 10, paddingVertical: 12, paddingHorizontal: 12 },
                     isSelected && (mode === 'ONE_ROUND' ? styles.dropoutRowActiveOneRound : styles.dropoutRowActiveFull),
                   ]}
                 >
-                  <TouchableOpacity onPress={toggleSelected} activeOpacity={0.85} style={styles.dropoutPlayerInfo}>
+                  <TouchableOpacity accessibilityRole="button" onPress={toggleSelected} activeOpacity={0.85} style={styles.dropoutPlayerInfo}>
                     <View style={[styles.dropoutDot, isSelected && { backgroundColor: accentColor }]} />
-                    <Text style={[styles.dropoutPlayerName, isSelected && { color: accentColor }]}>{p.id}</Text>
+                    <Text style={[styles.dropoutPlayerName, isCompactModalLayout && { fontSize: 18 }, isSelected && { color: accentColor }]}>{p.id}</Text>
                   </TouchableOpacity>
-                  <View style={styles.dropoutModeRow}>
+                  <View style={[styles.dropoutModeRow, isCompactModalLayout && { width: '100%' }]}>
                     <TouchableOpacity
+                      accessibilityRole="button"
                       onPress={() => setMode('FULL')}
                       activeOpacity={0.85}
                       style={[
                         styles.dropoutModePill,
+                        isCompactModalLayout && { flex: 1, alignItems: 'center' },
                         isSelected && mode === 'FULL' && styles.dropoutModePillActiveFull,
                       ]}
                     >
                       <Text style={[
                         styles.dropoutModePillText,
+                        isCompactModalLayout && { fontSize: 11 },
                         isSelected && mode === 'FULL' && { color: COLORS.accentAlert },
                       ]}>{t('dropoutModeFull', lang)}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
+                      accessibilityRole="button"
                       onPress={() => setMode('ONE_ROUND')}
                       activeOpacity={0.85}
                       style={[
                         styles.dropoutModePill,
+                        isCompactModalLayout && { flex: 1.3, alignItems: 'center' },
                         isSelected && mode === 'ONE_ROUND' && styles.dropoutModePillActiveOneRound,
                       ]}
                     >
                       <Text style={[
                         styles.dropoutModePillText,
+                        isCompactModalLayout && { fontSize: 11 },
                         isSelected && mode === 'ONE_ROUND' && { color: COLORS.accentMain },
                       ]}>{t('dropoutModeOneRound', lang)}</Text>
                     </TouchableOpacity>
@@ -3776,10 +3837,11 @@ export default function App() {
             })}
           </ScrollView>
           <View style={styles.dropoutActionsRow}>
-            <TouchableOpacity style={[styles.closeModalButton, styles.dropoutCancelButton]} onPress={handleCloseDropoutModal}>
-              <Text style={styles.closeModalButtonText}>{t('cancel', lang)}</Text>
+            <TouchableOpacity accessibilityRole="button" style={[styles.closeModalButton, styles.dropoutCancelButton]} onPress={handleCloseDropoutModal}>
+              <Text style={[styles.closeModalButtonText, isCompactModalLayout && { fontSize: 16 }]} numberOfLines={1}>{t('cancel', lang)}</Text>
             </TouchableOpacity>
             <TouchableOpacity
+              accessibilityRole="button"
               style={[
                 styles.removeButton,
                 styles.dropoutConfirmButton,
@@ -3788,7 +3850,7 @@ export default function App() {
               disabled={selectedDropoutCount === 0}
               onPress={handleConfirmDropoutSelection}
             >
-              <Text style={styles.removeButtonText}>
+              <Text style={[styles.removeButtonText, isCompactModalLayout && { fontSize: 16 }]} numberOfLines={1}>
                 {selectedDropoutCount > 0 ? `OK (${selectedDropoutCount})` : 'OK'}
               </Text>
             </TouchableOpacity>
@@ -3798,21 +3860,25 @@ export default function App() {
     </Modal>
   );
 
-  const clubDBAvailablePlayers = savedPlayersDB
-    .filter(p => !clubDBSearchText || p.id.toLowerCase().includes(clubDBSearchText.toLowerCase()))
-    .sort((a, b) => {
-      const aOnMat = roster.some(r => r.id === a.id);
-      const bOnMat = roster.some(r => r.id === b.id);
-      if (aOnMat !== bOnMat) return aOnMat ? 1 : -1;
-      return a.id.localeCompare(b.id);
-    });
+  const clubDBAvailablePlayers = useMemo(
+    () =>
+      savedPlayersDB
+        .filter(p => !clubDBSearchText || p.id.toLowerCase().includes(clubDBSearchText.toLowerCase()))
+        .sort((a, b) => {
+          const aOnMat = roster.some(r => r.id === a.id);
+          const bOnMat = roster.some(r => r.id === b.id);
+          if (aOnMat !== bOnMat) return aOnMat ? 1 : -1;
+          return a.id.localeCompare(b.id, 'pl', { sensitivity: 'base' });
+        }),
+    [savedPlayersDB, clubDBSearchText, roster],
+  );
   const selectedClubDBCount = selectedClubDBPlayerIds.length;
 
   const clubDBModal = (
     <Modal visible={isClubDBModalVisible} transparent={true} animationType="fade" onRequestClose={() => setIsClubDBModalVisible(false)}>
       <View style={styles.modalOverlay}>
-        <View style={[styles.modalContent, styles.dropoutModalContent]}>
-          <Text style={styles.modalTitle}>{t('clubDBTitle', lang)}</Text>
+        <View style={[styles.modalContent, styles.dropoutModalContent, isCompactModalLayout && { padding: 14, borderRadius: 20 }]}>
+          <Text style={[styles.modalTitle, isCompactModalLayout && { fontSize: 22, marginBottom: 12 }]}>{t('clubDBTitle', lang)}</Text>
           <Text style={styles.dropoutModalSubtitle}>
             {t('clubDBSubtitle', lang)}
           </Text>
@@ -3837,40 +3903,67 @@ export default function App() {
               const skillLabel = p.type === 'ADULT' && SKILL_KEYS[p.skillLevel] ? t(SKILL_KEYS[p.skillLevel], lang) : '';
 
               return (
-                <TouchableOpacity
+                <View
                   key={p.id}
-                  style={[styles.dropoutRow, isSelected && styles.dropoutRowActive, isOnMat && styles.clubDBRowDisabled]}
-                  disabled={isOnMat}
-                  onPress={() =>
-                    setSelectedClubDBPlayerIds((prev) =>
-                      prev.includes(p.id) ? prev.filter((id) => id !== p.id) : [...prev, p.id]
-                    )
-                  }
-                  activeOpacity={0.9}
+                  style={[
+                    styles.dropoutRow,
+                    isCompactModalLayout && { paddingVertical: 11, paddingHorizontal: 12, gap: 8 },
+                    isSelected && styles.dropoutRowActive,
+                  ]}
                 >
-                  <View style={styles.dropoutPlayerInfo}>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    style={[styles.dropoutPlayerInfo, isOnMat && styles.clubDBRowDisabled]}
+                    disabled={isOnMat}
+                    onPress={() =>
+                      setSelectedClubDBPlayerIds((prev) =>
+                        prev.includes(p.id) ? prev.filter((id) => id !== p.id) : [...prev, p.id]
+                      )
+                    }
+                    activeOpacity={0.9}
+                  >
                     <View style={[styles.dropoutDot, isSelected && styles.dropoutDotActive, isOnMat && styles.clubDBDotOnMat]} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.dropoutPlayerName, isSelected && styles.dropoutPlayerNameActive, isOnMat && styles.clubDBNameOnMat]}>{p.id}</Text>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={[styles.dropoutPlayerName, isCompactModalLayout && { fontSize: 17 }, isSelected && styles.dropoutPlayerNameActive, isOnMat && styles.clubDBNameOnMat]} numberOfLines={2}>{p.id}</Text>
                       <Text style={[styles.clubDBPlayerDetail, isOnMat && styles.clubDBNameOnMat]}>
                         {p.weight} kg · {p.type} · {p.gear === 'GI' ? 'GI' : 'NO-GI'}{skillLabel ? ` · ${skillLabel}` : ''} · {p.gender === 'M' ? '♂' : '♀'}
                       </Text>
                     </View>
+                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      disabled={isOnMat}
+                      onPress={() =>
+                        setSelectedClubDBPlayerIds((prev) =>
+                          prev.includes(p.id) ? prev.filter((id) => id !== p.id) : [...prev, p.id]
+                        )
+                      }
+                      style={[styles.dropoutBadge, isSelected && styles.dropoutBadgeActive, isOnMat && styles.clubDBBadgeOnMat]}
+                    >
+                      <Text style={[styles.dropoutBadgeText, isCompactModalLayout && { fontSize: 11 }, isSelected && styles.dropoutBadgeTextActive, isOnMat && styles.clubDBBadgeTextOnMat]}>
+                        {isOnMat ? t('onMat', lang) : isSelected ? t('selected', lang) : t('select', lang)}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityLabel={`${t('delete', lang)} ${p.id}`}
+                      style={styles.clubDBDeleteBtn}
+                      onPress={() => handleDeleteFromClubDB(p.id)}
+                    >
+                      <Text style={styles.clubDBDeleteBtnText}>🗑</Text>
+                    </TouchableOpacity>
                   </View>
-                  <View style={[styles.dropoutBadge, isSelected && styles.dropoutBadgeActive, isOnMat && styles.clubDBBadgeOnMat]}>
-                    <Text style={[styles.dropoutBadgeText, isSelected && styles.dropoutBadgeTextActive, isOnMat && styles.clubDBBadgeTextOnMat]}>
-                      {isOnMat ? t('onMat', lang) : isSelected ? t('selected', lang) : t('select', lang)}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
+                </View>
               );
             })}
           </ScrollView>
           <View style={styles.dropoutActionsRow}>
-            <TouchableOpacity style={[styles.closeModalButton, styles.dropoutCancelButton]} onPress={() => setIsClubDBModalVisible(false)}>
-              <Text style={styles.closeModalButtonText}>{t('cancel', lang)}</Text>
+            <TouchableOpacity accessibilityRole="button" style={[styles.closeModalButton, styles.dropoutCancelButton]} onPress={() => setIsClubDBModalVisible(false)}>
+              <Text style={[styles.closeModalButtonText, isCompactModalLayout && { fontSize: 16 }]} numberOfLines={1}>{t('cancel', lang)}</Text>
             </TouchableOpacity>
             <TouchableOpacity
+              accessibilityRole="button"
               style={[
                 styles.removeButton,
                 styles.dropoutConfirmButton,
@@ -3880,7 +3973,7 @@ export default function App() {
               disabled={selectedClubDBCount === 0}
               onPress={handleConfirmClubDBSelection}
             >
-              <Text style={styles.removeButtonText}>
+              <Text style={[styles.removeButtonText, { color: COLORS.bgMain }, isCompactModalLayout && { fontSize: 16 }]} numberOfLines={1}>
                 {selectedClubDBCount > 0 ? `${t('addSelected', lang)} (${selectedClubDBCount})` : t('addSelected', lang)}
               </Text>
             </TouchableOpacity>
@@ -3894,8 +3987,9 @@ export default function App() {
   if (!langLoaded) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14 }}>
           <Image source={APP_LOGOS[lang]} style={{ width: 120, height: 120, borderRadius: 24 }} resizeMode="contain" />
+          <Text style={{ color: COLORS.textMuted, fontSize: 14, fontWeight: '600', letterSpacing: 0.6 }}>{t('loadingApp', lang)}</Text>
         </View>
       </SafeAreaView>
     );
@@ -3964,9 +4058,16 @@ export default function App() {
   }
 
   if (currentScreen === 'zadaniowki_timer') {
-      let isPrep = phase === 'PREP';
+      const isPrep = phase === 'PREP';
+      const isRest = phase === 'REST';
       const isEnding = timeLeft <= 15 && phase === 'WORK';
-      let timerColor = isEnding ? COLORS.accentAlert : (isPrep ? COLORS.accentMain : COLORS.textPrimary);
+      const timerColor = isEnding
+        ? COLORS.accentAlert
+        : isPrep
+          ? COLORS.accentMain
+          : isRest
+            ? COLORS.accentAlert
+            : COLORS.textPrimary;
       
       const isDrille = trainingMode === 'DRILLE';
       const isDwojki = isDrille || zadaniowkiType === 'DWÓJKI';
@@ -3974,9 +4075,9 @@ export default function App() {
       const stepsTotal = isDwojki ? 2 : 6;
 
       const kidsPairs = currentMatches.filter(m => m.p1.type === 'KID' && m.p2.type === 'KID');
-      const adultsPairs = currentMatches.filter(m => m.p1.type === 'ADULT' && m.p2.type === 'ADULT');
-      const kidsGroups = zadaniowkiGroups.filter(g => g[0] && g[0].type === 'KID');
-      const adultsGroups = zadaniowkiGroups.filter(g => g[0] && g[0].type === 'ADULT');
+      const adultsPairs = currentMatches.filter(m => m.p1.type !== 'KID' || m.p2.type !== 'KID');
+      const kidsGroups = zadaniowkiGroups.filter(g => g.length > 0 && g.every(p => p.type === 'KID'));
+      const adultsGroups = zadaniowkiGroups.filter(g => g.length > 0 && !g.every(p => p.type === 'KID'));
 
       const kData = isDwojki ? kidsPairs : kidsGroups;
       const aData = isDwojki ? adultsPairs : adultsGroups;
@@ -4376,17 +4477,7 @@ export default function App() {
         return ((cols - remainder) / cols) * 50;
       };
 
-      const getRoles = (s: number) => {
-          const mod = (s - 1) % 6;
-          switch(mod) {
-              case 0: return { btm: 0, top: 1, rest: 2 }; 
-              case 1: return { btm: 0, top: 2, rest: 1 }; 
-              case 2: return { btm: 2, top: 1, rest: 0 }; 
-              case 3: return { btm: 2, top: 0, rest: 1 }; 
-              case 4: return { btm: 1, top: 0, rest: 2 }; 
-              default: return { btm: 1, top: 2, rest: 0 }; 
-          }
-      };
+      const getRoles = getTriadStageRoles;
 
       const getGenericInstruction = (s: number) => {
           const mod = (s - 1) % 6;
@@ -4424,12 +4515,18 @@ export default function App() {
           let topWord = "", btmWord = "", restWord = "";
           let nextTopWord = "", nextBtmWord = "", nextRestWord = "";
 
+          // In DRILLE during REST, show the upcoming round's swapped roles so athletes prepare
+          const effectiveStep = isDrille && isRest ? (step === 1 ? 2 : 1) : step;
+
           if (isDwojki) {
-              btmWord = step === 1 ? '[A]' : '[B]';
-              topWord = step === 1 ? '[B]' : '[A]';
-              if (step === 1) {
+              btmWord = effectiveStep === 1 ? '[A]' : '[B]';
+              topWord = effectiveStep === 1 ? '[B]' : '[A]';
+              if (!isDrille && step === 1) {
                   nextBtmWord = '[B]';
                   nextTopWord = '[A]';
+              } else if (isDrille && phase === 'WORK' && currentRound < (parseInt(roundsTotal, 10) || 1)) {
+                  nextBtmWord = step === 1 ? '[B]' : '[A]';
+                  nextTopWord = step === 1 ? '[A]' : '[B]';
               }
           } else {
               const instr = getGenericInstruction(step);
@@ -4440,8 +4537,20 @@ export default function App() {
               }
           }
 
-          const hasNext = (isDwojki && step === 1) || (!isDwojki && step < 6);
+          const hasNext = Boolean(nextBtmWord && nextTopWord);
           const hasRestLine = !isDwojki;
+          const primaryRoleLabel = isDrille ? t('work', lang) : t('bottom', lang);
+          const secondaryRoleLabel = isDrille ? t('assist', lang) : t('top', lang);
+          const activePhaseTitle = isRest
+            ? t('breakPhase', lang)
+            : isPrep
+              ? t('change', lang)
+              : t('work', lang);
+          const activePhaseColor = isRest
+            ? COLORS.accentAlert
+            : isPrep
+              ? COLORS.accentMain
+              : COLORS.textPrimary;
 
           // Estimate the instruction area needs, then give ALL remaining space to the timer.
           // Instructions area: header label + main fight line + rest line (optional) + next section (optional)
@@ -4497,12 +4606,13 @@ export default function App() {
             <SafeAreaView style={styles.safeArea}>
               <View style={[styles.timerContainerGigantic, { paddingVertical: 4 }]}>
                 
-                <View style={{width: '100%', alignItems: 'center', paddingTop: 4}}>
+                <View style={{width: '100%', alignItems: 'center', paddingTop: 4, paddingHorizontal: 8}}>
                   <Text style={[styles.roundInfoGigantic, {marginTop: 0, fontSize: phaseHeaderFont}]}>
-                      <Text style={{color: COLORS.textPrimary}}>{t('roundOf', lang)} {currentRound} / {roundsTotal} </Text>
-                      <Text style={{color: COLORS.textMuted}}>({t('stage', lang)} {step}/{stepsTotal}) - </Text>
-                      <Text style={{color: phase === 'PREP' ? COLORS.accentMain : COLORS.textPrimary}}>
-                          {phase === 'PREP' ? t('change', lang) : t('work', lang)}
+                      <Text style={{color: COLORS.textPrimary}}>{t('roundOf', lang)} {isDrille && isRest ? currentRound + 1 : currentRound} / {roundsTotal} </Text>
+                      {!isDrille && <Text style={{color: COLORS.textMuted}}>({t('stage', lang)} {step}/{stepsTotal}) - </Text>}
+                      {isDrille && <Text style={{color: COLORS.textMuted}}>- </Text>}
+                      <Text style={{color: activePhaseColor}}>
+                          {activePhaseTitle}
                       </Text>
                   </Text>
                 </View>
@@ -4564,15 +4674,15 @@ export default function App() {
                     
                     <View style={{ flexGrow: isWideInstructionLayout ? 1 : 0, flexShrink: 0, alignItems: 'center', borderRightWidth: isWideInstructionLayout && hasNext ? 2 : 0, borderBottomWidth: !isWideInstructionLayout && hasNext ? 2 : 0, borderColor: COLORS.borderStrong, paddingHorizontal: 8, paddingBottom: !isWideInstructionLayout && hasNext ? 8 : 0, marginBottom: !isWideInstructionLayout && hasNext ? 8 : 0 }}>
                         <Text style={{ fontSize: instructionLabelFont, color: COLORS.textSecondary, marginBottom: 3, fontWeight: '900', textAlign: 'center' }}>
-                            {phase === 'PREP' ? t('aboutToFight', lang) : t('nowFighting', lang)}
+                            {(isPrep || isRest) ? t('aboutToFight', lang) : t('nowFighting', lang)}
                         </Text>
                         
                         <Text style={{ fontSize: mainInstructionFont, fontWeight: '900', color: COLORS.textPrimary, textAlign: 'center' }} adjustsFontSizeToFit minimumFontScale={0.45} numberOfLines={isWideInstructionLayout ? 1 : 2} ellipsizeMode="clip">
                             <Text style={{color: getRoleColor(btmWord)}}>{btmWord}</Text>
-                            <Text style={{color: COLORS.textSecondary}}> {t('bottom', lang)} </Text>
+                            <Text style={{color: COLORS.textSecondary}}> {primaryRoleLabel} </Text>
                             <Text style={{color: COLORS.textMuted}}> vs </Text>
                             <Text style={{color: getRoleColor(topWord)}}>{topWord}</Text>
-                            <Text style={{color: COLORS.textSecondary}}> {t('top', lang)}</Text>
+                            <Text style={{color: COLORS.textSecondary}}> {secondaryRoleLabel}</Text>
                         </Text>
                         
                         {!isDwojki && (
@@ -4582,7 +4692,7 @@ export default function App() {
                         )}
                         {isDwojki && currentResting.length > 0 && (
                             <Text style={{ fontSize: mainRestFont, fontWeight: '900', color: COLORS.accentAlert, textAlign: 'center', marginTop: 4 }}>
-                                {t('restingOnMat', lang)}
+                                {formatRestingInline(currentResting, lang)}
                             </Text>
                         )}
                     </View>
@@ -4593,16 +4703,16 @@ export default function App() {
                                 {t('nextChange', lang)}
                             </Text>
                             
-                            <Text style={{ fontSize: nextInstructionFont, fontWeight: '900', color: COLORS.textPrimary, textAlign: 'center', opacity: 0.6 }} adjustsFontSizeToFit minimumFontScale={0.45} numberOfLines={isWideInstructionLayout ? 1 : 2} ellipsizeMode="clip">
+                            <Text style={{ fontSize: nextInstructionFont, fontWeight: '900', color: COLORS.textPrimary, textAlign: 'center', opacity: 0.72 }} adjustsFontSizeToFit minimumFontScale={0.45} numberOfLines={isWideInstructionLayout ? 1 : 2} ellipsizeMode="clip">
                                 <Text style={{color: getRoleColor(nextBtmWord)}}>{nextBtmWord}</Text>
-                                <Text style={{color: COLORS.textSecondary}}> {t('bottom', lang)} </Text>
+                                <Text style={{color: COLORS.textSecondary}}> {primaryRoleLabel} </Text>
                                 <Text style={{color: COLORS.textMuted}}> vs </Text>
                                 <Text style={{color: getRoleColor(nextTopWord)}}>{nextTopWord}</Text>
-                                <Text style={{color: COLORS.textSecondary}}> {t('top', lang)}</Text>
+                                <Text style={{color: COLORS.textSecondary}}> {secondaryRoleLabel}</Text>
                             </Text>
                             
                             {!isDwojki && (
-                                <Text style={{ fontSize: nextRestFont, fontWeight: '900', color: COLORS.textSecondary, textAlign: 'center', marginTop: 4, opacity: 0.6 }} adjustsFontSizeToFit minimumFontScale={0.45} numberOfLines={isWideInstructionLayout ? 1 : 2} ellipsizeMode="clip">
+                                <Text style={{ fontSize: nextRestFont, fontWeight: '900', color: COLORS.textSecondary, textAlign: 'center', marginTop: 4, opacity: 0.72 }} adjustsFontSizeToFit minimumFontScale={0.45} numberOfLines={isWideInstructionLayout ? 1 : 2} ellipsizeMode="clip">
                                     {t('resting', lang)} <Text style={{color: getRoleColor(nextRestWord)}}>{nextRestWord}</Text>
                                 </Text>
                             )}
@@ -4610,14 +4720,19 @@ export default function App() {
                     )}
                 </View>
 
-                <View style={[styles.timerButtonsRowGigantic, { marginBottom: 4, padding: 6 }]}>
-                  <TouchableOpacity style={[styles.controlButtonGigantic, { paddingVertical: btnPaddingV }, isActive ? styles.btnStandard : styles.btnImportant]} onPress={() => setIsActive(!isActive)}>
-                    <Text style={[styles.controlButtonTextGigantic, isActive ? {color: COLORS.textPrimary} : {color: COLORS.bgMain}]}>
+                <View style={[styles.timerButtonsRowGigantic, { marginBottom: 4, padding: 6, flexWrap: screenWidth < 680 ? 'wrap' : 'nowrap', rowGap: 6 }]}>
+                  <TouchableOpacity accessibilityRole="button" style={[styles.controlButtonGigantic, { paddingVertical: btnPaddingV, minWidth: screenWidth < 680 ? '46%' : undefined }, isActive ? styles.btnStandard : styles.btnImportant]} onPress={() => setIsActive(!isActive)}>
+                    <Text style={[styles.controlButtonTextGigantic, { fontSize: screenWidth < 680 ? 18 : 26 }, isActive ? {color: COLORS.textPrimary} : {color: COLORS.bgMain}]} numberOfLines={1}>
                         {isActive ? t('pause', lang) : t('resume', lang)}
                     </Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.controlButtonGigantic, { paddingVertical: btnPaddingV }, styles.btnStop]} onPress={handleStopTraining}>
-                    <Text style={styles.controlButtonTextGigantic}>{t('endTraining', lang)}</Text>
+                  <TouchableOpacity accessibilityRole="button" style={[styles.controlButtonGigantic, { paddingVertical: btnPaddingV, minWidth: screenWidth < 680 ? '46%' : undefined }, styles.btnSecondary]} onPress={handleOpenDropoutModal}>
+                    <Text style={[styles.controlButtonTextGigantic, { fontSize: screenWidth < 680 ? 18 : 26, color: COLORS.accentAlert }]} numberOfLines={1}>
+                        {t('dropout', lang)}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity accessibilityRole="button" style={[styles.controlButtonGigantic, { paddingVertical: btnPaddingV, minWidth: screenWidth < 680 ? '96%' : undefined }, styles.btnStop]} onPress={handleStopTraining}>
+                    <Text style={[styles.controlButtonTextGigantic, { fontSize: screenWidth < 680 ? 18 : 26 }]} numberOfLines={1}>{t('endTraining', lang)}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -4856,7 +4971,7 @@ export default function App() {
           </View>
         );
 
-        const dwAllPairs = [...kidsPairs, ...adultsPairs].sort((a, b) => getPairSortKey(a) - getPairSortKey(b));
+        const dwAllPairs = [...currentMatches].sort((a, b) => getPairSortKey(a) - getPairSortKey(b));
         const dwUnifiedBodyWidth = isDwojkiPhoneView
           ? dwPhoneSectionWidth - dwPairSectionPadding * 2
           : Math.max(220, dwSplitAreaWidth - dwPairSectionPadding * 2);
@@ -4947,10 +5062,10 @@ export default function App() {
               ]}
             >
               {topBarWatermark}
-              <View style={{ flex: dwStackTopBar ? 0 : 1, width: dwStackTopBar ? '100%' : undefined, paddingRight: dwStackTopBar ? 0 : 12 }}>
+              <View style={{ flex: dwStackTopBar ? 0 : 1, width: dwStackTopBar ? '100%' : undefined, minWidth: 0, paddingRight: dwStackTopBar ? 0 : 12 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   {!isDwojkiPhoneView && <Image source={APP_LOGOS[lang]} style={{ width: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), height: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), borderRadius: 12 }} resizeMode="contain" />}
-                  <View style={{ flex: 1 }}>
+                  <View style={{ flex: 1, minWidth: 0 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 12, rowGap: 2 }}>
                       <Text style={[styles.topBarRound, { fontSize: topBarMetrics.roundFont }]}>{t('roundOf', lang)} {currentRound} / {roundsTotal}</Text>
                       {dwojkiPairLegendItems.length > 0 && (
@@ -5049,18 +5164,19 @@ export default function App() {
       }
       
       // Category legend + inline resting for triad PREP topbar.
-      const triadAllGroups = [...(kData as RealPlayer[][]), ...(aData as RealPlayer[][])];
+      const triadAllGroups = [...zadaniowkiGroups];
       const triadPairLegendItems = getGroupLegendItems(triadAllGroups);
       const triadRestingInline = formatRestingInline(currentResting, lang);
+      const stackTriadTopBar = screenWidth < 560;
 
       return (
         <SafeAreaView style={styles.safeArea}>
-          <View style={[styles.topBar, { paddingHorizontal: topBarMetrics.paddingHorizontal, paddingVertical: topBarMetrics.paddingVertical, overflow: 'hidden' }]}>
+          <View style={[styles.topBar, stackTriadTopBar && styles.topBarStacked, { paddingHorizontal: topBarMetrics.paddingHorizontal, paddingVertical: topBarMetrics.paddingVertical, overflow: 'hidden' }]}>
             {topBarWatermark}
-            <View style={{ flex: 1, paddingRight: 12 }}>
+            <View style={{ flex: stackTriadTopBar ? 0 : 1, width: stackTriadTopBar ? '100%' : undefined, minWidth: 0, paddingRight: stackTriadTopBar ? 0 : 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 {screenWidth >= 760 && <Image source={APP_LOGOS[lang]} style={{ width: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), height: Math.round(topBarMetrics.timerFont + topBarMetrics.timerPaddingVertical * 1.4 + 8), borderRadius: 12 }} resizeMode="contain" />}
-                <View style={{ flex: 1 }}>
+                <View style={{ flex: 1, minWidth: 0 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 12, rowGap: 2 }}>
                     <Text style={[styles.topBarRound, { fontSize: topBarMetrics.roundFont }]}>{t('roundOf', lang)} {currentRound} / {roundsTotal}</Text>
                     {triadPairLegendItems.length > 0 && (
@@ -5101,6 +5217,7 @@ export default function App() {
             <View
               style={[
                 styles.topBarTimerBox,
+                stackTriadTopBar && styles.topBarTimerBoxStacked,
                 {
                   borderColor: COLORS.accentMain,
                   paddingHorizontal: Math.round(topBarMetrics.timerPaddingHorizontal * 0.72),
@@ -5138,7 +5255,7 @@ export default function App() {
             {(() => {
               // === UNIFIED ZADANIÓWKI PREP BLOCK ===
               // One block for all groups (KID + ADULT, triads + duos), color-coded per category.
-              const sortedUnifiedGroups = [...(kData as RealPlayer[][]), ...(aData as RealPlayer[][])]
+              const sortedUnifiedGroups = [...zadaniowkiGroups]
                 .sort((a, b) => {
                   const colA = getGroupCardColors(a).primary;
                   const colB = getGroupCardColors(b).primary;
@@ -5255,7 +5372,7 @@ export default function App() {
     const adultsPairs = currentMatches.filter(m => m.p1.type === 'ADULT' && m.p2.type === 'ADULT');
     const mixedPairs = currentMatches.filter(m => m.p1.type !== m.p2.type);
 
-    // Weight division: render split-screen layout
+    // Weight division: render split-screen (or stacked on narrow mobile) layout
     if (isWeightDivisionActive) {
       const wdThreshold = sparringOptions.weightDivisionThreshold;
       const wdRounds = parseInt(roundsTotal);
@@ -5268,110 +5385,144 @@ export default function App() {
       const wdTimerLabel = formatTime(timeLeft);
       const wdIsEnding = timeLeft <= 15 && phase === 'WORK';
       const wdAccent = wdIsEnding ? COLORS.accentAlert : (phase === 'PREP' ? COLORS.accentMain : COLORS.textPrimary);
-      const wdTimerFontSize = clamp(80, Math.min(screenWidth * 0.22, screenHeight * 0.35), 300);
-      const wdButtonFont = clamp(14, screenWidth * 0.014, 18);
+      const isCompactWdLayout = screenWidth < 760;
+      const wdTimerContainerW = isCompactWdLayout ? screenWidth - 24 : screenWidth * 0.5 - 24;
+      const wdTimerFontSize = isCompactWdLayout
+        ? clamp(54, Math.min(wdTimerContainerW * 0.30, screenHeight * 0.18), 112)
+        : clamp(72, Math.min(wdTimerContainerW * 0.34, screenHeight * 0.35), 300);
+      const wdButtonFont = clamp(13, screenWidth * 0.014, 18);
       // Dynamic pair row sizing: estimate available height for pairs panel
-      const wdHeaderHeight = 40;
-      const wdBottomBarHeight = 50;
-      const wdAvailableHeight = screenHeight - wdHeaderHeight - wdBottomBarHeight;
+      const wdHeaderHeight = 44;
+      const wdBottomBarHeight = 56;
+      const wdAvailableHeight = isCompactWdLayout
+        ? Math.max(180, screenHeight - wdHeaderHeight - wdBottomBarHeight - (wdTimerFontSize + 52))
+        : screenHeight - wdHeaderHeight - wdBottomBarHeight;
       // Only show one group at a time: during PREP show the group about to fight, during WORK show next group
       const wdDisplayMatches = phase === 'WORK' ? wdNextMatches : wdActiveMatches;
       const wdDisplayResting = phase === 'WORK' ? wdNextResting : wdActiveResting;
       const wdDisplayLabel = phase === 'WORK' ? wdNextGroupLabel : wdGroupLabel;
       const wdDisplayTitle = phase === 'WORK' ? `⏳ ${wdDisplayLabel} — ${t('wdNext', lang)}` : `🥊 ${wdDisplayLabel} — ${t('wdEntering', lang)}`;
-      const wdTotalRows = wdDisplayMatches.length + 1 + (wdDisplayResting.length > 0 ? 1 : 0);
-      const wdRowHeight = Math.max(20, Math.floor(wdAvailableHeight / wdTotalRows) - 3);
-      const wdPairNameFont = clamp(11, wdRowHeight * 0.55, 22);
+      const wdTotalRows = Math.max(1, wdDisplayMatches.length + 1 + (wdDisplayResting.length > 0 ? 1 : 0));
+      const wdRowHeight = isCompactWdLayout
+        ? clamp(34, Math.floor(wdAvailableHeight / wdTotalRows) - 3, 48)
+        : Math.max(22, Math.floor(wdAvailableHeight / wdTotalRows) - 3);
+      const wdPairNameFont = clamp(13, wdRowHeight * 0.52, 22);
+
+      const wdPairsListContent = (
+        <View style={{ padding: isCompactWdLayout ? 8 : 6, justifyContent: isCompactWdLayout ? 'flex-start' : 'center', flexGrow: 1 }}>
+          <Text style={{ color: phase === 'WORK' ? COLORS.textMuted : COLORS.accentMain, fontSize: clamp(11, wdPairNameFont * 0.85, 16), fontWeight: '800', minHeight: Math.max(24, wdRowHeight * 0.85), lineHeight: Math.max(22, Math.round(wdRowHeight * 0.82)), paddingHorizontal: 4, marginBottom: 4 }}>
+            {wdDisplayTitle}
+          </Text>
+          {wdDisplayMatches.map((m, i) => (
+            <View key={`p-${i}`} style={{
+              flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+              backgroundColor: phase === 'WORK' ? COLORS.bgPanel2 : withAlpha(COLORS.accentMain, 0.08),
+              borderRadius: 8, paddingHorizontal: 10, minHeight: wdRowHeight, paddingVertical: 4, marginBottom: 4,
+              borderWidth: phase === 'PREP' ? 1 : 0, borderColor: withAlpha(COLORS.accentMain, 0.25),
+              opacity: phase === 'WORK' ? 0.72 : 1,
+            }}>
+              <Text style={{ color: COLORS.textPrimary, fontSize: wdPairNameFont, fontWeight: '700', flex: 1, minWidth: 0 }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.55}>{m.p1.id}</Text>
+              <Text style={{ color: COLORS.textMuted, fontSize: Math.max(10, wdPairNameFont - 3), marginHorizontal: 8 }}>vs</Text>
+              <Text style={{ color: COLORS.textPrimary, fontSize: wdPairNameFont, fontWeight: '700', flex: 1, minWidth: 0, textAlign: 'right' }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.55}>{m.p2.id}</Text>
+            </View>
+          ))}
+          {wdDisplayResting.length > 0 && (
+            <Text style={{ color: COLORS.accentAlert, fontSize: Math.max(11, wdPairNameFont - 2), fontWeight: '700', paddingHorizontal: 4, marginTop: 2 }} numberOfLines={2}>
+              {t('restLabel', lang)} {wdDisplayResting.map(r => r.id).join(', ')}
+            </Text>
+          )}
+        </View>
+      );
 
       return (
         <SafeAreaView style={styles.safeArea}>
           <View style={{ flex: 1, backgroundColor: COLORS.bgMain }}>
             {/* Header */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: COLORS.bgPanel }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: COLORS.bgPanel, gap: 8 }}>
               <Text style={{ color: COLORS.textPrimary, fontSize: clamp(14, screenWidth * 0.016, 20), fontWeight: '700' }}>
                 {t('roundOf', lang)} {currentRound} / {wdRounds}
               </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
                 <View style={{ backgroundColor: withAlpha(COLORS.accentMain, 0.2), borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4 }}>
-                  <Text style={{ color: COLORS.accentMain, fontSize: clamp(11, screenWidth * 0.013, 15), fontWeight: '800' }}>
+                  <Text style={{ color: COLORS.accentMain, fontSize: clamp(11, screenWidth * 0.013, 15), fontWeight: '800' }} numberOfLines={1}>
                     {phase === 'WORK' ? `${t('wdFighting', lang)}: ${wdGroupLabel}` : t('wdGroupChange', lang)}
                   </Text>
                 </View>
               </View>
             </View>
 
-            {/* Main content: Timer left + Pairs right */}
-            <View style={{ flex: 1, flexDirection: 'row' }}>
-              {/* Left: Timer */}
-              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 12 }}>
-                <Text style={{ color: COLORS.textMuted, fontSize: clamp(14, screenWidth * 0.016, 20), fontWeight: '600', marginBottom: 4 }}>
+            {/* Main content: side-by-side on tablet/desktop, stacked on compact mobile */}
+            <View style={{ flex: 1, flexDirection: isCompactWdLayout ? 'column' : 'row' }}>
+              {/* Timer */}
+              <View style={{ flex: isCompactWdLayout ? 0 : 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 12, paddingVertical: isCompactWdLayout ? 10 : 0 }}>
+                <Text style={{ color: COLORS.textMuted, fontSize: clamp(13, screenWidth * 0.016, 20), fontWeight: '600', marginBottom: 2 }}>
                   {phase === 'PREP' ? t('preparation', lang) : wdGroupLabel}
                 </Text>
                 <Text
                   style={{
                     color: wdAccent,
                     fontSize: wdTimerFontSize,
+                    lineHeight: Math.round(wdTimerFontSize * 1.04),
                     fontWeight: '800',
                     fontVariant: ['tabular-nums'],
-                    letterSpacing: 2,
+                    letterSpacing: 1,
+                    textAlign: 'center',
+                    maxWidth: '100%',
                   }}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.5}
                 >
                   {wdTimerLabel}
                 </Text>
               </View>
 
-              {/* Right: Pairs — only one group at a time */}
-              <View style={{ flex: 1, borderLeftWidth: 1, borderLeftColor: COLORS.borderSoft, overflow: 'hidden' }}>
-                <View style={{ flex: 1, padding: 4, justifyContent: 'center' }}>
-                  <Text style={{ color: phase === 'WORK' ? COLORS.textMuted : COLORS.accentMain, fontSize: clamp(10, wdPairNameFont * 0.8, 16), fontWeight: '800', height: wdRowHeight, lineHeight: wdRowHeight, paddingHorizontal: 4 }}>
-                    {wdDisplayTitle}
-                  </Text>
-                  {wdDisplayMatches.map((m, i) => (
-                    <View key={`p-${i}`} style={{
-                      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-                      backgroundColor: phase === 'WORK' ? COLORS.bgPanel2 : withAlpha(COLORS.accentMain, 0.08),
-                      borderRadius: 6, paddingHorizontal: 10, height: wdRowHeight, marginBottom: 2,
-                      borderWidth: phase === 'PREP' ? 1 : 0, borderColor: withAlpha(COLORS.accentMain, 0.25),
-                      opacity: phase === 'WORK' ? 0.6 : 1,
-                    }}>
-                      <Text style={{ color: COLORS.textPrimary, fontSize: wdPairNameFont, fontWeight: '700', flex: 1 }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{m.p1.id}</Text>
-                      <Text style={{ color: COLORS.textMuted, fontSize: wdPairNameFont - 3, marginHorizontal: 6 }}>vs</Text>
-                      <Text style={{ color: COLORS.textPrimary, fontSize: wdPairNameFont, fontWeight: '700', flex: 1, textAlign: 'right' }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{m.p2.id}</Text>
-                    </View>
-                  ))}
-                  {wdDisplayResting.length > 0 && (
-                    <Text style={{ color: COLORS.textMuted, fontSize: wdPairNameFont - 2, paddingHorizontal: 4, height: wdRowHeight, lineHeight: wdRowHeight }} numberOfLines={1}>
-                      {t('restLabel', lang)} {wdDisplayResting.map(r => r.id).join(', ')}
-                    </Text>
-                  )}
-                </View>
+              {/* Pairs — only one group at a time */}
+              <View style={{
+                flex: 1,
+                borderLeftWidth: isCompactWdLayout ? 0 : 1,
+                borderTopWidth: isCompactWdLayout ? 1 : 0,
+                borderColor: COLORS.borderSoft,
+                overflow: 'hidden',
+              }}>
+                {isCompactWdLayout ? (
+                  <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+                    {wdPairsListContent}
+                  </ScrollView>
+                ) : (
+                  wdPairsListContent
+                )}
               </View>
             </View>
 
             {/* Bottom buttons */}
             <View style={{ flexDirection: 'row', gap: 8, padding: 8, backgroundColor: COLORS.bgPanel }}>
               <TouchableOpacity
+                accessibilityRole="button"
                 style={[styles.controlButtonSmall, isActive ? styles.btnStandard : styles.btnImportant, { flex: 1, paddingVertical: 10 }]}
                 onPress={() => setIsActive(!isActive)}
               >
-                <Text style={[styles.controlButtonTextSmall, { fontSize: wdButtonFont }, isActive ? { color: COLORS.textPrimary } : { color: COLORS.bgMain }]}>
+                <Text style={[styles.controlButtonTextSmall, { fontSize: wdButtonFont }, isActive ? { color: COLORS.textPrimary } : { color: COLORS.bgMain }]} numberOfLines={1}>
                   {isActive ? t('pause', lang) : t('resume', lang)}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
+                accessibilityRole="button"
+                style={[styles.controlButtonSmall, styles.btnSecondary, { flex: 1, paddingVertical: 10 }]}
+                onPress={handleOpenDropoutModal}
+              >
+                <Text style={[styles.controlButtonTextSmall, { fontSize: wdButtonFont, color: COLORS.accentAlert }]} numberOfLines={1}>{t('dropout', lang)}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                accessibilityRole="button"
                 style={[styles.controlButtonSmall, styles.btnStop, { flex: 1, paddingVertical: 10 }]}
                 onPress={handleStopTraining}
               >
-                <Text style={[styles.controlButtonTextSmall, { fontSize: wdButtonFont }]}>{t('endTraining', lang)}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.controlButtonSmall, styles.btnStandard, { flex: 1, paddingVertical: 10 }]}
-                onPress={handleOpenDropoutModal}
-              >
-                <Text style={[styles.controlButtonTextSmall, { fontSize: wdButtonFont, color: COLORS.textPrimary }]}>{t('dropout', lang)}</Text>
+                <Text style={[styles.controlButtonTextSmall, { fontSize: wdButtonFont }]} numberOfLines={1}>{t('endTraining', lang)}</Text>
               </TouchableOpacity>
             </View>
           </View>
+          {dropoutModal}
         </SafeAreaView>
       );
     }
@@ -5468,16 +5619,17 @@ export default function App() {
               ]}
             >
               <TouchableOpacity
+                accessibilityRole="button"
                 style={[
                   styles.controlButtonSmall,
                   styles.workTimerActionButton,
                   {
                     paddingVertical: clamp(10, bottomBarMetrics.buttonPaddingVertical - 2, 14),
-                    paddingHorizontal: clamp(16, bottomBarMetrics.buttonPaddingHorizontal - 1, 22),
-                    minWidth: workTimerButtonMinWidth,
+                    paddingHorizontal: clamp(12, bottomBarMetrics.buttonPaddingHorizontal - 2, 20),
+                    minWidth: bottomBarMetrics.wrap ? 140 : workTimerButtonMinWidth,
                     marginHorizontal: workTimerGap / 2,
                     marginVertical: bottomBarMetrics.wrap ? workTimerGap / 2 : 0,
-                    flexBasis: bottomBarMetrics.wrap ? '47%' : undefined,
+                    flexBasis: bottomBarMetrics.wrap ? '46%' : undefined,
                     flexGrow: bottomBarMetrics.wrap ? 1 : 0,
                   },
                   isActive ? styles.btnStandard : styles.btnImportant,
@@ -5488,24 +5640,55 @@ export default function App() {
                   style={[
                     styles.controlButtonTextSmall,
                     styles.workTimerActionText,
-                    { fontSize: workTimerButtonFont, lineHeight: Math.round(workTimerButtonFont * 1.02) },
+                    { fontSize: bottomBarMetrics.wrap ? 17 : workTimerButtonFont, lineHeight: Math.round((bottomBarMetrics.wrap ? 17 : workTimerButtonFont) * 1.08) },
                     isActive ? { color: COLORS.textPrimary } : { color: COLORS.bgMain },
                   ]}
+                  numberOfLines={1}
                 >
                   {isActive ? t('pause', lang) : t('resume', lang)}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
+                accessibilityRole="button"
                 style={[
                   styles.controlButtonSmall,
                   styles.workTimerActionButton,
                   {
                     paddingVertical: clamp(10, bottomBarMetrics.buttonPaddingVertical - 2, 14),
-                    paddingHorizontal: clamp(16, bottomBarMetrics.buttonPaddingHorizontal - 1, 22),
-                    minWidth: workTimerButtonMinWidth,
+                    paddingHorizontal: clamp(12, bottomBarMetrics.buttonPaddingHorizontal - 2, 20),
+                    minWidth: bottomBarMetrics.wrap ? 140 : workTimerButtonMinWidth,
                     marginHorizontal: workTimerGap / 2,
                     marginVertical: bottomBarMetrics.wrap ? workTimerGap / 2 : 0,
-                    flexBasis: bottomBarMetrics.wrap ? '47%' : undefined,
+                    flexBasis: bottomBarMetrics.wrap ? '46%' : undefined,
+                    flexGrow: bottomBarMetrics.wrap ? 1 : 0,
+                  },
+                  styles.btnSecondary,
+                ]}
+                onPress={handleOpenDropoutModal}
+              >
+                <Text
+                  style={[
+                    styles.controlButtonTextSmall,
+                    styles.workTimerActionText,
+                    { fontSize: bottomBarMetrics.wrap ? 17 : workTimerButtonFont, lineHeight: Math.round((bottomBarMetrics.wrap ? 17 : workTimerButtonFont) * 1.08), color: COLORS.accentAlert },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {t('dropout', lang)}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                accessibilityRole="button"
+                style={[
+                  styles.controlButtonSmall,
+                  styles.workTimerActionButton,
+                  {
+                    paddingVertical: clamp(10, bottomBarMetrics.buttonPaddingVertical - 2, 14),
+                    paddingHorizontal: clamp(12, bottomBarMetrics.buttonPaddingHorizontal - 2, 20),
+                    minWidth: bottomBarMetrics.wrap ? 140 : workTimerButtonMinWidth,
+                    marginHorizontal: workTimerGap / 2,
+                    marginVertical: bottomBarMetrics.wrap ? workTimerGap / 2 : 0,
+                    flexBasis: bottomBarMetrics.wrap ? '96%' : undefined,
                     flexGrow: bottomBarMetrics.wrap ? 1 : 0,
                   },
                   styles.btnStop,
@@ -5516,14 +5699,16 @@ export default function App() {
                   style={[
                     styles.controlButtonTextSmall,
                     styles.workTimerActionText,
-                    { fontSize: workTimerButtonFont, lineHeight: Math.round(workTimerButtonFont * 1.02) },
+                    { fontSize: bottomBarMetrics.wrap ? 17 : workTimerButtonFont, lineHeight: Math.round((bottomBarMetrics.wrap ? 17 : workTimerButtonFont) * 1.08) },
                   ]}
+                  numberOfLines={1}
                 >
                   {t('endTraining', lang)}
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
+          {dropoutModal}
         </SafeAreaView>
       );
     }
@@ -6546,24 +6731,27 @@ export default function App() {
 
               <View style={{ width: '100%', gap: 12, marginBottom: 20 }}>
                 <TouchableOpacity
+                  accessibilityRole="link"
                   style={styles.aboutLinkRow}
-                  onPress={() => Linking.openURL('mailto:drozdz.szymon@gmail.com')}
+                  onPress={() => Linking.openURL('mailto:drozdz.szymon@gmail.com').catch(() => {})}
                 >
                   <Text style={styles.aboutLinkIcon}>✉️</Text>
                   <Text style={styles.aboutLinkText}>drozdz.szymon@gmail.com</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
+                  accessibilityRole="link"
                   style={styles.aboutLinkRow}
-                  onPress={() => Linking.openURL('https://github.com/drozdzszymon/z-nim-nie-robie')}
+                  onPress={() => Linking.openURL('https://github.com/drozdzszymon/z-nim-nie-robie').catch(() => {})}
                 >
                   <Text style={styles.aboutLinkIcon}>🔗</Text>
                   <Text style={styles.aboutLinkText}>GitHub — z-nim-nie-robie</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
+                  accessibilityRole="link"
                   style={styles.aboutLinkRow}
-                  onPress={() => Linking.openURL('https://www.mantoshop.pl/')}
+                  onPress={() => Linking.openURL('https://www.mantoshop.pl/').catch(() => {})}
                 >
                   <Text style={styles.aboutLinkIcon}>🥋</Text>
                   <Text style={styles.aboutLinkText}>mantoshop.pl</Text>
@@ -6574,30 +6762,36 @@ export default function App() {
                 {t('aboutDescription', lang)}
               </Text>
 
-              <TouchableOpacity style={[styles.closeModalButton, { marginTop: 20 }]} onPress={() => setIsAboutModalVisible(false)}>
+              <TouchableOpacity accessibilityRole="button" style={[styles.closeModalButton, { marginTop: 20 }]} onPress={() => setIsAboutModalVisible(false)}>
                 <Text style={styles.closeModalButtonText}>{t('close', lang)}</Text>
               </TouchableOpacity>
             </View>
           </View>
         </Modal>
 
-        <Modal visible={isVipModalVisible} transparent={true} animationType="slide">
+        <Modal visible={isVipModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsVipModalVisible(false)}>
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>{t('vipModalTitle', lang)}</Text>
-              <ScrollView style={{width: '100%'}}>
-                <View style={styles.vipGrid}>
-                  {sortedRoster.map((p) => {
-                    const isVip = noRestPlayers.includes(p.id);
-                    return (
-                      <TouchableOpacity key={p.id} style={[styles.vipPlayerBox, isVip && styles.vipPlayerBoxActive]} onPress={() => toggleNoRest(p.id)}>
-                        <Text style={[styles.vipPlayerText, isVip && {color: COLORS.bgMain}]}>{p.id}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </ScrollView>
-              <TouchableOpacity style={styles.closeModalButton} onPress={() => setIsVipModalVisible(false)}><Text style={styles.closeModalButtonText}>GOTOWE</Text></TouchableOpacity>
+            <View style={[styles.modalContent, { width: '90%', maxWidth: 560 }]}>
+              <Text style={[styles.modalTitle, isCompactModalLayout && { fontSize: 22, marginBottom: 14 }]}>{t('vipModalTitle', lang)}</Text>
+              {sortedRoster.length === 0 ? (
+                <Text style={[styles.dropoutModalSubtitle, { marginTop: 8, marginBottom: 12 }]}>
+                  {t('vipEmptyHint', lang)}
+                </Text>
+              ) : (
+                <ScrollView style={{ width: '100%' }}>
+                  <View style={styles.vipGrid}>
+                    {sortedRoster.map((p) => {
+                      const isVip = noRestPlayers.includes(p.id);
+                      return (
+                        <TouchableOpacity accessibilityRole="button" key={p.id} style={[styles.vipPlayerBox, isVip && styles.vipPlayerBoxActive]} onPress={() => toggleNoRest(p.id)}>
+                          <Text style={[styles.vipPlayerText, isVip && { color: COLORS.bgMain }]}>{p.id}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </ScrollView>
+              )}
+              <TouchableOpacity accessibilityRole="button" style={styles.closeModalButton} onPress={() => setIsVipModalVisible(false)}><Text style={styles.closeModalButtonText}>{t('done', lang)}</Text></TouchableOpacity>
             </View>
           </View>
         </Modal>
@@ -7625,17 +7819,17 @@ const styles = StyleSheet.create({
   controlButtonSmall: { borderRadius: 18, alignItems: 'center', borderWidth: 2, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   controlButtonTextSmall: { color: COLORS.textPrimary, fontWeight: '900' },
   
-  aboutButtonFixed: { position: 'absolute', bottom: 12, left: 12, backgroundColor: COLORS.bgPanel2, borderRadius: 999, borderWidth: 1, borderColor: COLORS.borderSoft, width: 38, height: 38, justifyContent: 'center', alignItems: 'center', opacity: 0.7 },
-  aboutButtonInline: { alignSelf: 'flex-start', backgroundColor: COLORS.bgPanel2, borderRadius: 999, borderWidth: 1, borderColor: COLORS.borderSoft, width: 38, height: 38, justifyContent: 'center', alignItems: 'center', opacity: 0.7, marginTop: 8 },
-  aboutButtonFixedText: { fontSize: 17, includeFontPadding: false },
+  aboutButtonFixed: { position: 'absolute', bottom: 12, left: 12, backgroundColor: COLORS.bgPanel2, borderRadius: 999, borderWidth: 1, borderColor: COLORS.borderStrong, width: 38, height: 38, justifyContent: 'center', alignItems: 'center' },
+  aboutButtonInline: { alignSelf: 'flex-start', backgroundColor: COLORS.bgPanel2, borderRadius: 999, borderWidth: 1, borderColor: COLORS.borderStrong, width: 38, height: 38, justifyContent: 'center', alignItems: 'center', marginTop: 8 },
+  aboutButtonFixedText: { fontSize: 17, color: COLORS.textPrimary, includeFontPadding: false },
   aboutLinkRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.bgPanel2, borderRadius: 14, borderWidth: 1, borderColor: COLORS.borderSoft, paddingVertical: 12, paddingHorizontal: 14, gap: 10 },
   aboutLinkIcon: { fontSize: 18 },
   aboutLinkText: { color: COLORS.accentCool, fontSize: 15, fontWeight: '700', flex: 1 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(7,17,31,0.9)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { width: '80%', maxHeight: '80%', backgroundColor: COLORS.bgPanel, padding: 20, borderRadius: 20, borderWidth: 2, borderColor: COLORS.borderStrong, alignItems: 'center' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(7,17,31,0.9)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 12 },
+  modalContent: { width: '90%', maxWidth: 560, maxHeight: '84%', backgroundColor: COLORS.bgPanel, padding: 20, borderRadius: 20, borderWidth: 2, borderColor: COLORS.borderStrong, alignItems: 'center' },
   modalTitle: { color: COLORS.textPrimary, fontSize: 28, fontWeight: '900', marginBottom: 20, textAlign: 'center' },
-  dropoutModalContent: { width: '76%', maxHeight: '82%', borderWidth: 1, borderColor: COLORS.borderSoft, borderRadius: 24, padding: 18 },
-  dropoutModalSubtitle: { color: COLORS.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 20, marginTop: -8, marginBottom: 18, maxWidth: 520 },
+  dropoutModalContent: { width: '92%', maxWidth: 680, maxHeight: '84%', borderWidth: 1, borderColor: COLORS.borderSoft, borderRadius: 24, padding: 18 },
+  dropoutModalSubtitle: { color: COLORS.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 20, marginTop: -4, marginBottom: 16, maxWidth: 520 },
   dropoutList: { gap: 10, paddingBottom: 4 },
   dropoutRow: {
     width: '100%',
@@ -7654,8 +7848,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(73, 198, 255, 0.12)',
     borderColor: 'rgba(73, 198, 255, 0.42)',
   },
-  dropoutPlayerInfo: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  dropoutDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.borderStrong, marginRight: 12 },
+  dropoutPlayerInfo: { flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0 },
+  dropoutDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.borderStrong, marginRight: 12, flexShrink: 0 },
   dropoutDotActive: { backgroundColor: COLORS.accentCool },
   dropoutPlayerName: { color: COLORS.textPrimary, fontSize: 22, fontWeight: '900', flexShrink: 1 },
   dropoutPlayerNameActive: { color: COLORS.accentCool },
@@ -7699,17 +7893,54 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(247, 183, 51, 0.55)',
   },
   dropoutModePillText: { color: COLORS.textSecondary, fontSize: 12, fontWeight: '800', letterSpacing: 0.4 },
-  dropoutActionsRow: { flexDirection: 'row', justifyContent: 'center', gap: 12, width: '100%', marginTop: 18 },
-  dropoutCancelButton: { marginTop: 0, minWidth: 180 },
-  dropoutConfirmButton: { minWidth: 180, alignItems: 'center', justifyContent: 'center' },
+  dropoutActionsRow: { flexDirection: 'row', justifyContent: 'center', gap: 10, width: '100%', marginTop: 16 },
+  dropoutCancelButton: { marginTop: 0, flex: 1, minWidth: 0, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
+  dropoutConfirmButton: { flex: 1, minWidth: 0, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
   dropoutConfirmButtonDisabled: { opacity: 0.45 },
   modalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', backgroundColor: COLORS.bgPanel2, padding: 15, borderRadius: 10, marginBottom: 10, borderWidth: 1, borderColor: COLORS.borderSoft },
   modalPlayerText: { color: COLORS.textPrimary, fontSize: 24, fontWeight: '900' },
-  removeButton: { backgroundColor: COLORS.accentAlert, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 10 },
+  removeButton: { backgroundColor: COLORS.accentAlert, paddingVertical: 14, paddingHorizontal: 20, borderRadius: 14 },
   removeButtonText: { color: COLORS.textPrimary, fontSize: 18, fontWeight: '900' },
-  closeModalButton: { backgroundColor: COLORS.borderSoft, paddingVertical: 15, paddingHorizontal: 40, borderRadius: 15, marginTop: 20 },
-  closeModalButtonText: { color: COLORS.textPrimary, fontSize: 20, fontWeight: '900' },
+  closeModalButton: { backgroundColor: COLORS.borderSoft, paddingVertical: 14, paddingHorizontal: 32, borderRadius: 14, marginTop: 20 },
+  closeModalButtonText: { color: COLORS.textPrimary, fontSize: 18, fontWeight: '900' },
 
+  formErrorBanner: {
+    backgroundColor: 'rgba(255, 77, 109, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 77, 109, 0.48)',
+    borderRadius: 11,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+  },
+  formErrorText: {
+    color: '#FF7A93',
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  cancelEditButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: COLORS.borderStrong,
+    flex: 0.65,
+  },
+  cancelEditButtonText: {
+    color: COLORS.textSecondary,
+  },
+  clubDBDeleteBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255, 77, 109, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 77, 109, 0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  clubDBDeleteBtnText: {
+    fontSize: 14,
+    color: COLORS.accentAlert,
+  },
   clubDBButton: {
     backgroundColor: 'transparent',
     borderWidth: 1.5,
@@ -7731,7 +7962,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.borderSoft,
   },
-  clubDBRowDisabled: { opacity: 0.4 },
+  clubDBRowDisabled: { opacity: 0.45 },
   clubDBDotOnMat: { backgroundColor: COLORS.textMuted },
   clubDBNameOnMat: { color: COLORS.textMuted },
   clubDBBadgeOnMat: { backgroundColor: 'rgba(255,255,255,0.04)', borderColor: COLORS.borderSoft },
@@ -7739,7 +7970,7 @@ const styles = StyleSheet.create({
   clubDBPlayerDetail: { color: COLORS.textSecondary, fontSize: 12, fontWeight: '600', marginTop: 2 },
 
   // ── STATS MODAL ──
-  statsButtonText: { fontSize: 16 },
+  statsButtonText: { fontSize: 16, color: COLORS.textPrimary },
   statsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: COLORS.borderSoft },
   statsTitle: { color: COLORS.textPrimary, fontSize: 22, fontWeight: '900', letterSpacing: 0.5 },
   statsCloseBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: COLORS.bgPanel2, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderSoft },
@@ -7791,7 +8022,7 @@ const styles = StyleSheet.create({
   langPickerLabel: { color: COLORS.textPrimary, fontSize: 20, fontWeight: '800', letterSpacing: 0.3 },
   langPickerArrow: { fontSize: 22, fontWeight: '900' },
   langSwitchRow: { flexDirection: 'row', gap: 6 },
-  langSwitchBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: COLORS.bgPanel2, borderWidth: 1, borderColor: COLORS.borderSoft, justifyContent: 'center', alignItems: 'center', opacity: 0.7 },
+  langSwitchBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: COLORS.bgPanel2, borderWidth: 1, borderColor: COLORS.borderStrong, justifyContent: 'center', alignItems: 'center', opacity: 0.92 },
   langSwitchBtnActive: { borderColor: COLORS.accentCool, opacity: 1, backgroundColor: 'rgba(73,198,255,0.12)' },
   langSwitchText: { fontSize: 11, fontWeight: '900', color: COLORS.textSecondary },
   langSwitchTextActive: { color: COLORS.accentCool },

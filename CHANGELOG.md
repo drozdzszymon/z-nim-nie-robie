@@ -8,6 +8,35 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), wersj
 
 ---
 
+## [2.2.0] - 2026-11-15 - Szybszy matchmaker, poprawki logiki i mobilnego UI
+
+Duża aktualizacja stabilności i wydajności silnika, uzupełnienie brakujących funkcji w bazie klubowej oraz poprawki widoków na wąskich ekranach i w przeglądarce.
+
+### Dodane
+- Trwałe usuwanie zawodników z bazy klubowej (ikona kosza w oknie bazy klubowej z potwierdzeniem).
+- Przycisk anulowania edycji zawodnika oraz czytelny komunikat błędu pod formularzem składu.
+- Obsługa klawiatury w wersji webowej: `Spacja` pauzuje i wznawia zegar, `Escape` zamyka otwarte okna i podpowiedzi, `Enter` zatwierdza formularz zawodnika, strzałki sterują suwakiem priorytetu.
+- Portugalska wersja językowa (PT-BR) strony polityki prywatności pod `/privacy`.
+- Zestaw testów jednostkowych silnika doboru par, rotacji trójek i walidacji danych (`npm test`).
+
+### Zmienione
+- Zoptymalizowany silnik matchmakera (programowanie dynamiczne na maskach bitowych i preindeksacja par): dokładny solver obsługuje teraz grupy do 12 osób (zamiast 10), a dobór dla sali 46 zawodników działa ok. 13x szybciej.
+- Zegar rundy oparty na realnym czasie systemowym zamiast zwykłego interwału sekundowego, bez opóźnień przy przełączaniu kart i długich rundach.
+- Układ ekranów na wąskich telefonach (360 px): podział wagowy układa się pionowo, a przyciski i wiersze w oknach modalnych nie wychodzą poza ekran.
+- Skrypt wdrożeniowy WWW wykonuje selektywną kopię zapasową plików aplikacji i weryfikuje certyfikat TLS hostingu.
+- Android `versionCode`: 12 -> 13; iOS `buildNumber`: 1 -> 2; wersja aplikacji: 2.1.0 -> 2.2.0.
+
+### Naprawione
+- Pary mieszane (`KID + ADULT`) wyświetlają się poprawnie w trybach `ZADANIÓWKI (DWÓJKI)` oraz `DRILLE`.
+- Pojedynczy dorosły przy grupie dzieci w `ZADANIÓWKACH (TRÓJKI)` jest zawsze dołączany do grupy zamiast znikać z siatki.
+- Walki wg płci w trybie `PRIORYTET` sprawdzają rozegrane pary osobno dla `KID` i `ADULT`, współpracują z podziałem wagowym i respektują oznaczenie `BEZ PAUZY (VIP)`.
+- Promowane dziecko w `GI` zachowuje priorytet doboru z dorosłym w `GI` w kolejnych rundach.
+- Okno `KTOŚ WYPADŁ?` działa również w trybie podziału wagowego i w trakcie fazy pracy, a opcja `ODPOCZYWA 1 RUNDĘ` przywraca zawodnika we wszystkich trybach treningu.
+- W trybie `DRILLE` przerwa pokazuje właściwy nagłówek `PRZERWA` oraz role `PRACA / ASYSTA` na następną rundę, a start respektuje ustawiony czas przygotowania.
+- Pole wagi obsługuje przecinek (np. `82,5`), pilnuje zakresu `10-300 kg` i blokuje duplikaty nazw także przy edycji zawodnika.
+- Wersja webowa nie rzuca błędu `WakeLock` w nieaktywnej karcie i automatycznie odnawia blokadę ekranu po powrocie do karty.
+- Brak wycieku instancji `Audio.Sound` przy kolejnych startach treningu.
+
 ## [2.1.0] — 2026-05-29 — Dokończona lokalizacja EN / PT
 
 Wersja finalna. Domknięcie tłumaczeń — ostatnie napisy zaszyte po polsku na ekranie treningu / timera są teraz w pełni przetłumaczone na EN i PT-BR.
@@ -94,6 +123,7 @@ Pierwsza zamknięta wersja (development, dystrybucja przez APK). Nieobecna w Goo
 
 ---
 
+[2.2.0]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.2
 [2.1.0]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.1
 [2.0.5]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.0.5
 [2.0.4-beta]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.0.4-beta

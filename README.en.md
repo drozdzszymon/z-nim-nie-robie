@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.1%20Production-brightgreen" alt="Version" />
+  <img src="https://img.shields.io/badge/version-2.2%20Production-brightgreen" alt="Version" />
   <img src="https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20Web-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/framework-Expo%20%2B%20React%20Native-blueviolet" alt="Framework" />
   <img src="https://img.shields.io/badge/language-TypeScript-3178C6" alt="TypeScript" />
@@ -33,7 +33,7 @@
 
 ## Table of contents
 
-- [What's new in v2.1](#whats-new-in-v21)
+- [What's new in v2.2](#whats-new-in-v22)
 - [About the app](#about-the-app)
 - [Screenshots](#screenshots)
 - [Training modes](#training-modes)
@@ -48,7 +48,16 @@
 
 ---
 
-## What's new in v2.1
+## What's new in v2.2
+
+### ⚡ Faster matchmaker and logic fixes (v2.2)
+
+- **13x faster matchmaking** on large 46-player sessions thanks to bitmask dynamic programming and pre-indexed pair tables. The exact solver now covers up to 12 players per group (up from 10).
+- **Smarter gender matching (`PREFER`)**: round-robin completion is tracked separately for `KID` and `ADULT`, works alongside weight division, and respects `NO REST (VIP)`.
+- **Mixed pairs and lone adults**: `KID + ADULT` pairs now show up in `POSITIONAL (PAIRS)` and `DRILLS`, and a single adult training with kids in `TRIADS` is properly placed into a group.
+- **Drift-free wall-clock timer**: round countdown tracks real system time so backgrounded tabs and long rounds stay accurate.
+- **Club DB cleanup and form UX**: permanently remove old entries right from `CLUB DATABASE`, cancel player edits with one tap, and enter decimal weights with commas (`82,5`) within `10-300 kg`.
+- **Phone and web polish**: vertical weight-division layout on narrow phones, `DROPOUT?` accessible during active rounds, keyboard shortcuts (`Space`, `Escape`, `Enter`), and clean `WakeLock` handling in browser tabs.
 
 ### 🌍 Complete EN / PT localisation (v2.1)
 
@@ -402,18 +411,24 @@ The **MATCHMAKING PRIORITY** slider lets you smoothly weight skill vs weight (4 
 ```
 app/
   (tabs)/
-    index.tsx              # Main UI — screens, timers, pair grids
+    index.tsx              # Main UI: screens, timers, pair grids
     i18n.ts                # Translations PL / EN / PT
     types.ts               # Domain types (RealPlayer, Match, SparringOptions, etc.)
     engine/
       matchmaker.ts        # Pair matching and rotation engine
+constants/
+  training-helpers.ts      # Validation, triad grouping and session helpers
+hooks/
+  use-safe-keep-awake.ts   # Safe screen wake-lock hook (mobile + web)
+tests/
+  engine-and-helpers.test.mjs # Unit tests for matchmaking and helpers
 assets/
   *.mp3                    # Training sounds (gong, warning, applause)
   images/                  # Icons and splash screen
 docs/
   privacy-policy.md        # Privacy policy
   play-store/              # Google Play assets
-Screenshots/               # Screenshots (v2.1)
+Screenshots/               # Screenshots
 Images/                    # Logo and app icons
 plugins/                   # Expo plugins (e.g. ADI registration)
 ```
@@ -428,6 +443,10 @@ npm install
 
 # Dev server
 npx expo start
+
+# Unit tests and lint
+npm test
+npm run lint
 
 # Build APK (Android, for testing)
 eas build --platform android --profile preview
@@ -469,6 +488,6 @@ All rights reserved. Source code published for review purposes only.
 ---
 
 <p align="center">
-  <b>Z NIM NIE ROBIĘ</b> · v2.1 · BJJ training app<br/>
+  <b>Z NIM NIE ROBIĘ</b> · v2.2 · BJJ training app<br/>
   Built with 🥋 on the mat and at the keyboard
 </p>

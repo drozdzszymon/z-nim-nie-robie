@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/wersja-2.1%20Production-brightgreen" alt="Wersja" />
+  <img src="https://img.shields.io/badge/wersja-2.2%20Production-brightgreen" alt="Wersja" />
   <img src="https://img.shields.io/badge/platforma-Android%20%7C%20iOS%20%7C%20Web-blue" alt="Platforma" />
   <img src="https://img.shields.io/badge/framework-Expo%20%2B%20React%20Native-blueviolet" alt="Framework" />
   <img src="https://img.shields.io/badge/j%C4%99zyk-TypeScript-3178C6" alt="TypeScript" />
@@ -33,7 +33,7 @@
 
 ## Spis treści
 
-- [Co nowego w v2.1](#co-nowego-w-v21)
+- [Co nowego w v2.2](#co-nowego-w-v22)
 - [O aplikacji](#o-aplikacji)
 - [Zrzuty ekranu](#zrzuty-ekranu)
 - [Tryby treningowe](#tryby-treningowe)
@@ -48,7 +48,16 @@
 
 ---
 
-## Co nowego w v2.1
+## Co nowego w v2.2
+
+### ⚡ Szybszy matchmaker i poprawki logiki (v2.2)
+
+- **13x szybszy silnik parowania** dla dużych grup (46 osób na macie) dzięki programowaniu dynamicznemu na maskach bitowych i tablicach indeksowanych. Dokładny solver obejmuje teraz grupy do 12 osób zamiast 10.
+- **Poprawione walki wg płci (`PRIORYTET`)**: stan rozegranych walk liczy się osobno dla `KID` i `ADULT`, działa razem z podziałem wagowym i respektuje `BEZ PAUZY (VIP)`.
+- **Pary mieszane i pojedynczy dorośli**: pary `KID + ADULT` są widoczne także w `ZADANIÓWKACH (DWÓJKI)` i `DRILLACH`, a samotny dorosły przy grupie dzieci w `TRÓJKACH` trafia normalnie do grupy.
+- **Zegar bez gubienia sekund**: odliczanie oparte na zegarze systemowym, odporne na przygaszenie karty w przeglądarce i długie rundy.
+- **Usuwanie z bazy klubowej i lepsza edycja**: w oknie `BAZA KLUBOWA` można trwale usunąć stare wpisy, a w formularzu doszedł przycisk anulowania edycji, obsługa wagi z przecinkiem (`82,5`) i zakres `10-300 kg`.
+- **Dopracowany widok na telefonach i w przeglądarce**: pionowy układ podziału wagowego na wąskich ekranach, przycisk `KTOŚ WYPADŁ?` dostępny w trakcie rundy, pełne skróty klawiaturowe (`Spacja`, `Escape`, `Enter`) i brak błędów `WakeLock` w tle.
 
 ### 🌍 Dokończona lokalizacja EN / PT (v2.1)
 
@@ -402,18 +411,24 @@ Suwak **PRIORYTET DOBORU** pozwala płynnie ważyć między umiejętnościami a 
 ```
 app/
   (tabs)/
-    index.tsx              # Główny UI — ekrany, timery, siatki par
+    index.tsx              # Główny UI: ekrany, timery, siatki par
     i18n.ts                # Tłumaczenia PL / EN / PT
     types.ts               # Typy domenowe (RealPlayer, Match, SparringOptions itp.)
     engine/
       matchmaker.ts        # Silnik doboru par i rotacji
+constants/
+  training-helpers.ts      # Walidacja danych, budowa trójek i pomocniki sesji
+hooks/
+  use-safe-keep-awake.ts   # Bezpieczna blokada wygaszania ekranu (mobile + web)
+tests/
+  engine-and-helpers.test.mjs # Testy jednostkowe matchmakera i logiki treningu
 assets/
   *.mp3                    # Dźwięki treningowe (gong, sygnał, brawa)
   images/                  # Ikony i splash screen
 docs/
   privacy-policy.md        # Polityka prywatności
   play-store/              # Materiały do Google Play
-Screenshots/               # Zrzuty ekranu (v2.1)
+Screenshots/               # Zrzuty ekranu
 Images/                    # Logo i ikony aplikacji
 plugins/                   # Pluginy Expo (np. ADI registration)
 ```
@@ -428,6 +443,10 @@ npm install
 
 # Serwer deweloperski
 npx expo start
+
+# Testy jednostkowe i lint
+npm test
+npm run lint
 
 # Build APK (Android, do testów)
 eas build --platform android --profile preview
@@ -469,6 +488,6 @@ Wszelkie prawa zastrzeżone. Kod źródłowy udostępniony wyłącznie w celach 
 ---
 
 <p align="center">
-  <b>Z NIM NIE ROBIĘ</b> · v2.1 · Aplikacja treningowa BJJ<br/>
+  <b>Z NIM NIE ROBIĘ</b> · v2.2 · Aplikacja treningowa BJJ<br/>
   Zbudowane z 🥋 na macie i przy klawiaturze
 </p>

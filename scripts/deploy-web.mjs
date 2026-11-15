@@ -10,8 +10,9 @@
 
 import { Client } from "basic-ftp";
 import { constants } from "node:fs";
-import { access, readFile } from "node:fs/promises";
+import { access, mkdir, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import tls from "node:tls";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -52,7 +53,16 @@ async function main() {
       user: config.user,
       password: config.password,
       secure: config.secure ?? false,
-      secureOptions: { rejectUnauthorized: false },
+      secureOptions: {
+        rejectUnauthorized: config.rejectUnauthorized ?? true,
+        checkServerIdentity: (host, cert) => {
+          const directErr = tls.checkServerIdentity(host, cert);
+          if (!directErr) return undefined;
+          const fallbackHost = config.tlsServername ?? "ftp.cyber-folks.pl";
+          if (!tls.checkServerIdentity(fallbackHost, cert)) return undefined;
+          return directErr;
+        },
+      },
     });
 
     const remoteDir = config.remoteDir || "/";
@@ -67,14 +77,28 @@ async function main() {
       return;
     }
 
-    console.log(`→ Backing up current remote ${remoteDir} before overwrite ...`);
+    console.log(`→ Backing up current app files from ${remoteDir} before overwrite ...`);
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     const backupDir = path.join(root, "backups", `www-${stamp}`);
     try {
-      await client.downloadToDir(backupDir, remoteDir);
+      await mkdir(backupDir, { recursive: true });
+      const distEntries = new Set(await readdir(distDir));
+      const remoteEntries = await client.list(remoteDir);
+      const baseRemote = remoteDir.endsWith("/") ? remoteDir : `${remoteDir}/`;
+
+      for (const item of remoteEntries) {
+        if (!distEntries.has(item.name)) continue;
+        const remoteItemPath = `${baseRemote}${item.name}`;
+        const localBackupPath = path.join(backupDir, item.name);
+        if (item.isDirectory) {
+          await client.downloadToDir(localBackupPath, remoteItemPath);
+        } else if (item.isFile) {
+          await client.downloadTo(localBackupPath, remoteItemPath);
+        }
+      }
       console.log(`✔ Remote backup saved to backups/www-${stamp}`);
     } catch (err) {
-      console.error(`✖ Backup failed (${err.message}) — aborting deploy to stay safe.`);
+      console.error(`✖ Backup failed (${err.message}) - aborting deploy to stay safe.`);
       process.exitCode = 1;
       return;
     }
