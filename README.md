@@ -1,337 +1,73 @@
-# 🥋 Z NIM NIE ROBIĘ
+# Z NIM NIE ROBIĘ
 
 <p align="center">
-  <img src="Images/LOGO_PL.png" alt="Z NIM NIE ROBIĘ — logo" width="260" />
+  <img src="Images/LOGO_PL.png" alt="Logo aplikacji Z NIM NIE ROBIĘ" width="260" />
 </p>
 
 <p align="center">
-  <b>Inteligentna aplikacja treningowa do prowadzenia sparingów, zadaniówek i drilli BJJ.</b><br/>
-  Automatyczny dobór par · Duże timery · Rotacja w trójkach · Czytelny podgląd z dystansu
+  <b>Timer i automatyczny dobór par na treningi BJJ, grapplingu oraz zadaniówek.</b><br/>
+  Sparingi bez powtórek · Duży zegar czytelny z końca maty · Rotacja w trójkach i drille
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/wersja-2.2%20Production-brightgreen" alt="Wersja" />
+  <img src="https://img.shields.io/badge/wersja-2.3%20Production-brightgreen" alt="Wersja 2.3" />
   <img src="https://img.shields.io/badge/platforma-Android%20%7C%20iOS%20%7C%20Web-blue" alt="Platforma" />
-  <img src="https://img.shields.io/badge/framework-Expo%20%2B%20React%20Native-blueviolet" alt="Framework" />
-  <img src="https://img.shields.io/badge/j%C4%99zyk-TypeScript-3178C6" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/framework-Expo%2058%20%2B%20React%20Native-blueviolet" alt="Framework" />
+  <img src="https://img.shields.io/badge/j%C4%99zyk-TypeScript%206-3178C6" alt="TypeScript" />
   <img src="https://img.shields.io/badge/i18n-PL%20%7C%20EN%20%7C%20PT-orange" alt="Języki" />
 </p>
 
 <p align="center">
-  <a href="https://znimnierobie.pl"><b>▶ Wypróbuj wersję webową</b></a>
+  <a href="https://znimnierobie.pl"><b>Otwórz wersję w przeglądarce (znimnierobie.pl)</b></a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Google%20Play-Coming%20soon-34a853?logo=google-play&logoColor=white" alt="Google Play — wkrótce" />
+  <a href="https://play.google.com/store/apps/details?id=pl.znimnierobie.app">
+    <img src="https://img.shields.io/badge/Google%20Play-Pobierz%20aplikacj%C4%99-34a853?logo=google-play&logoColor=white" alt="Pobierz w Google Play" />
+  </a>
 </p>
 
 <p align="center">
-  <b>🇵🇱 Polski</b> · <a href="README.en.md">🇬🇧 English</a> · <a href="README.pt-BR.md">🇧🇷 Português (BR)</a>
+  <b>Polski</b> · <a href="README.en.md">English</a> · <a href="README.pt-BR.md">Português (BR)</a>
 </p>
 
----
+## Co rozwiązuje ta aplikacja na sali
 
-## Spis treści
+Przy kilkunastu albo czterdziestu osobach na macie ręczne rozstawianie par co rundę zjada przerwę, kończy się ciągłym wpadaniem tych samych kolegów na siebie i zostawia pod ścianą osoby bez pary. Kartka i zwykły stoper na ścianie załatwiają tylko odliczanie czasu.
 
-- [Co nowego w v2.2](#co-nowego-w-v22)
-- [O aplikacji](#o-aplikacji)
-- [Zrzuty ekranu](#zrzuty-ekranu)
-- [Tryby treningowe](#tryby-treningowe)
-- [Silnik doboru par (Matchmaker)](#silnik-doboru-par-matchmaker)
-- [Główne funkcje](#główne-funkcje)
-- [Stack technologiczny](#stack-technologiczny)
-- [Struktura projektu](#struktura-projektu)
-- [Uruchomienie](#uruchomienie)
-- [Wersja webowa](#wersja-webowa)
-- [Prywatność](#prywatność)
-- [Licencja](#licencja)
+**Z NIM NIE ROBIĘ** spina zegar rundowy z algorytmem dobierającym składy na tablet ustawiony przy macie lub powieszony na ścianie. Przed zajęciami zaznaczasz z bazy klubowej kto przyszedł na trening, wybierasz czas pracy oraz przerw i puszczasz start. Program sam pilnuje gongów, układa pary według wagi, stażu, stroju i płci, pokazuje następne zestawienia już w trakcie odpoczynku i pamięta historię całej sesji, żeby nikt nie robił dwa razy z tą samą osobą przed zamknięciem kolejki.
 
----
+Całość działa po polsku, angielsku i brazylijskim portugalsku. Nie wymaga zakładania konta ani dostępu do Wi-Fi na sali, bo cała baza zawodników zapisuje się lokalnie w pamięci urządzenia.
 
-## Co nowego w v2.2
+## Co zmieniło się w ostatnich wydaniach
 
-### ⚡ Szybszy matchmaker i poprawki logiki (v2.2)
+### Wydanie 2.3 i migracja na Expo SDK 58
 
-- **13x szybszy silnik parowania** dla dużych grup (46 osób na macie) dzięki programowaniu dynamicznemu na maskach bitowych i tablicach indeksowanych. Dokładny solver obejmuje teraz grupy do 12 osób zamiast 10.
-- **Poprawione walki wg płci (`PRIORYTET`)**: stan rozegranych walk liczy się osobno dla `KID` i `ADULT`, działa razem z podziałem wagowym i respektuje `BEZ PAUZY (VIP)`.
-- **Pary mieszane i pojedynczy dorośli**: pary `KID + ADULT` są widoczne także w `ZADANIÓWKACH (DWÓJKI)` i `DRILLACH`, a samotny dorosły przy grupie dzieci w `TRÓJKACH` trafia normalnie do grupy.
-- **Zegar bez gubienia sekund**: odliczanie oparte na zegarze systemowym, odporne na przygaszenie karty w przeglądarce i długie rundy.
-- **Usuwanie z bazy klubowej i lepsza edycja**: w oknie `BAZA KLUBOWA` można trwale usunąć stare wpisy, a w formularzu doszedł przycisk anulowania edycji, obsługa wagi z przecinkiem (`82,5`) i zakres `10-300 kg`.
-- **Dopracowany widok na telefonach i w przeglądarce**: pionowy układ podziału wagowego na wąskich ekranach, przycisk `KTOŚ WYPADŁ?` dostępny w trakcie rundy, pełne skróty klawiaturowe (`Spacja`, `Escape`, `Enter`) i brak błędów `WakeLock` w tle.
+W wersji 2.3 cały stos uruchomieniowy przeszedł na Expo SDK 58, React Native 0.88.1, React 19.3.1, AsyncStorage 3.1.1 oraz TypeScript 6.0.3. Przestarzały moduł dźwiękowy zastąpiliśmy biblioteką `expo-audio` skonfigurowaną bez uprawnienia do mikrofonu, zachowując sygnał gongu, podwójne klaśnięcie na 10 sekund przed końcem rundy i automatyczne ściszanie muzyki grającej w tle. Odświeżyliśmy przy tym komunikaty walidacji, opisy opcji oraz wielojęzyczną stronę polityki prywatności.
 
-### 🌍 Dokończona lokalizacja EN / PT (v2.1)
+### Szybszy solver i poprawki logiki w wersji 2.2
 
-Finalne dopracowanie wersji wielojęzycznej. Kilka napisów na ekranie treningu / timera było jeszcze zaszytych po polsku — teraz są w pełni przetłumaczone na angielski i portugalski (BR):
+Silnik parowania przepisaliśmy na programowanie dynamiczne na maskach bitowych i tablicach indeksowanych. Dokładny solver ogarnia teraz grupy do 12 osób zamiast wcześniejszych 10, a wyliczenie rundy dla pełnej sali na 46 osób trwa około 13 razy krócej. Sam zegar liczy czas względem zegara systemowego, więc nie gubi sekund na długich rundach ani po przełączeniu karty w przeglądarce.
 
-- etykieta fazy **PRZERWA** (`BREAK` / `INTERVALO`)
-- etykieta grupy **MIESZANE** (`MIXED` / `MISTO`)
-- podpowiedzi rotacji w TRÓJKACH: **WALCZY / ZMIANA GRUP / WCHODZĄ / NASTĘPNI**
-- etykieta **ZMIANA GRUP**
-- licznik postępu **Etap X/Y** (`Stage` / `Etapa`)
+W tej samej aktualizacji poprawiliśmy priorytet walk kobiecych tak, aby kolejki liczyły się osobno dla dzieci i dorosłych, współgrały z podziałem wagowym i omijały osoby wpisane na listę bez pauzy. Pary mieszane dzieci z dorosłymi pojawiły się na siatce w zadaniówkach dwójkowych oraz w drillach, a pojedynczy dorosły na treningu dziecięcym w trójkach zawsze trafia do grupy. W bazie klubowej doszło trwałe kasowanie starych wpisów, anulowanie edycji, wpisywanie wagi z przecinkiem (np. `82,5` w przedziale od 10 do 300 kg), skróty klawiaturowe w przeglądarce oraz pionowy układ podziału wagowego na wąskich ekranach telefonów.
 
-Użytkownicy EN i PT-BR widzą teraz w 100% przetłumaczony timer we wszystkich trybach treningu.
+### Lokalizacja, goście z innych klubów i publikacja w Google Play (2.0 do 2.1)
 
-### 🎉 Wydanie produkcyjne (v2.0.5)
+W cyklu wydań 2.0 oraz 2.1 aplikacja przeszła przegląd Google Play i dostała komplet tłumaczeń na angielski oraz portugalski na wszystkich ekranach zegara. Pojawił się przełącznik `GOŚĆ` dla osób wpadających na otwartą matę z innego klubu, dzięki któremu przyjezdni trafiają na gospodarzy zamiast sparować między sobą.
 
-Pierwsza wersja zaakceptowana przez **Google Play**. Aplikacja dostępna na Androida w 3 językach (PL / EN / PT-BR).
+Siatkę przygotowania połączyliśmy we wspólny widok z kolorami kategorii (`KID GI`, `KID NO-GI`, `ADULT GI`, `ADULT NO-GI` oraz pary mieszane), a listę odpoczywających przenieśliśmy do górnego paska widocznego również w czasie przerwy. W oknie wypisywania zawodnika w trakcie rundy rozdzieliliśmy stałe zejście z maty od odpoczynku na jedną rundę, a blokadę wygaszania ekranu przypięliśmy na poziomie głównego układu aplikacji.
 
-### 🎨 Odświeżony wygląd ekranu ustawień (v2.0.5)
+## Tryby pracy na macie
 
-Ekran startowy (dodawanie zawodników, czas rund, tryb treningu) został odświeżony — teraz wygląda spokojniej, bardziej profesjonalnie i mniej „cięśnie”.
+### Klasyczne sparingi
 
-- **Cieńsze, czytelniejsze fonty** — koniec z agresywnym `weight: 900` wszędzie. Nagłówki i etykiety używają teraz lżejszych grubości (500/600), które lepiej oddychają.
-- **Więcej przestrzeni między sekcjami** — większe paddingi, większe marginesy między grupami pól.
-- **Płaskie, czyste przyciski** — usunięte ramki i mocne cienie z przycisków SPARINGI / ZADANIÓWKI / DRILLE, kart czasu (RUNDA / PRZYGOT / PRZERWA / RUNDY), pól tekstowych. Spójny look w stylu „Apple/iOS minimal”.
-- **Przycisk GOŚĆ przerobiony** — teraz wygląda i działa jak inne przełączniki (M/K, ADULT/KID, GI/NO-GI). Klika się go i podświetla na fioletowo bez dziwnego okrągłego znacznika.
-- **Subtelniejsze pigułki** — badges z typem zawodnika (ADULT, NO-GI, ♂/♀) nie mają już cieni, są spokojniejsze.
+Każda runda przechodzi przez przygotowanie z podglądem rozpisanych par, właściwą walkę z dużym zegarem na pełnym ekranie oraz przerwę, na której od razu widać układ par wyliczony na następną kolejkę. Trener może wcześniej rzucić okiem na zestawienia i skorygować grupę, zanim zabrzmi gong.
 
-### 🐛 Naprawione (v2.0.5)
+W panelu sparingów ustawisz suwak ważący między stażem a wagą w czterech krokach, kolejność walk (od najbardziej wyrównanych, od zróżnicowanych albo losowo) oraz tryb walk kobiecych. Przy dużej grupie na małej macie przydaje się podział wagowy, który tnie salę na lżejszą i cięższą połowę walczące na zmianę z dwudziestosekundowym oknem na zejście i wejście.
 
-- **Bug z obracaniem ekranu** — po zmianie orientacji portrait → landscape (albo odwrotnie) ekran ustawień bywał scrollnięty „za końcem”. Teraz outer ScrollView automatycznie wraca na górę przy każdej zmianie orientacji.
+### Zadaniówki w trójkach
 
-### ✈ Goście z innego klubu (v2.0.4)
-
-- **Przełącznik `GOŚĆ` w karcie zawodnika** — mały toggle pod pseudonimem (`○ GOŚĆ` / `✈ GOŚĆ`).
-- **Silnik unika par GOŚĆ–GOŚĆ** prawie tak twardo jak powtórek — priorytet wyższy niż strój, waga i poziom; łamane tylko gdy matematycznie nie ma alternatywy.
-- **Status per-trening** — nie zapisuje się w bazie klubowej, przy każdym treningu zaznaczasz gości od nowa.
-- **Fioletowa ikonka ✈** przed pseudonimem na kafelkach składu — widać od razu kto jest gościem.
-
-### 🔴 Krytyczna poprawka (v2.0.3)
-
-- **Lista odpoczywających nie znika już z górnego paska podczas fazy „PRZERWA"** — po zaznaczeniu kogoś jako „WYPADŁ" liczba aktywnych stawała się nieparzysta i algorytm sadzał kogoś do odpoczynku, ale podpowiedź była widoczna tylko w fazie PRP. Teraz lista „KTO ODPOCZYWA" jest widoczna **w obu fazach (PRZYGOTOWANIE oraz PRZERWA)**.
-
-### 🔴 Krytyczna poprawka (v2.0.2)
-
-- **Ekran nie wyłącza się już podczas działania timera** — `useKeepAwake` przeniesiony na poziom root layout + jawna aktywacja `activateKeepAwakeAsync`. Tablet zamontowany na ścianie nie zgaśnie w trakcie sparingów ani zadaniówek.
-
-### 🟢 Nowości z cyklu 2.0.x Beta
-
-- **Zunifikowany ekran PRZYGOTOWANIE** — koniec dzielenia siatki na osobne kolumny KID / ADULT / ODPOCZYWA. Wszystkie pary w jednym, gęstym gridzie z **kolorowaniem wg kategorii** i **legendą w topbarze**:
-  - 🟦 **KID GI** (niebieski)
-  - 🩵 **KID NO-GI** (cyan)
-  - 🟧 **ADULT GI** (pomarańczowy)
-  - 🟥 **ADULT NO-GI** (czerwony)
-  - 🟪 **MIESZANE** (gradient — KID + ADULT)
-- **Reguła GI dla pary** — para liczy się jako GI tylko jeśli **obaj** są w GI; wystarczy jeden NO-GI i cała para jest NO-GI
-- **Inline ODPOCZYWA przy PRZYGOTOWANIE** — kto pauzuje pisze się obok nagłówka fazy, a nie w osobnej kolumnie (więcej miejsca na kafelki par)
-- **Dwutrybowe odpadanie zawodników** — w modalu „KTO WYPADŁ?" przy każdej osobie dwa przyciski:
-  - **WYPADŁ** — usuwany z całego treningu
-  - **ODPOCZYWA 1 RUNDĘ** — wraca automatycznie w kolejnej rundzie
-
-### 🟢 Bazowe funkcje 2.0.0 Beta
-
-- **Ekran startowy z wyborem języka** — PL / EN / PT (BR) widoczne od pierwszego uruchomienia
-- **Trzy tryby treningowe** — SPARINGI · ZADANIÓWKI (TRÓJKI / DWÓJKI) · **DRILLE** (pełnoprawny tryb z parami stałymi i rotacją ról A/B co rundę)
-- **Pole płeć (M / K)** w karcie zawodnika oraz **Walki wg płci** w opcjach sparingów (WYŁ / PRIORYTET / ZAWSZE)
-- **Suwak Priorytet doboru** UMIEJĘTNOŚCI ↔ WAGA (4 snapy)
-- **Podział wagowy** — opcjonalne dzielenie maty na dwie grupy wagowe
-- **Kolejność walk** — ZBLIŻONE / RÓŻNE / LOSOWO
-- **Bez pauzy (VIP)** w czytelnym układzie pigułek z imionami zawodników
-- **Ekran końcowy „DZIĘKUJĘ — DOBRA ROBOTA!"** z powrotem do menu
-- **Panel WERSJA V2** — kontakt, link do GitHuba i sklepu, krótki opis
-- **Zoptymalizowane karty trójek i dwójek** pod tablety 10.5" — bez przewijania na typowych rozdzielczościach
-
----
-
-## O aplikacji
-
-**Z NIM NIE ROBIĘ** to narzędzie dla trenerów BJJ i grapplingu, którzy prowadzą treningi z tabletem ustawionym na ścianie lub przy macie. Zamiast kartek, stopera i ręcznego ustawiania par — jedno urządzenie robi wszystko:
-
-- **automatycznie dobiera pary** na podstawie wagi, poziomu, stroju (GI / NO-GI) i płci,
-- **pilnuje timerów** z sygnałami dźwiękowymi na przygotowanie, pracę i przerwę,
-- **rotuje trójki i dwójki** w zadaniówkach z czytelnym podziałem na walczących i odpoczywającego,
-- **prowadzi drille** z parami dobieranymi raz na cały trening i zamianą ról A/B co rundę,
-- **wyświetla wszystko czytelnie** — duże fonty, mocny kontrast, czytelność z kilku metrów,
-- **mówi po polsku, angielsku i portugalsku (BR)**.
-
-Aplikacja działa offline, nie wymaga konta ani logowania. Dane zawodników zapisywane są lokalnie na urządzeniu.
-
----
-
-## Zrzuty ekranu
-
-### Wybór języka
-
-Pierwsze uruchomienie — szybki wybór wersji językowej. Aplikację można w dowolnej chwili przełączyć między **PL / EN / PT** z dolnego paska.
-
-<p align="center">
-  <img src="Screenshots/pl/1.png" alt="Ekran wyboru języka" width="90%" />
-</p>
-
-### Ekran startowy (pusta mata)
-
-Konfiguracja treningu: dodawanie zawodników (lewy panel), czas i rytm rund, wybór trybu treningowego oraz opcji matchmakera. Po prawej miejsce na kafelki zawodników.
-
-<p align="center">
-  <img src="Screenshots/pl/2.png" alt="Pusty ekran startowy aplikacji" width="90%" />
-</p>
-
-### Edycja zawodnika
-
-Pełna karta zawodnika: pseudonim, waga, kategoria (KID / ADULT), strój (GI / NO-GI), płeć (M / K) i poziom (POCZ. / ŚR.ZAAW. / ZAAW. / PRO). Dotknięcie kafelka otwiera tę samą formę do edycji.
-
-<p align="center">
-  <img src="Screenshots/pl/3.png" alt="Edycja zawodnika — formularz" width="90%" />
-</p>
-
-### Baza klubowa — wyszukiwanie
-
-Modal **BAZA KLUBOWA** z listą zapamiętanych zawodników. Wyszukiwarka po imieniu, dodawanie pojedynczo przyciskiem **WYBIERZ**.
-
-<p align="center">
-  <img src="Screenshots/pl/4.png" alt="Baza klubowa — lista i wyszukiwarka" width="90%" />
-</p>
-
-### Baza klubowa — wsadowe dodawanie
-
-Zaznaczenie wielu osób naraz i dorzucenie ich na matę jednym kliknięciem **DODAJ (n)**. Kafelki podświetlają się na niebiesko.
-
-<p align="center">
-  <img src="Screenshots/pl/5.png" alt="Baza klubowa — wsadowe dodawanie zawodników" width="90%" />
-</p>
-
-### Skład zawodników na macie
-
-Zawodnicy posegregowani alfabetycznie z filtrami u góry (KID / ADULT / GI / NO-GI / poziom). Każda karta pokazuje strój, kategorię, płeć, wagę i poziom. Czerwony „×" usuwa, dotknięcie edytuje.
-
-<p align="center">
-  <img src="Screenshots/pl/6.png" alt="Skład zawodników na macie — siatka kafelków" width="90%" />
-</p>
-
-### Tryb SPARINGI
-
-Klasyczny sparing z pełnym panelem opcji: **BEZ PAUZY (VIP)**, **PRIORYTET DOBORU** (suwak UMIEJĘTNOŚCI ↔ WAGA), **KOLEJNOŚĆ WALK** (ZBLIŻONE / RÓŻNE / LOSOWO), **PODZIAŁ WAGOWY** oraz **WALKI WG PŁCI** (WYŁ / PRIORYTET / ZAWSZE).
-
-<p align="center">
-  <img src="Screenshots/pl/7.png" alt="Tryb sparingów — opcje matchmakera" width="60%" />
-</p>
-
-### Tryb ZADANIÓWKI (trójki / dwójki)
-
-Po wybraniu zadaniówek pojawia się przełącznik **TRÓJKI / DWÓJKI**. Etykieta przycisku startu zmienia się odpowiednio (`START ZADANIÓWEK (TRÓJKI)` / `(DWÓJKI)`).
-
-<p align="center">
-  <img src="Screenshots/pl/8.png" alt="Tryb zadaniówek — wybór trójki/dwójki" width="60%" />
-</p>
-
-### Tryb DRILLE
-
-Pary dobierane **raz na cały trening**, role A/B zamieniają się co rundę. Idealne do powtarzania techniki z tym samym partnerem.
-
-<p align="center">
-  <img src="Screenshots/pl/9.png" alt="Tryb drille — opis i przycisk startu" width="60%" />
-</p>
-
-### Sparingi — przygotowanie
-
-Faza **PRZYGOTOWANIE** rundy 1/5: siatka par podzielona na sekcje **KID**, **ADULT** i **MIESZANE**. Timer odlicza czas na rozejście się na pozycje. Pary dobrane przez silnik matchmakera.
-
-<p align="center">
-  <img src="Screenshots/pl/10.png" alt="Sparingi — przygotowanie par" width="90%" />
-</p>
-
-### Sparingi — timer pracy
-
-Duży, czytelny timer widoczny z dystansu. Numer rundy na górze. Przyciski **PAUZA** i **ZAKOŃCZ** pod ręką.
-
-<p align="center">
-  <img src="Screenshots/pl/11.png" alt="Sparingi — timer pracy" width="90%" />
-</p>
-
-### Sparingi — przerwa i nowe pary
-
-Faza **PRZERWA** rundy 2/5: na ekranie już widać nowy układ par dobrany na kolejną rundę. Trener może omówić co poprawić zanim padnie gong.
-
-<p align="center">
-  <img src="Screenshots/pl/12.png" alt="Sparingi — przerwa z podglądem nowych par" width="90%" />
-</p>
-
-### Zadaniówki w trójkach — przygotowanie
-
-Siatka trójek z podziałem na role: **[A] DÓŁ**, **[B] GÓRA**, **[C] PAUZA / ASYSTA**. Sekcje KID i ADULT obok siebie, czytelne nawet z drugiego końca sali.
-
-<p align="center">
-  <img src="Screenshots/pl/13.png" alt="Zadaniówki w trójkach — przygotowanie" width="90%" />
-</p>
-
-### Zadaniówki w trójkach — timer ze zmianą
-
-Timer etapu z informacją o aktualnym kroku rotacji (**Etap 2/6 — ZMIANA!**). Pod timerem aktualny układ ról oraz **NASTĘPNA ZMIANA**, dzięki czemu nikt się nie gubi.
-
-<p align="center">
-  <img src="Screenshots/pl/14.png" alt="Zadaniówki w trójkach — timer i informacja o zmianie" width="90%" />
-</p>
-
-### Zadaniówki w dwójkach — przygotowanie
-
-Pary A vs B w czytelnej siatce z oznaczeniem ról **[A]** i **[B]**. Po pierwszym etapie role się zamieniają. Bez strefy odpoczynku.
-
-<p align="center">
-  <img src="Screenshots/pl/15.png" alt="Zadaniówki w dwójkach — przygotowanie" width="90%" />
-</p>
-
-### Zadaniówki w dwójkach — timer
-
-Timer **Etap 1/2 — PRACA**. Informacja o aktualnych rolach i nadchodzącej zamianie tuż pod timerem.
-
-<p align="center">
-  <img src="Screenshots/pl/16.png" alt="Zadaniówki w dwójkach — timer i zamiana ról" width="90%" />
-</p>
-
-### Ktoś wypadł z treningu
-
-W dowolnym momencie treningu można oznaczyć zawodników, którzy wypadli (kontuzja, zmęczenie, telefon). Czas się zatrzymuje, można zaznaczyć kilka osób naraz i zatwierdzić jednym kliknięciem **OK**. System przebudowuje pary na żywo — bez restartu treningu.
-
-<p align="center">
-  <img src="Screenshots/pl/17.png" alt="Modal — kto wypadł z treningu" width="90%" />
-</p>
-
-### Zawodnicy bez pauzy (VIP)
-
-Modal z listą wszystkich zawodników jako pigułki. Tapnięcie oznacza, że ktoś **nie odpoczywa** między rundami (trener, najbardziej zaawansowani, gość specjalny). System pomija ich przy rotacji pauz.
-
-<p align="center">
-  <img src="Screenshots/pl/18.png" alt="Modal — zawodnicy bez pauzy (VIP)" width="90%" />
-</p>
-
-### Panel WERSJA V2
-
-Karta informacyjna z kontaktem (e-mail), linkiem do repozytorium GitHub oraz do sklepu **mantoshop.pl**. Otwierana ikoną „i" z dolnego paska.
-
-<p align="center">
-  <img src="Screenshots/pl/19.png" alt="Panel informacyjny — wersja V2" width="90%" />
-</p>
-
-### Ekran końcowy
-
-Po zakończeniu treningu — duże **DZIĘKUJĘ** i przycisk powrotu do menu. Krótko, czytelnie, bez ekranów-śmieci.
-
-<p align="center">
-  <img src="Screenshots/pl/20.png" alt="Ekran końcowy — DZIĘKUJĘ, DOBRA ROBOTA!" width="90%" />
-</p>
-
----
-
-## Tryby treningowe
-
-### ⚔️ Sparingi
-
-Klasyczny tryb sparingowy. Cykl każdej rundy:
-
-1. **Przygotowanie** — wyświetlenie par, czas na rozejście się na pozycje
-2. **Praca** — duży timer, walka
-3. **Przerwa** — odpoczynek, system generuje i pokazuje nowe pary na kolejną rundę
-
-System pamięta historię spotkań i dba o to, żeby zawodnicy nie powtarzali tych samych par. Dodatkowe opcje:
-
-- **Priorytet doboru** — suwak: UMIEJĘTNOŚCI ↔ WAGA (cztery snapy)
-- **Kolejność walk** — ZBLIŻONE / RÓŻNE / LOSOWO
-- **Podział wagowy** — dzieli matę na dwie grupy wagowe walczące naprzemiennie
-- **Walki wg płci** — WYŁ / PRIORYTET / ZAWSZE
-
-### 🔄 Zadaniówki w trójkach
-
-Trzy osoby w grupie, sześć etapów na rundę — pełna rotacja. W każdym etapie dwóch walczy, trzeci odpoczywa lub asystuje:
+Program dzieli salę na trzyosobowe składy i rozbija rundę na sześć równych etapów. W każdym etapie dwie osoby pracują w zadaniu z podziałem na dół i górę, a trzecia łapie oddech lub pilnuje przestrzeni obok.
 
 | Etap | [A] DÓŁ | [B] GÓRA | [C] PAUZA |
 |:----:|:-------:|:--------:|:---------:|
@@ -342,152 +78,259 @@ Trzy osoby w grupie, sześć etapów na rundę — pełna rotacja. W każdym eta
 | 5 | Osoba 3 | Osoba 1 | Osoba 2 |
 | 6 | Osoba 3 | Osoba 2 | Osoba 1 |
 
-Po 6 etapach każdy walczył z każdym z obu pozycji. Czas etapu = czas rundy ÷ 6.
+Po sześciu zmianach każdy w trójce przerobił sytuację z każdym z obu pozycji. Czas pojedynczego etapu wylicza się sam jako długość rundy podzielona przez sześć.
 
-### 👥 Zadaniówki w dwójkach
+### Zadaniówki w dwójkach
 
-Proste pary A vs B — dwa etapy na rundę. Po pierwszym etapie role się zamieniają (kto był na dole, idzie na górę). Czas etapu = czas rundy ÷ 2.
+Pary dobierają się tak samo jak do sparingu, ale każda runda dzieli się na dwie połowy. Po sygnale w środku rundy osoba pracująca z dołu zamienia się miejscem z górą bez szukania nowego partnera.
 
-### 🥋 Drille
+### Drille techniczne
 
-Pary dobierane **raz na cały trening** — ten sam partner do końca. Role A/B zamieniają się co rundę. Idealne do powtarzania techniki bez resetowania zaufania między partnerami co kilka minut.
+W trybie drilli silnik dobiera pary tylko raz na początku treningu i trzyma te same dwójki do ostatniego gongu, zamieniając co rundę rolę ćwiczącego i asystującego. Sprawdza się przy nauce nowej sekwencji technicznej, kiedy ciągła zmiana partnera o innej budowie ciała tylko wybija z rytmu.
 
----
+## Jak silnik dobiera pary
 
-## Silnik doboru par (Matchmaker)
+Algorytm nie rzuca monetą. Buduje graf dopuszczalnych zestawień i szuka podziału o najniższym koszcie według twardej hierarchii kryteriów. Do dwunastu osób w grupie sprawdza wszystkie kombinacje programowaniem dynamicznym na maskach bitowych, a przy większej sali przechodzi na przeszukiwanie wiązkowe.
 
-Matchmaker **nie losuje** — dobiera pary algorytmicznie według priorytetów:
+| Kolejność | Brane pod uwagę kryterium |
+|:---------:|---------------------------|
+| 1 | Unikanie powtórek na podstawie historii stoczonych już rund w danej sesji |
+| 2 | Rozdzielenie gości z innych klubów, żeby przyjezdni walczyli z klubowiczami |
+| 3 | Zgodność stroju (`GI` z `GI`, `NO-GI` z `NO-GI`, a przy parze mieszanej całość traktowana jako `NO-GI`) |
+| 4 | Wybrany wariant walk kobiecych (brak podziału, najpierw pełna kolejka kobieca albo ścisłe rozdzielenie) |
+| 5 | Zbliżony poziom zaawansowania (`POCZ.`, `ŚR.ZAAW.`, `ZAAW.`, `PRO`) |
+| 6 | Jak najmniejsza różnica masy ciała między partnerami |
+| 7 | Równa kolejka przymusowych pauz przy nieparzystej liczbie osób z pominięciem listy `BEZ PAUZY (VIP)` |
 
-| Priorytet | Kryterium |
-|:---------:|-----------|
-| 1 | **Unikaj powtórek** — nowe pary mają pierwszeństwo, system pamięta historię spotkań |
-| 2 | **Strój** — GI walczy z GI, NO-GI z NO-GI (gdy brak opcji, strój jest pomijany) |
-| 3 | **Płeć** — opcjonalnie kobiety walczą najpierw ze sobą (PRIORYTET) lub tylko ze sobą (ZAWSZE) |
-| 4 | **Poziom umiejętności** — zbliżony poziom (POCZ / ŚR.ZAAW / ZAAW / PRO) |
-| 5 | **Waga** — zbliżona masa ciała |
-| 6 | **Rotacja pauz** — sprawiedliwy podział kto odpoczywa (przy nieparzystej liczbie) |
-| 7 | **Pary mieszane KID + ADULT** — tylko gdy wymaga tego liczebność grupy |
+Dzieci i dorośli liczą się w osobnych pulach. Pojedyncze dziecko i dorosły łączą się w parę mieszaną tylko wtedy, gdy obie grupy są nieparzyste i bez takiego ruchu dwie osoby naraz siedziałyby pod ścianą. Gdy przy bardzo długim treningu każdy zdążył już zawalczyć z każdym, solver wybiera dwójkę, która miała ze sobą najdłuższą przerwę od poprzedniego starcia.
 
-Suwak **PRIORYTET DOBORU** pozwala płynnie ważyć między umiejętnościami a wagą (4 snapy: 0 / 33 / 67 / 100). Gdy matematycznie nie da się uniknąć powtórki, system wybiera parę, która nie walczyła ze sobą najdłużej.
+## Przegląd ekranów aplikacji
 
----
+### Wybór języka przy pierwszym starcie
 
-## Główne funkcje
+Przy pierwszym uruchomieniu wybierasz polski, angielski lub portugalski. Później język zmienisz jednym dotknięciem na dolnym pasku ekranu ustawień.
 
-- **Zarządzanie składem** — dodawanie, edycja i usuwanie zawodników z kafelkowego widoku
-- **Baza klubowa** — szybkie dodawanie zapamiętanych zawodników z wyszukiwarką i wsadowym wyborem
-- **Kategorie** — podział na KID i ADULT z osobnym matchmakingiem
-- **Strój** — obsługa GI i NO-GI z priorytetem zgodności stroju
-- **Poziomy** — POCZ., ŚR.ZAAW., ZAAW., PRO
-- **Płeć** — M / K z opcjonalnym priorytetem walk damskich
-- **Timer** — duży, czytelny zegar widoczny z kilku metrów
-- **Sygnały dźwiękowe** — gong na start pracy, sygnał 10 sekund przed końcem, gong na przerwę, brawa na koniec
-- **Bez pauzy (VIP)** — możliwość oznaczenia zawodników, którzy nie odpoczywają
-- **Ktoś wypadł** — usunięcie zawodnika w trakcie treningu z automatycznym przeliczeniem par
-- **Tryb DRILLE** — stałe pary na cały trening, rotacja ról A/B co rundę
-- **Wielojęzyczność** — PL / EN / PT (BR) z wyborem przy starcie i z dolnego paska
-- **Responsywny układ** — zoptymalizowany pod tablety 10.5", działa też na telefonach i w przeglądarce
-- **Offline** — brak konta, brak backendu, dane zapisywane lokalnie (AsyncStorage)
+<p align="center">
+  <img src="Screenshots/pl/1.png" alt="Ekran wyboru języka przy starcie" width="90%" />
+</p>
 
----
+### Pusty ekran ustawień przed treningiem
 
-## Stack technologiczny
+Po lewej stronie ustawiasz skład, czasy rund i opcje wybranego trybu, a prawa część ekranu czeka na kafelki obecnych dziś zawodników.
 
-| Warstwa       | Technologia                                  |
-|---------------|----------------------------------------------|
-| Framework     | [Expo](https://expo.dev/) + React Native     |
-| Język         | TypeScript                                   |
-| Routing       | Expo Router                                  |
-| Dane lokalne  | AsyncStorage                                 |
-| Audio         | expo-av                                      |
-| Build         | EAS Build                                    |
-| Hosting www   | Własny serwer (deploy ręczny)                |
-| Target        | Android (tablet 10.5"), iOS, przeglądarka    |
+<p align="center">
+  <img src="Screenshots/pl/2.png" alt="Pusty ekran startowy aplikacji" width="90%" />
+</p>
 
----
+### Karta dodawania i edycji zawodnika
 
-## Struktura projektu
+W formularzu wpisujesz pseudonim i wagę, zaznaczasz kategorię wiekową, strój, płeć, staż oraz ewentualny status gościa. Kliknięcie gotowego kafelka na macie ładuje dane tej osoby z powrotem do edycji.
+
+<p align="center">
+  <img src="Screenshots/pl/3.png" alt="Formularz edycji karty zawodnika" width="90%" />
+</p>
+
+### Wyszukiwarka w bazie klubowej
+
+Raz wpisani klubowicze zostają w pamięci urządzenia. W oknie bazy klubowej odfiltrujesz listę po literach pseudonimu albo usuniesz stare wpisy ikoną kosza.
+
+<p align="center">
+  <img src="Screenshots/pl/4.png" alt="Okno bazy klubowej z wyszukiwarką" width="90%" />
+</p>
+
+### Hurtowe dorzucanie obecnych na matę
+
+Przed zajęciami odklikujesz na liście kilkanaście osób naraz i wrzucasz cały skład na matę jednym przyciskiem na dole okna.
+
+<p align="center">
+  <img src="Screenshots/pl/5.png" alt="Zaznaczanie wielu zawodników w bazie klubowej" width="90%" />
+</p>
+
+### Skład ułożony alfabetycznie z filtrami
+
+Kafelki na macie układają się od A do Z i pokazują komplet oznaczeń. Pasek filtrów nad siatką pozwala jednym dotknięciem podejrzeć samych dorosłych, grupę dziecięcą albo osoby w kimonach.
+
+<p align="center">
+  <img src="Screenshots/pl/6.png" alt="Siatka kafelków z zawodnikami na macie" width="90%" />
+</p>
+
+### Ustawienia sparingów
+
+Panel opcji sparingowych z listą zawodników bez pauzy, suwakiem wagi kryteriów, kolejnością walk, podziałem wagowym i ustawieniem walk kobiecych.
+
+<p align="center">
+  <img src="Screenshots/pl/7.png" alt="Opcje doboru par w trybie sparingów" width="60%" />
+</p>
+
+### Przełącznik zadaniówek na trójki i dwójki
+
+Po przełączeniu trybu na zadaniówki wybierasz pracę w grupach trzyosobowych albo w parach ze zmianą roli w połowie czasu.
+
+<p align="center">
+  <img src="Screenshots/pl/8.png" alt="Wybór trójek lub dwójek w zadaniówkach" width="60%" />
+</p>
+
+### Ustawienie trybu drilli
+
+Krótki widok startowy dla pracy technicznej w stałych parach przez wszystkie zaplanowane rundy.
+
+<p align="center">
+  <img src="Screenshots/pl/9.png" alt="Widok startowy trybu drilli" width="60%" />
+</p>
+
+### Faza przygotowania przed sparingiem
+
+Siatka dobranych par przed pierwszą rundą z kolorami kategorii i odliczaniem czasu na podejście do partnera.
+
+<p align="center">
+  <img src="Screenshots/pl/10.png" alt="Siatka par w fazie przygotowania do sparingu" width="90%" />
+</p>
+
+### Zegar walki w trakcie sparingu
+
+Pełnoekranowe cyfry widoczne z drugiego końca sali wraz z numerem rundy oraz przyciskami pauzy, korekty składu i zakończenia zajęć.
+
+<p align="center">
+  <img src="Screenshots/pl/11.png" alt="Duży zegar w trakcie rundy sparingowej" width="90%" />
+</p>
+
+### Przerwa z rozpiską kolejnej rundy
+
+Od razu po gongu kończącym walkę na ekranie wskakują nowe pary na następną rundę oraz lista osób łapiących oddech.
+
+<p align="center">
+  <img src="Screenshots/pl/12.png" alt="Ekran przerwy z podglądem nowych par" width="90%" />
+</p>
+
+### Rozstawienie trójek przed zadaniówką
+
+Karty trzyosobowych grup z rozpisanym podziałem na dół, górę oraz osobę czekającą na wejście.
+
+<p align="center">
+  <img src="Screenshots/pl/13.png" alt="Karty grup w przygotowaniu do zadaniówek w trójkach" width="90%" />
+</p>
+
+### Odliczanie etapu i podpowiedź zmiany w trójkach
+
+Zegar pojedynczego etapu pokazuje kto pracuje teraz i kto wchodzi na matę po najbliższym sygnale.
+
+<p align="center">
+  <img src="Screenshots/pl/14.png" alt="Zegar etapu i zapowiedź kolejnej zmiany w trójkach" width="90%" />
+</p>
+
+### Przygotowanie do zadaniówek w dwójkach
+
+Widok par z przypisanymi stronami A oraz B przed pierwszym gwizdkiem rundy.
+
+<p align="center">
+  <img src="Screenshots/pl/15.png" alt="Siatka par przed zadaniówkami w dwójkach" width="90%" />
+</p>
+
+### Zegar zadaniówek w dwójkach
+
+Odliczanie pierwszego etapu pracy w parze z zapowiedzią zamiany ról w połowie rundy.
+
+<p align="center">
+  <img src="Screenshots/pl/16.png" alt="Zegar pracy w zadaniówkach dwójkowych" width="90%" />
+</p>
+
+### Wypisanie zawodnika w trakcie treningu
+
+Gdy ktoś złapie uraz albo musi odejść do telefonu, zatrzymujesz czas i jednym oknem zdejmujesz go do końca treningu lub na jedną kolejkę. Pary przeliczają się od ręki bez zerowania zegara sesji.
+
+<p align="center">
+  <img src="Screenshots/pl/17.png" alt="Okno zdejmowania zawodnika z maty w trakcie treningu" width="90%" />
+</p>
+
+### Wybór osób trenujących bez pauzy
+
+Okno z pigułkami imion, w którym oznaczasz trenera lub zawodników przygotowujących się pod zawody, żeby algorytm omijał ich przy rozdzielaniu wolnego losu.
+
+<p align="center">
+  <img src="Screenshots/pl/18.png" alt="Okno wyboru zawodników bez pauzy" width="90%" />
+</p>
+
+### Karta informacyjna aplikacji
+
+Okno z numerem wersji, kontaktem mailowym, odnośnikiem do repozytorium na GitHubie oraz sklepu mantoshop.pl.
+
+<p align="center">
+  <img src="Screenshots/pl/19.png" alt="Karta informacyjna aplikacji" width="90%" />
+</p>
+
+### Ekran po ostatnim gongu
+
+Podsumowanie zamkniętej sesji i powrót jednym przyciskiem do ekranu ustawień.
+
+<p align="center">
+  <img src="Screenshots/pl/20.png" alt="Ekran końcowy po zakończeniu wszystkich rund" width="90%" />
+</p>
+
+## Wykorzystane technologie i układ katalogów
+
+| Warstwa | Rozwiązanie w projekcie |
+|---|---|
+| Środowisko i UI | [Expo SDK 58](https://expo.dev/) oraz React Native 0.88.1 (React 19.3.1) |
+| Język i kontrola typów | TypeScript 6.0 |
+| Nawigacja | Expo Router |
+| Pamięć lokalna | `@react-native-async-storage/async-storage` 3.1 |
+| Obsługa dźwięku | `expo-audio` (bez uprawnień do mikrofonu) |
+| Budowanie paczek mobilnych | EAS Build (Android AAB i APK) |
+| Wersja WWW | Eksport statyczny Metro i publikacja przez FTPS na własnym serwerze |
+| Docelowe urządzenia | Tablety z Androidem około 10,5 cala, telefony Android i iOS oraz przeglądarki |
+
+Układ najważniejszych plików w repozytorium wygląda następująco:
 
 ```
 app/
+  _layout.tsx                  # Główny układ nawigacji i blokada wygaszania ekranu
   (tabs)/
-    index.tsx              # Główny UI: ekrany, timery, siatki par
-    i18n.ts                # Tłumaczenia PL / EN / PT
-    types.ts               # Typy domenowe (RealPlayer, Match, SparringOptions itp.)
+    index.tsx                  # Widoki ustawień, zegarów, siatek par i okien modalnych
+    i18n.ts                    # Słownik tłumaczeń PL, EN i PT
+    types.ts                   # Typy domenowe zawodników, par i opcji sparingowych
     engine/
-      matchmaker.ts        # Silnik doboru par i rotacji
+      matchmaker.ts            # Solver doboru par (maski bitowe + przeszukiwanie wiązkowe)
 constants/
-  training-helpers.ts      # Walidacja danych, budowa trójek i pomocniki sesji
+  training-helpers.ts          # Walidacja formularzy, sanityzacja bazy i składanie trójek
 hooks/
-  use-safe-keep-awake.ts   # Bezpieczna blokada wygaszania ekranu (mobile + web)
+  use-safe-keep-awake.ts       # Obsługa WakeLock na urządzeniach mobilnych i w przeglądarce
 tests/
-  engine-and-helpers.test.mjs # Testy jednostkowe matchmakera i logiki treningu
-assets/
-  *.mp3                    # Dźwięki treningowe (gong, sygnał, brawa)
-  images/                  # Ikony i splash screen
-docs/
-  privacy-policy.md        # Polityka prywatności
-  play-store/              # Materiały do Google Play
-Screenshots/               # Zrzuty ekranu
-Images/                    # Logo i ikony aplikacji
-plugins/                   # Pluginy Expo (np. ADI registration)
+  engine-and-helpers.test.mjs  # Testy jednostkowe silnika parowania i funkcji pomocniczych
+public/
+  .htaccess                    # Reguły routingu SPA i nagłówków pamięci podręcznej Apache
+  privacy/index.html           # Statyczna strona polityki prywatności w trzech językach
+scripts/
+  deploy-web.mjs               # Skrypt publikacji wersji WWW przez FTPS z kopią zapasową
+plugins/
+  with-adi-registration.js     # Wtyczka Expo kopiująca plik weryfikacyjny Google Play
 ```
 
----
+## Uruchomienie lokalne i budowanie wydań
 
-## Uruchomienie
+Do pracy nad kodem wystarczy Node.js oraz `npm`. Po pobraniu repozytorium zainstaluj pakiety i uruchom serwer deweloperski albo zestaw testów:
 
 ```bash
-# Instalacja zależności
 npm install
-
-# Serwer deweloperski
 npx expo start
 
-# Testy jednostkowe i lint
 npm test
 npm run lint
-
-# Build APK (Android, do testów)
-eas build --platform android --profile preview
-
-# Build produkcyjny (Android, .aab)
-eas build --platform android --profile production
-
-# Export wersji webowej
-npx expo export --platform web
+npx tsc --noEmit
 ```
 
----
+Gotową wersję przeglądarkową wygenerujesz do katalogu `dist/` poleceniem `npx expo export --platform web`, a przy skonfigurowanym pliku `.secrets/ftp.json` wgrasz ją od razu na serwer komendą `npm run release:web`. Paczkę produkcyjną `.aab` z automatyczną wysyłką do Google Play uruchamia skrypt `npm run release:android` opisany szerzej w pliku [docs/play-store/build-and-submit.md](docs/play-store/build-and-submit.md).
 
-## Wersja webowa
+## Wersja przeglądarkowa i prywatność
 
-Aplikacja jest dostępna online pod adresem:
+Z aplikacji można korzystać bez instalacji prosto w przeglądarce na laptopie, tablecie lub telefonie pod adresem [https://znimnierobie.pl](https://znimnierobie.pl).
 
-**https://znimnierobie.pl**
-
-Wersja webowa działa w przeglądarce na komputerze, tablecie i telefonie. Nie wymaga instalacji.
-
----
-
-## Prywatność
-
-- Nie wymaga konta ani logowania
-- Nie wysyła danych do zewnętrznych serwerów
-- Nie korzysta z analityki ani trackerów
-- Dane zawodników przechowywane wyłącznie lokalnie na urządzeniu
-
-Pełna polityka prywatności: [docs/privacy-policy.md](docs/privacy-policy.md)
-
----
+Program nie zbiera żadnych danych o użytkownikach, nie wymaga logowania, nie wysyła składu klubu przez sieć i nie ładuje skryptów analitycznych ani reklamowych. Pełną treść dokumentu znajdziesz w pliku [docs/privacy-policy.md](docs/privacy-policy.md) oraz pod adresem [https://znimnierobie.pl/privacy](https://znimnierobie.pl/privacy), a zapis zmian między wydaniami w pliku [CHANGELOG.md](CHANGELOG.md).
 
 ## Licencja
 
-Wszelkie prawa zastrzeżone. Kod źródłowy udostępniony wyłącznie w celach przeglądowych.
-
----
+Wszelkie prawa zastrzeżone. Kod źródłowy udostępniono w repozytorium wyłącznie do wglądu.
 
 <p align="center">
-  <b>Z NIM NIE ROBIĘ</b> · v2.2 · Aplikacja treningowa BJJ<br/>
-  Zbudowane z 🥋 na macie i przy klawiaturze
+  <b>Z NIM NIE ROBIĘ</b> · v2.3 · Timer i dobór par na matę
 </p>
+

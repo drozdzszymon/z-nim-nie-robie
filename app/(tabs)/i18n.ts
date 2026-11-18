@@ -11,7 +11,7 @@ const translations = {
   placeholderName: { PL: 'np. Kowalski', EN: 'e.g. Smith', PT: 'ex. Silva' },
   placeholderWeight: { PL: 'np. 82', EN: 'e.g. 82', PT: 'ex. 82' },
   guest: { PL: 'GOŚĆ', EN: 'GUEST', PT: 'VISITANTE' },
-  guestHint: { PL: 'Gość z innego klubu — silnik unika par gość–gość', EN: 'Guest from another gym — engine avoids guest–guest pairs', PT: 'Visitante de outro clube — o motor evita pares visitante–visitante' },
+  guestHint: { PL: 'Zawodnik z innego klubu. Silnik unika parowania gości ze sobą.', EN: 'Visiting from another gym. The matchmaker avoids pairing two guests together.', PT: 'Atleta de outra academia. O motor evita parear dois visitantes.' },
 
   // ── PLAYER TYPE / GEAR / GENDER BADGES ──
   maleShort: { PL: '♂ M', EN: '♂ M', PT: '♂ M' },
@@ -83,10 +83,10 @@ const translations = {
   genderAlways: { PL: 'ZAWSZE', EN: 'ALWAYS', PT: 'SEMPRE' },
 
   // ── TOOLTIPS ──
-  tooltipPriority: { PL: 'Określa co jest ważniejsze przy dobieraniu par. UMIEJĘTNOŚCI — pary o zbliżonym poziomie. WAGA — pary o zbliżonej masie ciała. Pozycje pośrednie łączą oba kryteria.', EN: 'Determines what matters more when pairing. SKILL — pairs with similar level. WEIGHT — pairs with similar body mass. Middle positions blend both criteria.', PT: 'Determina o que é mais importante ao formar pares. HABILIDADE — pares de nível semelhante. PESO — pares de massa corporal semelhante. Posições intermediárias combinam ambos.' },
-  tooltipFightOrder: { PL: 'ZBLIŻONE — najbardziej wyrównane walki na początku, z rundami coraz bardziej zróżnicowane. RÓŻNE — odwrotnie, najlepsze pary na koniec. LOSOWO — kolejność losowa.', EN: 'MATCHED — most balanced fights first, progressively varied. VARIED — reversed, best pairs at the end. RANDOM — random order.', PT: 'PAREADO — lutas mais equilibradas primeiro, progressivamente variadas. VARIADO — invertido, melhores pares no final. ALEATÓRIO — ordem aleatória.' },
-  tooltipWeightDivision: { PL: 'Dzieli matę na dwie grupy wagowe. Walczy jedna grupa, druga odpoczywa — potem zamiana. Brak przerwy między rundami (20s na zmianę grup). Próg wagowy obliczany automatycznie dla równej liczby par.', EN: 'Splits the mat into two weight groups. One group fights while the other rests — then they swap. No break between rounds (20s for group switch). Weight threshold calculated automatically for equal pair count.', PT: 'Divide o tatame em dois grupos de peso. Um grupo luta enquanto o outro descansa — depois trocam. Sem intervalo entre rodadas (20s para troca). Limite de peso calculado automaticamente para número igual de pares.' },
-  tooltipGender: { PL: 'WYŁ. — mieszane walki bez podziału. PRIORYTET — kobiety walczą najpierw ze sobą (aż każda z każdą), potem dołączają do mężczyzn. ZAWSZE — kobiety tylko z kobietami przez cały trening.', EN: 'OFF — mixed fights, no separation. PREFER — women fight each other first (until all matched), then join men. ALWAYS — women only with women for the entire session.', PT: 'DESL. — lutas mistas, sem separação. PRIORIDADE — mulheres lutam entre si primeiro (até todas pareadas), depois juntam-se aos homens. SEMPRE — mulheres somente com mulheres durante todo o treino.' },
+  tooltipPriority: { PL: 'Ustala wagę kryteriów przy dobieraniu par. Skrajnie w lewo liczy się zbliżony staż na macie, skrajnie w prawo zbliżona masa ciała, a ustawienia środkowe łączą oba warunki.', EN: 'Sets what matters more when matching pairs. All the way left favors similar mat skill, all the way right favors similar weight, and the middle steps blend both.', PT: 'Define o peso de cada critério na montagem das duplas. À esquerda prioriza nível técnico parecido, à direita prioriza peso próximo e no meio combina os dois.' },
+  tooltipFightOrder: { PL: 'ZBLIŻONE puszcza najrówniejsze zestawienia w pierwszych rundach, a luźniejsze zostawia na później. RÓŻNE odwraca tę kolejność i trzyma najmocniejsze pary na koniec. LOSOWO miesza kolejność rund.', EN: 'MATCHED schedules the closest matchups in early rounds and widens the gap later. VARIED flips that order and saves the closest pairs for the end. RANDOM shuffles round order.', PT: 'PAREADO coloca as lutas mais equilibradas nas primeiras rodadas e abre mais depois. VARIADO inverte essa ordem e guarda os confrontos mais parelhos para o fim. ALEATÓRIO sorteia a ordem.' },
+  tooltipWeightDivision: { PL: 'Dzieli salę na lżejszą i cięższą połowę. Jedna grupa walczy, druga łapie oddech na brzegu maty, po czym następuje 20 s na zmianę składów bez osobnej przerwy. Próg wylicza się sam tak, żeby obie grupy miały podobną liczbę par.', EN: 'Splits the room into lighter and heavier groups. One group rolls while the other rests off the mat, with a 20 s switch window instead of a full break. The weight cutoff is picked automatically to balance pair counts.', PT: 'Divide o tatame em grupo leve e grupo pesado. Enquanto um grupo rola, o outro descansa fora da área, com 20 s para trocar as turmas sem intervalo longo. O corte de peso é calculado sozinho para equilibrar as duplas.' },
+  tooltipGender: { PL: 'WYŁ. łączy wszystkich w jednej puli. PRIORYTET zestawia kobiety najpierw między sobą aż każda przejdzie rundę z każdą, a potem dopina je do reszty sali. ZAWSZE trzyma osobne pary kobiece przez cały trening.', EN: 'OFF mixes everyone in one pool. PREFER pairs women together first until every woman has rolled with every other woman, then opens mixed pairings. ALWAYS keeps separate women pairings for the whole session.', PT: 'DESL. junta todos na mesma chave. PRIORIDADE casa as mulheres entre si primeiro até fechar o rodízio completo e depois libera duplas mistas. SEMPRE mantém lutas femininas separadas do início ao fim.' },
 
   // ── TIMER UI ──
   roundOf: { PL: 'RUNDA', EN: 'ROUND', PT: 'RODADA' },
@@ -118,47 +118,47 @@ const translations = {
 
   // ── MODALS ──
   dropoutTitle: { PL: 'KTO WYPADŁ Z TRENINGU?', EN: 'WHO DROPPED OUT?', PT: 'QUEM SAIU DO TREINO?' },
-  dropoutSubtitle: { PL: 'Czas został zatrzymany. Możesz zaznaczyć kilka osób i zatwierdzić jednym kliknięciem.', EN: 'Time has been stopped. Select players and confirm with one click.', PT: 'O tempo foi parado. Selecione os lutadores e confirme com um clique.' },
+  dropoutSubtitle: { PL: 'Zegar stoi. Zaznacz jedną lub kilka osób i zatwierdź zmianę.', EN: 'Timer paused. Select one or more athletes and confirm.', PT: 'Cronômetro pausado. Marque um ou mais atletas e confirme.' },
   dropoutModeFull: { PL: 'WYPADŁ', EN: 'OUT', PT: 'SAIU' },
   dropoutModeOneRound: { PL: 'ODPOCZYWA 1 RUNDĘ', EN: 'RESTS 1 ROUND', PT: 'DESCANSA 1 RODADA' },
   selected: { PL: 'ZAZNACZONY', EN: 'SELECTED', PT: 'SELECIONADO' },
   select: { PL: 'WYBIERZ', EN: 'SELECT', PT: 'SELECIONAR' },
   clubDBTitle: { PL: 'BAZA KLUBOWA', EN: 'CLUB DATABASE', PT: 'BANCO DO CLUBE' },
-  clubDBSubtitle: { PL: 'Wybierz zawodników z bazy i dodaj ich na matę jednym kliknięciem.', EN: 'Select players from the database and add them to the mat with one click.', PT: 'Selecione lutadores do banco e adicione-os ao tatame com um clique.' },
-  clubDBNoResults: { PL: 'Brak wyników wyszukiwania.', EN: 'No search results.', PT: 'Sem resultados.' },
-  clubDBEmpty: { PL: 'Baza klubowa jest pusta.', EN: 'Club database is empty.', PT: 'Banco do clube está vazio.' },
+  clubDBSubtitle: { PL: 'Zaznacz osoby obecne dziś na sali i dorzuć je na matę jednym kliknięciem.', EN: 'Pick everyone who showed up today and add them to the mat in one tap.', PT: 'Marque quem veio treinar hoje e coloque todos no tatame de uma vez.' },
+  clubDBNoResults: { PL: 'Brak wyników wyszukiwania.', EN: 'No matching names.', PT: 'Nenhum nome encontrado.' },
+  clubDBEmpty: { PL: 'Baza klubowa jest jeszcze pusta.', EN: 'Club database is empty.', PT: 'O banco do clube ainda está vazio.' },
   onMat: { PL: 'NA MACIE', EN: 'ON MAT', PT: 'NO TATAME' },
-  searchByName: { PL: 'Szukaj po imieniu...', EN: 'Search by name...', PT: 'Buscar por nome...' },
+  searchByName: { PL: 'Szukaj po pseudonimie', EN: 'Search by nickname', PT: 'Buscar por apelido' },
   addSelected: { PL: 'DODAJ', EN: 'ADD', PT: 'ADICIONAR' },
   vipModalTitle: { PL: 'ZAWODNICY BEZ PAUZY', EN: 'NO-REST PLAYERS', PT: 'LUTADORES SEM DESCANSO' },
 
   // ── ABOUT MODAL ──
   aboutTitle: { PL: 'Z NIM NIE ROBIĘ', EN: 'Z NIM NIE ROBIĘ', PT: 'Z NIM NIE ROBIĘ' },
-  aboutVersion: { PL: 'Wersja 2.2', EN: 'Version 2.2', PT: 'Versão 2.2' },
-  aboutDescription: { PL: 'Aplikacja treningowa do zarządzania parami, rundami i rotacją zawodników podczas treningów BJJ.', EN: 'Training app for managing pairs, rounds and player rotation during BJJ training sessions.', PT: 'Aplicativo de treino para gerenciar duplas, rodadas e rotação de lutadores durante treinos de BJJ.' },
+  aboutVersion: { PL: 'Wersja 2.3', EN: 'Version 2.3', PT: 'Versão 2.3' },
+  aboutDescription: { PL: 'Narzędzie dla trenerów BJJ i grapplingu do układania par, pilnowania rund i rotacji na macie.', EN: 'Mat timer and pair matchmaker built for BJJ and grappling coaches.', PT: 'Cronômetro de tatame e formador de duplas para professores de BJJ e grappling.' },
 
   // ── VALIDATION MESSAGES ──
-  errNoName: { PL: 'Podaj pseudonim zawodnika!', EN: 'Enter player nickname!', PT: 'Insira o apelido do lutador!' },
-  errNoWeight: { PL: 'Podaj prawidłową wagę (10-300 kg)!', EN: 'Enter a valid weight (10-300 kg)!', PT: 'Insira um peso válido (10-300 kg)!' },
-  errDuplicate: { PL: 'Zawodnik już dodany!', EN: 'Player already added!', PT: 'Lutador já adicionado!' },
-  errMinPlayers: { PL: 'Musisz dodać przynajmniej dwóch zawodników!', EN: 'You need at least two players!', PT: 'Você precisa de pelo menos dois lutadores!' },
-  errRoundTime: { PL: 'Czas rundy musi być większy od 0!', EN: 'Round time must be greater than 0!', PT: 'Tempo da rodada deve ser maior que 0!' },
-  errRoundsTotal: { PL: 'Liczba rund musi być większa od 0!', EN: 'Number of rounds must be greater than 0!', PT: 'Número de rodadas deve ser maior que 0!' },
-  errPrepTime: { PL: 'Czas przygotowania musi być większy od 0!', EN: 'Prep time must be greater than 0!', PT: 'Tempo de preparação deve ser maior que 0!' },
-  errRestTime: { PL: 'Czas przerwy musi być większy od 0!', EN: 'Rest time must be greater than 0!', PT: 'Tempo de descanso deve ser maior que 0!' },
-  errWeightDivision: { PL: 'Podział wagowy wymaga min. 2 zawodników w każdej grupie wagowej!', EN: 'Weight division requires at least 2 players in each weight group!', PT: 'Divisão de peso requer no mínimo 2 lutadores em cada grupo!' },
-  errSelectDropout: { PL: 'Wybierz przynajmniej jednego zawodnika, który wypadł z treningu.', EN: 'Select at least one player who dropped out.', PT: 'Selecione pelo menos um lutador que saiu do treino.' },
+  errNoName: { PL: 'Wpisz pseudonim zawodnika.', EN: 'Enter a player nickname.', PT: 'Informe o apelido do lutador.' },
+  errNoWeight: { PL: 'Wpisz wagę z przedziału od 10 do 300 kg.', EN: 'Enter a weight between 10 and 300 kg.', PT: 'Informe um peso entre 10 e 300 kg.' },
+  errDuplicate: { PL: 'Zawodnik o tym pseudonimie jest już na macie.', EN: 'That nickname is already on the mat.', PT: 'Já existe um lutador com esse apelido no tatame.' },
+  errMinPlayers: { PL: 'Dodaj co najmniej dwóch zawodników.', EN: 'Add at least two players first.', PT: 'Adicione pelo menos dois lutadores.' },
+  errRoundTime: { PL: 'Czas rundy musi być większy od zera.', EN: 'Round time must be greater than zero.', PT: 'O tempo da rodada precisa ser maior que zero.' },
+  errRoundsTotal: { PL: 'Liczba rund musi być większa od zera.', EN: 'Number of rounds must be greater than zero.', PT: 'O número de rodadas precisa ser maior que zero.' },
+  errPrepTime: { PL: 'Czas przygotowania musi być większy od zera.', EN: 'Prep time must be greater than zero.', PT: 'O tempo de preparação precisa ser maior que zero.' },
+  errRestTime: { PL: 'Czas przerwy musi być większy od zera.', EN: 'Rest time must be greater than zero.', PT: 'O tempo de descanso precisa ser maior que zero.' },
+  errWeightDivision: { PL: 'Podział wagowy wymaga co najmniej dwóch osób w każdej grupie.', EN: 'Weight division needs at least two players in each group.', PT: 'A divisão de peso exige pelo menos dois atletas em cada grupo.' },
+  errSelectDropout: { PL: 'Zaznacz przynajmniej jedną osobę, która schodzi z maty.', EN: 'Select at least one player leaving the mat.', PT: 'Marque pelo menos um atleta que saiu do tatame.' },
 
   // ── CONFIRM DIALOGS ──
   confirmDeleteTitle: { PL: 'Usuń zawodnika', EN: 'Remove player', PT: 'Remover lutador' },
-  confirmDeleteMsg: { PL: 'Czy na pewno chcesz usunąć', EN: 'Are you sure you want to remove', PT: 'Tem certeza que deseja remover' },
+  confirmDeleteMsg: { PL: 'Czy na pewno chcesz usunąć', EN: 'Remove', PT: 'Deseja remover' },
   confirmDeleteFromMat: { PL: 'z maty?', EN: 'from the mat?', PT: 'do tatame?' },
   confirmDeleteFromDBTitle: { PL: 'Usuń z bazy klubowej', EN: 'Delete from club database', PT: 'Excluir do banco do clube' },
-  confirmDeleteFromDBMsg: { PL: 'Czy na pewno chcesz trwale usunąć zawodnika z bazy klubowej:', EN: 'Are you sure you want to permanently delete from the club database:', PT: 'Tem certeza que deseja excluir permanentemente do banco do clube:' },
-  confirmNewTraining: { PL: 'Nowy Trening', EN: 'New Session', PT: 'Novo Treino' },
-  confirmClearMat: { PL: 'Czy na pewno chcesz wyczyścić matę z zawodników?', EN: 'Are you sure you want to clear the mat?', PT: 'Tem certeza que deseja limpar o tatame?' },
-  vipEmptyHint: { PL: 'Brak zawodników na macie. Dodaj najpierw zawodników w panelu składu.', EN: 'No players on the mat yet. Add players in the lineup panel first.', PT: 'Nenhum lutador no tatame. Adicione lutadores no painel de elenco primeiro.' },
-  loadingApp: { PL: 'Wczytywanie…', EN: 'Loading…', PT: 'Carregando…' },
+  confirmDeleteFromDBMsg: { PL: 'Trwale usunąć z bazy klubowej zawodnika', EN: 'Permanently delete from the club database', PT: 'Excluir permanentemente do banco do clube' },
+  confirmNewTraining: { PL: 'Nowy trening', EN: 'New session', PT: 'Novo treino' },
+  confirmClearMat: { PL: 'Wyczyścić całą listę zawodników na macie?', EN: 'Clear everyone currently on the mat?', PT: 'Limpar todos os lutadores do tatame?' },
+  vipEmptyHint: { PL: 'Mata jest pusta. Najpierw dodaj zawodników w panelu składu.', EN: 'No one on the mat yet. Add players in the lineup panel first.', PT: 'Ninguém no tatame ainda. Adicione os lutadores no painel de elenco primeiro.' },
+  loadingApp: { PL: 'Wczytywanie', EN: 'Loading', PT: 'Carregando' },
   weightThresholdLabel: { PL: 'PRÓG:', EN: 'LIMIT:', PT: 'LIMITE:' },
 
   // ── FINISHED SCREEN ──

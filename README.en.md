@@ -1,493 +1,336 @@
-# 🥋 Z NIM NIE ROBIĘ
+# Z NIM NIE ROBIĘ
 
 <p align="center">
-  <img src="Images/LOGO_PL.png" alt="Z NIM NIE ROBIĘ — logo" width="260" />
+  <img src="Images/LOGO_PL.png" alt="Z NIM NIE ROBIĘ app logo" width="260" />
 </p>
 
 <p align="center">
-  <b>Smart training app for running BJJ sparring, task drills and technique drills.</b><br/>
-  Automatic pair matchmaking · Big timers · Triad rotation · Readable from across the mat
+  <b>Mat timer and automatic pair matchmaker for BJJ sparring, positional rounds, and drills.</b><br/>
+  No-repeat pairings · Oversized wall clock · Triad rotations and fixed-partner drills
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.2%20Production-brightgreen" alt="Version" />
+  <img src="https://img.shields.io/badge/version-2.3%20Production-brightgreen" alt="Version 2.3" />
   <img src="https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20Web-blue" alt="Platform" />
-  <img src="https://img.shields.io/badge/framework-Expo%20%2B%20React%20Native-blueviolet" alt="Framework" />
-  <img src="https://img.shields.io/badge/language-TypeScript-3178C6" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/framework-Expo%2058%20%2B%20React%20Native-blueviolet" alt="Framework" />
+  <img src="https://img.shields.io/badge/language-TypeScript%206-3178C6" alt="TypeScript" />
   <img src="https://img.shields.io/badge/i18n-PL%20%7C%20EN%20%7C%20PT-orange" alt="Languages" />
 </p>
 
 <p align="center">
-  <a href="https://znimnierobie.pl"><b>▶ Try the web version</b></a>
+  <a href="https://znimnierobie.pl"><b>Open the web version (znimnierobie.pl)</b></a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Google%20Play-Coming%20soon-34a853?logo=google-play&logoColor=white" alt="Google Play — coming soon" />
+  <a href="https://play.google.com/store/apps/details?id=pl.znimnierobie.app">
+    <img src="https://img.shields.io/badge/Google%20Play-Get%20the%20app-34a853?logo=google-play&logoColor=white" alt="Get it on Google Play" />
+  </a>
 </p>
 
 <p align="center">
-  <a href="README.md">🇵🇱 Polski</a> · <b>🇬🇧 English</b> · <a href="README.pt-BR.md">🇧🇷 Português (BR)</a>
+  <a href="README.md">Polski</a> · <b>English</b> · <a href="README.pt-BR.md">Português (BR)</a>
 </p>
 
----
+## Why this exists on the mat
 
-## Table of contents
+Matching twenty or forty people by hand between sparring rounds eats up rest time, leaves the same friends rolling together three rounds in a row, and strands odd-numbered athletes on the wall. A standard gym clock only counts seconds down.
 
-- [What's new in v2.2](#whats-new-in-v22)
-- [About the app](#about-the-app)
-- [Screenshots](#screenshots)
-- [Training modes](#training-modes)
-- [Matchmaking engine](#matchmaking-engine)
-- [Main features](#main-features)
-- [Tech stack](#tech-stack)
-- [Project structure](#project-structure)
-- [Running the app](#running-the-app)
-- [Web version](#web-version)
-- [Privacy](#privacy)
-- [License](#license)
+**Z NIM NIE ROBIĘ** ("I'm not rolling with him") puts the round clock and pair matching onto one tablet propped on the bench or mounted on the wall. Before class starts, check off who showed up from your saved club database, set your round and break lengths, and hit start. The app rings the bell, builds pairs around weight, mat experience, gi or no-gi gear, and gender, previews the next round's matchups during the break, and tracks every pairing from the current class so nobody repeats a partner until everyone has rotated through.
 
----
+Everything runs offline in Polish, English, and Brazilian Portuguese. There are no accounts to create and no cloud sync, because your club roster stays in local storage on your own device.
 
-## What's new in v2.2
+## Recent release highlights
 
-### ⚡ Faster matchmaker and logic fixes (v2.2)
+### Version 2.3 and Expo SDK 58 upgrade
 
-- **13x faster matchmaking** on large 46-player sessions thanks to bitmask dynamic programming and pre-indexed pair tables. The exact solver now covers up to 12 players per group (up from 10).
-- **Smarter gender matching (`PREFER`)**: round-robin completion is tracked separately for `KID` and `ADULT`, works alongside weight division, and respects `NO REST (VIP)`.
-- **Mixed pairs and lone adults**: `KID + ADULT` pairs now show up in `POSITIONAL (PAIRS)` and `DRILLS`, and a single adult training with kids in `TRIADS` is properly placed into a group.
-- **Drift-free wall-clock timer**: round countdown tracks real system time so backgrounded tabs and long rounds stay accurate.
-- **Club DB cleanup and form UX**: permanently remove old entries right from `CLUB DATABASE`, cancel player edits with one tap, and enter decimal weights with commas (`82,5`) within `10-300 kg`.
-- **Phone and web polish**: vertical weight-division layout on narrow phones, `DROPOUT?` accessible during active rounds, keyboard shortcuts (`Space`, `Escape`, `Enter`), and clean `WakeLock` handling in browser tabs.
+Version 2.3 moves the runtime onto Expo SDK 58, React Native 0.88.1, React 19.3.1, AsyncStorage 3.1.1, and TypeScript 6.0.3. We replaced the retired `expo-av` package with `expo-audio` configured without microphone permissions, keeping the boxing bell, the double 10-second clapper, and automatic background music ducking intact. Interface validation hints, option tooltips, and the trilingual `/privacy` notice were also rewritten for clarity.
 
-### 🌍 Complete EN / PT localisation (v2.1)
+### Faster solver and pairing fixes in version 2.2
 
-Final polish of the multilingual experience. A handful of strings on the live training / timer screen were still hard-coded in Polish — they are now fully translated in English and Brazilian Portuguese:
+The matchmaking engine now uses bitmask dynamic programming and pre-indexed pair tables. Exact optimal solving covers groups up to 12 athletes (up from 10), and 46-athlete classes compute roughly 13x faster. Round countdowns now read directly from the system wall clock so backgrounded browser tabs and long rounds never drift.
 
-- **BREAK** phase label (was `PRZERWA`)
-- **MIXED** group label (was `MIESZANE`)
-- **FIGHTING NOW / NEXT SWITCH / ENTERING / NEXT** rotation hints in TRIADS
-- **GROUP SWITCH** label
-- **Stage X/Y** progress label (was `Etap`)
+We also separated `KID` and `ADULT` round-robin tracking inside `PREFER` gender matching, made it compose cleanly with weight division and `NO REST (VIP)`, and fixed mixed `KID + ADULT` rendering in positional pairs and drills as well as single-adult grouping in triads. On the roster side, the Club Database gained permanent athlete deletion, edit cancellation, comma decimal weights like `82,5` across 10 to 300 kg, browser keyboard shortcuts, and stacked mobile layouts for 360 px phones.
 
-English and Brazilian-Portuguese users now see a 100% translated timer across all training modes.
+### Localization, visiting drop-ins, and Google Play launch (2.0 to 2.1)
 
-### 🎉 Production release (v2.0.5)
+Across versions 2.0 and 2.1, the Android build shipped on Google Play and every live timer label was translated into English and Brazilian Portuguese. Athlete cards gained a per-session `GUEST` switch with a purple airplane badge so visiting drop-ins get paired with home-gym members instead of each other.
 
-First version accepted by **Google Play**. Available on Android in 3 languages (PL / EN / PT-BR).
+Preparation cards were unified into a single color-coded grid (`KID GI`, `KID NO-GI`, `ADULT GI`, `ADULT NO-GI`, and `MIXED`), resting names stay visible in the top bar during both prep and breaks, mid-session dropouts let you pull an athlete out permanently or rest them for a single round, and root-level screen wake locks keep wall tablets lit from first bell to last.
 
-### 🎨 Refreshed settings screen design (v2.0.5)
+## Four ways to run a class
 
-The start screen (adding players, round time, training mode) has been refreshed — it now looks calmer, more professional and less cramped.
+### Sparring rounds
 
-- **Thinner, more readable fonts** — no more aggressive `weight: 900` everywhere. Headings and labels now use lighter weights (500/600) that breathe better.
-- **More space between sections** — bigger paddings, bigger margins between groups of fields.
-- **Flat, clean buttons** — removed borders and heavy shadows from SPARRING / TASK DRILLS / DRILLS buttons, time cards (ROUND / PREP / BREAK / ROUNDS), text inputs. Consistent “Apple/iOS minimal” look.
-- **GUEST button reworked** — now looks and acts like the other toggles (M/F, ADULT/KID, GI/NO-GI). Tap to toggle, lit purple when active — no more odd circular marker.
-- **Subtler pills** — player-type badges (ADULT, NO-GI, ♂/♀) no longer carry shadows, overall calmer feel.
+Each round steps through preparation with pair cards on screen, full-screen work countdown, and a break screen that immediately displays the newly computed pairs for the upcoming round. Coaches can spot mismatches and talk through adjustments before the next bell rings.
 
-### 🐛 Fixed (v2.0.5)
+In the sparring options panel, you can slide between skill-first and weight-first matching across four stops, pick round progression (`MATCHED`, `VARIED`, or `RANDOM`), and set women's round behavior. On crowded mats, turning on weight division splits the room into lighter and heavier halves that alternate on the mat with a 20-second transition window.
 
-- **Screen rotation bug** — after changing orientation portrait → landscape (or back), the settings screen would sometimes be scrolled “past the end”. Now the outer ScrollView automatically returns to the top on every orientation change.
+### Positional triads
 
-### ✈ Visiting players from another gym (v2.0.4)
+The app divides the roster into groups of three and splits each round into six equal stages. Two athletes work bottom and top while the third rests or watches the mat space around them.
 
-- **`GUEST` toggle on the player card** — small switch under the nickname (`○ GUEST` / `✈ GUEST`).
-- **Matchmaker avoids GUEST–GUEST pairs** almost as strictly as repeats — higher priority than gear, weight and skill level; broken only when there is no mathematical alternative.
-- **Per-session status** — not stored in the club database; mark guests at the start of each training.
-- **Purple ✈ icon** before the nickname on roster cards — instantly tells you who is visiting.
+| Stage | [A] BOTTOM | [B] TOP  | [C] REST |
+|:-----:|:----------:|:--------:|:--------:|
+| 1     | Person 1   | Person 2 | Person 3 |
+| 2     | Person 1   | Person 3 | Person 2 |
+| 3     | Person 2   | Person 1 | Person 3 |
+| 4     | Person 2   | Person 3 | Person 1 |
+| 5     | Person 3   | Person 1 | Person 2 |
+| 6     | Person 3   | Person 2 | Person 1 |
 
-### 🔴 Critical fix (v2.0.3)
+After six stages, everyone in the group has worked both top and bottom against both partners. Each stage automatically takes one sixth of the configured round duration.
 
-- **Resting players no longer disappear from the top bar during the BREAK phase** — after marking someone as "OUT", the active count became odd and the algorithm correctly sat someone out, but the hint was only rendered during the PREP phase. Now the "WHO'S RESTING" list is visible **in both phases (PREP and BREAK)**.
+### Positional pairs
 
-### 🔴 Critical fix (v2.0.2)
+Pairs are matched the same way as in sparring, with each round divided into two halves. At the halfway bell, bottom and top swap roles with the same partner.
 
-- **Screen no longer turns off during the timer** — `useKeepAwake` moved up to the root layout + explicit `activateKeepAwakeAsync` call. A tablet mounted on the wall stays on through sparring and drills.
+### Technique drills
 
-### 🟢 Highlights from the 2.0.x Beta cycle
+Drills mode matches partners once at the start of class and keeps those pairs together through the final round, flipping A and B roles every round so both athletes get equal reps without re-adjusting to a different body type every few minutes.
 
-- **Unified PREP screen** — no more separate KID / ADULT / RESTING columns. All pairs in a single dense grid with **category color-coding** and a **legend in the topbar**:
-  - 🟦 **KID GI** (blue)
-  - 🩵 **KID NO-GI** (cyan)
-  - 🟧 **ADULT GI** (orange)
-  - 🟥 **ADULT NO-GI** (red)
-  - 🟪 **MIXED** (gradient — KID + ADULT)
-- **Pair GI rule** — a pair counts as GI only if **both** athletes are in GI; one NO-GI in the pair → the whole pair is NO-GI
-- **Inline RESTING next to PREP** — who's resting is shown next to the phase header instead of a separate column (more room for pair tiles)
-- **Two-mode player dropout** — in the "WHO'S OUT?" modal each player has two buttons:
-  - **OUT** — removed from the rest of the session
-  - **REST 1 ROUND** — automatically returns next round
+## How the matchmaking solver scores pairs
 
-### 🟢 Core features from 2.0.0 Beta
+Instead of shuffling names at random, the engine scores candidate pairings against a strict priority order. Groups up to 12 athletes are solved to global optimality via bitmask dynamic programming, while larger rooms use indexed beam search.
 
-- **Language picker on launch** — PL / EN / PT (BR) visible from the first run
-- **Three training modes** — SPARRING · TASK DRILLS (TRIADS / DUOS) · **DRILLS** (full-fledged mode with fixed pairs and A/B role swap each round)
-- **Gender field (M / F)** in player card and **Gender-based fights** in sparring options (OFF / PRIORITY / ALWAYS)
-- **Matchmaking priority slider** — SKILL ↔ WEIGHT (4 snaps)
-- **Weight split** — optionally divides the mat into two weight groups
-- **Fight order** — SIMILAR / DIFFERENT / RANDOM
-- **No-rest (VIP)** in a clean pill layout with player names
-- **End screen "THANK YOU — GOOD WORK!"** with return to menu
-- **VERSION V2 panel** — contact, GitHub link, store link, short description
-- **Optimised triad and duo cards** for 10.5" tablets — no scrolling at typical resolutions
+| Priority | Matching rule |
+|:--------:|---------------|
+| 1 | Fresh pairings first based on full session fight history |
+| 2 | Separate visiting `GUEST` athletes so visitors roll with home-gym members |
+| 3 | Match `GI` with `GI` and `NO-GI` with `NO-GI` (mixed gear counts as `NO-GI`) |
+| 4 | Honor the selected women's pairing mode (`OFF`, `PREFER`, or `ALWAYS`) |
+| 5 | Close mat skill levels (`BEG.`, `INTERM.`, `ADV.`, `PRO`) |
+| 6 | Minimize body-weight difference between partners |
+| 7 | Rotate odd-person sit-outs evenly while skipping `NO REST (VIP)` athletes |
 
----
+Kids and adults match inside separate pools unless odd headcounts in both groups leave a single safe crossover pair as the only way to keep two people off the wall. When a long open-mat session eventually exhausts every unique combination, the solver picks the pair that rolled together furthest back in the session.
 
-## About the app
+## App walkthrough
 
-**Z NIM NIE ROBIĘ** ("I'm not rolling with him") is a tool for BJJ and grappling coaches who run trainings with a tablet mounted on the wall or by the mat. Instead of paper notes, a stopwatch and manually arranging pairs — one device does it all:
+### Language picker on first launch
 
-- **automatically matches pairs** based on weight, level, gi/no-gi and gender,
-- **runs the timers** with sound cues for prep, work and rest,
-- **rotates triads and duos** in task drills with a clear split between fighters and the resting person,
-- **runs drills** with pairs picked once per session and A/B roles swapping every round,
-- **displays everything readably** — big fonts, strong contrast, readable from several meters,
-- **speaks Polish, English and Brazilian Portuguese**.
-
-The app works offline, requires no account or login. Player data is stored locally on the device.
-
----
-
-## Screenshots
-
-### Language picker
-
-First launch — quick choice of UI language. The app can be switched between **PL / EN / PT** at any time from the bottom bar.
+Pick Polish, English, or Brazilian Portuguese when opening the app for the first time, or switch languages anytime from the bottom bar.
 
 <p align="center">
-  <img src="Screenshots/en/1.png" alt="Language picker screen" width="90%" />
+  <img src="Screenshots/en/1.png" alt="Language picker screen on first launch" width="90%" />
 </p>
 
-### Start screen (empty mat)
+### Empty start screen before class
 
-Training setup: adding players (left panel), round time and rhythm, training mode and matchmaker options. The right side is where the player tiles go.
+Add athletes, set round timing, and choose your training mode on the left while the right side holds your active mat lineup.
 
 <p align="center">
   <img src="Screenshots/en/2.png" alt="Empty start screen of the app" width="90%" />
 </p>
 
-### Edit player
+### Adding and editing an athlete card
 
-Full player card: nickname, weight, category (KID / ADULT), kimono (GI / NO-GI), gender (M / F) and skill level (BEGINNER / INTERMEDIATE / ADVANCED / PRO). Tapping a tile opens the same form for editing.
-
-<p align="center">
-  <img src="Screenshots/en/3.png" alt="Edit player — form" width="90%" />
-</p>
-
-### Club database — search
-
-**CLUB DATABASE** modal with the list of remembered players. Search by name, add one by one with **SELECT**.
+Enter nickname and weight, then pick age category, gear, gender, skill level, and optional guest status. Tapping any tile on the mat loads that athlete back into the form for quick edits.
 
 <p align="center">
-  <img src="Screenshots/en/4.png" alt="Club database — list and search" width="90%" />
+  <img src="Screenshots/en/3.png" alt="Edit athlete form" width="90%" />
 </p>
 
-### Club database — batch add
+### Searching the club database
 
-Tick multiple people at once and add them all to the mat with a single **ADD (n)** click. Selected tiles turn blue.
+Saved gym members stay in local storage between classes. Filter by nickname or delete outdated entries permanently with the trash button.
 
 <p align="center">
-  <img src="Screenshots/en/5.png" alt="Club database — batch add players" width="90%" />
+  <img src="Screenshots/en/4.png" alt="Club database search modal" width="90%" />
 </p>
 
-### Players on the mat
+### Batch-adding today's class
 
-Players sorted alphabetically with filters at the top (KID / ADULT / GI / NO-GI / level). Each card shows kimono, category, gender, weight and level. Red “×” removes, tap to edit.
+Check off everyone who stepped onto the mat today and drop the whole group into the lineup with a single tap.
 
 <p align="center">
-  <img src="Screenshots/en/6.png" alt="Players on the mat — tile grid" width="90%" />
+  <img src="Screenshots/en/5.png" alt="Batch-selecting athletes in the club database" width="90%" />
 </p>
 
-### SPARRING mode
+### Alphabetical mat lineup with quick filters
 
-Classic sparring with the full options panel: **NO-REST (VIP)**, **MATCHMAKING PRIORITY** (SKILL ↔ WEIGHT slider), **FIGHT ORDER** (SIMILAR / DIFFERENT / RANDOM), **WEIGHT SPLIT** and **GENDER-BASED FIGHTS** (OFF / PRIORITY / ALWAYS).
+Lineup tiles sort A to Z and can be filtered at the top by age category, gi or no-gi gear, and skill level.
 
 <p align="center">
-  <img src="Screenshots/en/7.png" alt="Sparring mode — matchmaker options" width="60%" />
+  <img src="Screenshots/en/6.png" alt="Athletes on the mat tile grid" width="90%" />
 </p>
 
-### TASK DRILLS mode (triads / duos)
+### Sparring options panel
 
-After picking task drills, a **TRIADS / DUOS** switch appears. The start button label changes accordingly (`START TASK DRILLS (TRIADS)` / `(DUOS)`).
+Configure no-rest VIP athletes, the skill-versus-weight slider, round order, two-group weight division, and women's round behavior.
 
 <p align="center">
-  <img src="Screenshots/en/8.png" alt="Task drills mode — triads/duos selector" width="60%" />
+  <img src="Screenshots/en/7.png" alt="Sparring matchmaking options panel" width="60%" />
 </p>
 
-### DRILLS mode
+### Positional mode selector for triads and pairs
 
-Pairs are picked **once for the whole session**, A/B roles swap each round. Perfect for repeating technique with the same partner.
+Switching to positional rounds reveals the toggle between three-person 6-stage groups and two-person mid-round swaps.
 
 <p align="center">
-  <img src="Screenshots/en/9.png" alt="Drills mode — description and start button" width="60%" />
+  <img src="Screenshots/en/8.png" alt="Positional mode triads and pairs selector" width="60%" />
 </p>
 
-### Sparring — prep
+### Drills mode setup
 
-**PREP** phase of round 1/5: pair grid split into **KID**, **ADULT** and **MIXED** sections. Timer counts down the time to walk to positions. Pairs picked by the matchmaker engine.
+Fixed-partner setup where pairs stay locked for the whole session and alternate A and B roles each round.
 
 <p align="center">
-  <img src="Screenshots/en/10.png" alt="Sparring — pair prep" width="90%" />
+  <img src="Screenshots/en/9.png" alt="Drills mode setup panel" width="60%" />
 </p>
 
-### Sparring — work timer
+### Sparring preparation grid
 
-Big, readable timer visible from across the mat. Round number on top. **PAUSE** and **END** buttons at hand.
+Color-coded pair cards and countdown before round 1 starts so everyone finds their partner quickly.
 
 <p align="center">
-  <img src="Screenshots/en/11.png" alt="Sparring — work timer" width="90%" />
+  <img src="Screenshots/en/10.png" alt="Sparring pair preparation grid" width="90%" />
 </p>
 
-### Sparring — break with next pairs
+### Full-screen sparring work clock
 
-**BREAK** phase of round 2/5: the screen already shows the next pair layout. The coach can discuss what to improve before the gong rings.
+High-contrast round clock legible from across the room with pause, mid-round dropout, and end controls underneath.
 
 <p align="center">
-  <img src="Screenshots/en/12.png" alt="Sparring — break with preview of next pairs" width="90%" />
+  <img src="Screenshots/en/11.png" alt="Full-screen sparring work timer" width="90%" />
 </p>
 
-### Triad drills — prep
+### Break screen with next-round pair preview
 
-Triad grid with role split: **[A] BOTTOM**, **[B] TOP**, **[C] REST / ASSIST**. KID and ADULT sections side by side, readable even from the other end of the room.
+As soon as a round ends, the break screen displays the next round's pairs and anyone sitting out.
 
 <p align="center">
-  <img src="Screenshots/en/13.png" alt="Triad drills — prep" width="90%" />
+  <img src="Screenshots/en/12.png" alt="Sparring break screen showing upcoming pairs" width="90%" />
 </p>
 
-### Triad drills — stage timer with rotation
+### Triad preparation cards
 
-Stage timer with current rotation step (**Stage 2/6 — SWITCH!**). Below the timer: current roles plus **NEXT SWITCH** so nobody gets lost.
+Three-person group cards showing who starts on bottom, on top, and resting or assisting.
 
 <p align="center">
-  <img src="Screenshots/en/14.png" alt="Triad drills — timer and switch info" width="90%" />
+  <img src="Screenshots/en/13.png" alt="Triad positional rounds preparation grid" width="90%" />
 </p>
 
-### Duo drills — prep
+### Triad stage clock and next rotation prompt
 
-A vs B pairs in a clean grid with **[A]** and **[B]** role labels. After the first stage roles swap. No rest zone.
+Stage countdown showing active roles right now alongside who rotates in on the next bell.
 
 <p align="center">
-  <img src="Screenshots/en/15.png" alt="Duo drills — prep" width="90%" />
+  <img src="Screenshots/en/14.png" alt="Triad stage timer and upcoming switch prompt" width="90%" />
 </p>
 
-### Duo drills — timer
+### Pair positional preparation grid
 
-Timer **Stage 1/2 — WORK**. Current roles and upcoming swap shown just below the timer.
+Side-by-side A and B pair cards before the first half of a positional round begins.
 
 <p align="center">
-  <img src="Screenshots/en/16.png" alt="Duo drills — timer and role swap" width="90%" />
+  <img src="Screenshots/en/15.png" alt="Pair positional rounds preparation grid" width="90%" />
 </p>
 
-### Someone dropped out
+### Pair positional stage clock
 
-At any point during training you can mark players who dropped out (injury, exhaustion, phone). The timer pauses, you can flag multiple at once and confirm with a single **OK**. The system rebuilds pairs on the fly — no training restart.
+Countdown for stage 1 of 2 with current roles and the upcoming swap shown right under the digits.
 
 <p align="center">
-  <img src="Screenshots/en/17.png" alt="Modal — who dropped out" width="90%" />
+  <img src="Screenshots/en/16.png" alt="Pair positional stage timer" width="90%" />
 </p>
 
-### No-rest players (VIP)
+### Mid-session athlete dropout modal
 
-Modal with all players as pills. A tap means someone **does not rest** between rounds (the coach, the most advanced players, a special guest). The system skips them in rest rotation.
+Pause the clock anytime to pull injured or exhausted athletes out for the rest of class or sit them out for just one round, recalculating pairs on the spot.
 
 <p align="center">
-  <img src="Screenshots/en/18.png" alt="Modal — no-rest (VIP) players" width="90%" />
+  <img src="Screenshots/en/17.png" alt="Mid-session athlete dropout modal" width="90%" />
 </p>
 
-### VERSION V2 panel
+### No-rest VIP selection
 
-Info card with contact (email), GitHub repo link and link to the **mantoshop.pl** store. Opened with the “i” icon in the bottom bar.
+Tap athlete pills to keep coaches or competition-prep athletes rolling every round without sitting out on odd headcounts.
 
 <p align="center">
-  <img src="Screenshots/en/19.png" alt="Info panel — version V2" width="90%" />
+  <img src="Screenshots/en/18.png" alt="No-rest VIP selection modal" width="90%" />
 </p>
 
-### End screen
+### Version and contact card
 
-After training is done — a big **THANK YOU** and a return-to-menu button. Short, readable, no junk screens.
+Quick dialog with the current release number, direct email link, GitHub repository, and mantoshop.pl link.
 
 <p align="center">
-  <img src="Screenshots/en/20.png" alt="End screen — THANK YOU, GOOD WORK!" width="90%" />
+  <img src="Screenshots/en/19.png" alt="App version and contact modal" width="90%" />
 </p>
 
----
+### End-of-class screen
 
-## Training modes
+Clean wrap-up screen after the final applause cue with one-tap return to the setup view.
 
-### ⚔️ Sparring
+<p align="center">
+  <img src="Screenshots/en/20.png" alt="End of training session screen" width="90%" />
+</p>
 
-Classic sparring mode. Each round cycle:
+## Tech stack and repository layout
 
-1. **Prep** — pairs are displayed, time to walk to positions
-2. **Work** — big timer, fight
-3. **Rest** — recovery; the system generates and shows new pairs for the next round
+| Layer | Implementation |
+|---|---|
+| Runtime and UI | [Expo SDK 58](https://expo.dev/) and React Native 0.88.1 (React 19.3.1) |
+| Language | TypeScript 6.0 |
+| Navigation | Expo Router |
+| Local storage | `@react-native-async-storage/async-storage` 3.1 |
+| Audio engine | `expo-audio` (configured without microphone permissions) |
+| Mobile builds | EAS Build (Android AAB and APK) |
+| Web hosting | Static Metro export deployed over FTPS to self-hosted Apache |
+| Target devices | 10.5-inch Android wall tablets, Android and iOS phones, desktop and mobile browsers |
 
-The system remembers the history of fights and avoids repeating the same pairs. Extra options:
-
-- **Matchmaking priority** — slider: SKILL ↔ WEIGHT (four snaps)
-- **Fight order** — SIMILAR / DIFFERENT / RANDOM
-- **Weight split** — splits the mat into two alternating weight groups
-- **Gender-based fights** — OFF / PRIORITY / ALWAYS
-
-### 🔄 Triad task drills
-
-Three-person groups, six stages per round — full rotation. Each stage has two fighters and one resting/assisting:
-
-| Stage | [A] BOTTOM | [B] TOP   | [C] REST  |
-|:-----:|:----------:|:---------:|:---------:|
-| 1     | Person 1   | Person 2  | Person 3  |
-| 2     | Person 1   | Person 3  | Person 2  |
-| 3     | Person 2   | Person 1  | Person 3  |
-| 4     | Person 2   | Person 3  | Person 1  |
-| 5     | Person 3   | Person 1  | Person 2  |
-| 6     | Person 3   | Person 2  | Person 1  |
-
-After 6 stages everyone fought everyone from both positions. Stage time = round time ÷ 6.
-
-### 👥 Duo task drills
-
-Simple A vs B pairs — two stages per round. After the first stage roles swap (whoever was on the bottom goes on top). Stage time = round time ÷ 2.
-
-### 🥋 Drills
-
-Pairs are picked **once per session** — same partner till the end. A/B roles swap every round. Ideal for repeating technique without resetting trust between partners every few minutes.
-
----
-
-## Matchmaking engine
-
-The matchmaker **does not randomise** — it picks pairs algorithmically by priority:
-
-| Priority | Criterion |
-|:--------:|-----------|
-| 1 | **Avoid repeats** — fresh pairs come first; the system remembers the fight history |
-| 2 | **Gi/No-gi** — GI fights GI, NO-GI fights NO-GI (gi is ignored when the option is off) |
-| 3 | **Gender** — optionally women fight each other first (PRIORITY) or only each other (ALWAYS) |
-| 4 | **Skill level** — close levels (BEG / INT / ADV / PRO) |
-| 5 | **Weight** — close body mass |
-| 6 | **Rest rotation** — fair distribution of who rests (with odd headcount) |
-| 7 | **Mixed KID + ADULT pairs** — only when group size requires it |
-
-The **MATCHMAKING PRIORITY** slider lets you smoothly weight skill vs weight (4 snaps: 0 / 33 / 67 / 100). When a repeat is mathematically unavoidable, the system picks the pair that hasn't fought each other for the longest time.
-
----
-
-## Main features
-
-- **Roster management** — add, edit and remove players from a tile-based view
-- **Club database** — quickly add saved players with search and batch select
-- **Categories** — KID and ADULT split with separate matchmaking
-- **Gi/No-gi** — both supported with gi-matching priority
-- **Levels** — BEG, INT, ADV, PRO
-- **Gender** — M / F with optional priority for women's fights
-- **Timer** — big, readable from several meters
-- **Sound cues** — gong on work start, 10 s warning, gong on break, applause at the end
-- **No-rest (VIP)** — mark players who don't rest between rounds
-- **Player drop-out** — remove a player mid-session with automatic pair recalculation; **two modes**: OUT (removed) or REST 1 ROUND (returns next round)
-- **DRILLS mode** — fixed pairs for the whole session, A/B role swap each round
-- **Multilingual** — PL / EN / PT (BR) with picker on launch and from the bottom bar
-- **Responsive layout** — optimised for 10.5" tablets, also works on phones and in browsers
-- **Offline** — no account, no backend, data stored locally (AsyncStorage)
-
----
-
-## Tech stack
-
-| Layer       | Technology                                  |
-|-------------|---------------------------------------------|
-| Framework   | [Expo](https://expo.dev/) + React Native    |
-| Language    | TypeScript                                  |
-| Routing     | Expo Router                                 |
-| Local data  | AsyncStorage                                |
-| Audio       | expo-av                                     |
-| Build       | EAS Build                                   |
-| Web hosting | Self-hosted (manual deploy)                 |
-| Target      | Android (10.5" tablet), iOS, browser        |
-
----
-
-## Project structure
+Key files in the repository:
 
 ```
 app/
+  _layout.tsx                  # Root navigation shell and screen wake-lock setup
   (tabs)/
-    index.tsx              # Main UI: screens, timers, pair grids
-    i18n.ts                # Translations PL / EN / PT
-    types.ts               # Domain types (RealPlayer, Match, SparringOptions, etc.)
+    index.tsx                  # Setup screen, live timers, pair grids, and modals
+    i18n.ts                    # PL, EN, and PT translation dictionary
+    types.ts                   # Athlete, match, and sparring option types
     engine/
-      matchmaker.ts        # Pair matching and rotation engine
+      matchmaker.ts            # Bitmask DP and beam-search matchmaking solver
 constants/
-  training-helpers.ts      # Validation, triad grouping and session helpers
+  training-helpers.ts          # Input validation, storage sanitizers, and triad builder
 hooks/
-  use-safe-keep-awake.ts   # Safe screen wake-lock hook (mobile + web)
+  use-safe-keep-awake.ts       # Safe WakeLock wrapper across native and web tabs
 tests/
-  engine-and-helpers.test.mjs # Unit tests for matchmaking and helpers
-assets/
-  *.mp3                    # Training sounds (gong, warning, applause)
-  images/                  # Icons and splash screen
-docs/
-  privacy-policy.md        # Privacy policy
-  play-store/              # Google Play assets
-Screenshots/               # Screenshots
-Images/                    # Logo and app icons
-plugins/                   # Expo plugins (e.g. ADI registration)
+  engine-and-helpers.test.mjs  # Unit tests for matchmaking and training helpers
+public/
+  .htaccess                    # Apache SPA routing and cache headers
+  privacy/index.html           # Standalone PL, EN, and PT privacy policy page
+scripts/
+  deploy-web.mjs               # FTPS deployment script with selective remote backup
+plugins/
+  with-adi-registration.js     # Expo config plugin bundling Google Play ADI verification
 ```
 
----
+## Local development and release builds
 
-## Running the app
+Install dependencies with `npm` and run the development server, unit test suite, linter, or TypeScript compiler:
 
 ```bash
-# Install dependencies
 npm install
-
-# Dev server
 npx expo start
 
-# Unit tests and lint
 npm test
 npm run lint
-
-# Build APK (Android, for testing)
-eas build --platform android --profile preview
-
-# Production build (Android, .aab)
-eas build --platform android --profile production
-
-# Export web version
-npx expo export --platform web
+npx tsc --noEmit
 ```
 
----
+Run `npx expo export --platform web` to generate the static web bundle into `dist/`, or `npm run release:web` to export and upload via FTPS using `.secrets/ftp.json`. For Google Play production builds and automatic submission, run `npm run release:android` as documented in [docs/play-store/build-and-submit.md](docs/play-store/build-and-submit.md).
 
-## Web version
+## Web app and privacy
 
-The app is available online at:
+You can run the full timer in any desktop, tablet, or phone browser without installing anything at [https://znimnierobie.pl](https://znimnierobie.pl).
 
-**https://znimnierobie.pl**
-
-The web version runs in the browser on desktop, tablet and phone. No install needed.
-
----
-
-## Privacy
-
-- No account or login required
-- No data sent to external servers
-- No analytics or trackers
-- Player data stored only locally on the device
-
-Full privacy policy: [docs/privacy-policy.md](docs/privacy-policy.md)
-
----
+The app requires no sign-up, sends zero data off your device, and includes no analytics SDKs or ad trackers. Read the full notice in [docs/privacy-policy.md](docs/privacy-policy.md) or at [https://znimnierobie.pl/privacy](https://znimnierobie.pl/privacy), and check [CHANGELOG.en.md](CHANGELOG.en.md) for full release notes.
 
 ## License
 
-All rights reserved. Source code published for review purposes only.
-
----
+All rights reserved. Source code is published in this repository for review purposes only.
 
 <p align="center">
-  <b>Z NIM NIE ROBIĘ</b> · v2.2 · BJJ training app<br/>
-  Built with 🥋 on the mat and at the keyboard
+  <b>Z NIM NIE ROBIĘ</b> · v2.3 · Mat timer and pair matchmaker for BJJ
 </p>
+

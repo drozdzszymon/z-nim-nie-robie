@@ -1,193 +1,167 @@
-# Polityka Prywatności — Z NIM NIE ROBIĘ
+# Polityka prywatności aplikacji Z NIM NIE ROBIĘ
 
-**Data wejścia w życie:** 17 kwietnia 2026  
-**Ostatnia aktualizacja:** 17 kwietnia 2026
+Obowiązuje od 17 kwietnia 2026 r., ostatnia zmiana 18 listopada 2026 r.
 
----
+## 1. Kto odpowiada za aplikację
 
-## 1. Informacje ogólne
+Aplikacja mobilna i webowa „Z NIM NIE ROBIĘ” służy trenerom brazylijskiego jiu-jitsu oraz grapplingu do układania par, odliczania rund i rotacji zawodników na macie.
 
-Aplikacja mobilna **„Z NIM NIE ROBIĘ"** (dalej: „Aplikacja") jest narzędziem
-do zarządzania parami, rundami i rotacją zawodników podczas treningów
-brazylijskiego jiu-jitsu (BJJ), grapplingu i zadaniówek.
+Administratorem aplikacji jest jej autor, Szymon Drożdż. We wszystkich sprawach związanych z prywatnością możesz napisać bezpośrednio na adres **drozdz.szymon@gmail.com**.
 
-Administratorem Aplikacji jest jej autor (dalej: „Administrator"). Kontakt:
-**drozdz.szymon@gmail.com**.
+## 2. Jakie dane trafiają do aplikacji i gdzie zostają
 
-Niniejszy dokument opisuje, jakie dane Aplikacja przetwarza, w jakim celu
-i w jaki sposób są one chronione.
+Aplikacja nie zbiera, nie wysyła ani nie udostępnia żadnych danych osobowych poza Twoje urządzenie. Nie ma własnego serwera bazodanowego ani kont użytkowników.
 
-## 2. Jakie dane zbieramy
+Wszystkie informacje wpisane przed treningiem, czyli pseudonimy zawodników, waga, staż, kategoria wiekowa, historia rund oraz wybrane czasy przerw, zapisują się wyłącznie w pamięci wewnętrznej urządzenia w magazynie `AsyncStorage`.
 
-Aplikacja **nie zbiera, nie przesyła i nie udostępnia** żadnych danych
-osobowych użytkownika na zewnętrzne serwery.
+## 3. Brak analityki, reklam i zewnętrznych skryptów
 
-Wszystkie dane wprowadzone przez użytkownika (imiona zawodników, waga,
-poziom umiejętności, wiek, ustawienia treningu) są przechowywane
-**wyłącznie lokalnie**, na urządzeniu użytkownika, w pamięci aplikacji
-(mechanizm `AsyncStorage` systemu operacyjnego).
+W kodzie aplikacji nie ma Google Analytics, Firebase Analytics ani żadnego innego systemu statystyk. Nie wpinamy narzędzi reklamowych, identyfikatorów śledzących, zewnętrznych SDK marketingowych ani usług raportowania błędów pokroju Sentry czy Crashlytics. Do prowadzenia treningu nie jest potrzebne konto ani dostęp do internetu.
 
-## 3. Dane zbierane automatycznie
+## 4. Uprawnienia na urządzeniu z Androidem
 
-Aplikacja **nie korzysta** z:
+Wersja mobilna korzysta wyłącznie z uprawnień technicznych potrzebnych do działania zegara i dźwięków na sali.
 
-- analityki użytkowania (brak Google Analytics, Firebase Analytics itp.),
-- narzędzi śledzących (trackerów, reklamowych identyfikatorów),
-- raportowania awarii zewnętrznymi usługami (brak Crashlytics, Sentry itp.),
-- reklam,
-- zewnętrznych SDK marketingowych.
-
-Aplikacja **nie wymaga** logowania, rejestracji konta ani połączenia
-z internetem do pracy.
-
-## 4. Uprawnienia systemowe
-
-Aplikacja może żądać następujących uprawnień systemu Android:
-
-| Uprawnienie | Cel |
+| Uprawnienie | Do czego służy na treningu |
 |---|---|
-| Dostęp do pamięci aplikacji | Zapis lokalnej bazy zawodników i ustawień |
-| Odtwarzanie dźwięków | Sygnały gongów i odliczania |
-| Wibracje / haptyka | Feedback dotykowy |
-| Utrzymanie ekranu włączonego | Aby timer nie gasł w trakcie rundy |
+| Pamięć lokalna aplikacji | Zapis bazy klubowej, historii sesji i ustawień rund na urządzeniu |
+| Odtwarzanie dźwięku i kontrola głośności | Sygnały gongu, klaśnięcie na 10 sekund przed końcem i przyciszenie muzyki w tle |
+| Wibracje | Krótkie potwierdzenie dotykowe przy przełącznikach |
+| Utrzymanie podświetlenia ekranu | Blokada wygaszania tabletu lub telefonu w trakcie rundy |
 
-Aplikacja **nie żąda** dostępu do: lokalizacji, kontaktów, aparatu,
-mikrofonu, zdjęć, SMS-ów ani żadnych innych danych osobowych.
+Aplikacja nie prosi o dostęp do lokalizacji, książki adresowej, aparatu, mikrofonu, galerii zdjęć ani wiadomości SMS.
 
-## 5. Pliki cookies i identyfikatory
+## 5. Pamięć przeglądarki i pliki cookies
 
-Wersja mobilna Aplikacji nie używa plików cookies ani identyfikatorów
-reklamowych.
+Wersja instalowana na telefonie i tablecie nie korzysta z plików cookies ani identyfikatorów reklamowych.
 
-Wersja webowa (znimnierobie.pl) używa wyłącznie lokalnego magazynu
-przeglądarki (`localStorage`) do zapisu ustawień — dane te nie opuszczają
-urządzenia użytkownika.
+Wersja przeglądarkowa pod adresem `znimnierobie.pl` zapisuje skład i ustawienia w lokalnej pamięci przeglądarki (`localStorage`). Te wpisy zostają w Twojej przeglądarce i nie są przesyłane na żaden serwer.
 
-## 6. Udostępnianie danych osobom trzecim
+## 6. Udostępnianie danych podmiotom trzecim
 
-Administrator **nie udostępnia** żadnych danych osobom trzecim, ponieważ
-takich danych **nie zbiera**.
+Autor aplikacji nie ma dostępu do Twojej bazy zawodników i nie przekazuje żadnych danych zewnętrznym firmom.
 
-## 7. Dzieci
+## 7. Grupy dziecięce na treningu
 
-Aplikacja jest przeznaczona dla instruktorów i trenerów BJJ oraz sportów
-walki. Nie jest kierowana bezpośrednio do dzieci poniżej 13 roku życia.
-Choć pozwala zarządzać zawodnikami z kategorii KID (dzieci), dane te są
-wprowadzane przez dorosłego instruktora i pozostają na jego urządzeniu.
+Program powstał jako narzędzie pracy dla pełnoletnich trenerów i instruktorów sportów walki, a nie jako aplikacja dla dzieci poniżej 13 roku życia. Oznaczenie kategorii `KID` pozwala trenerowi bezpiecznie oddzielić grupy dziecięce od dorosłych na własnym tablecie klubowym.
 
-## 8. Prawa użytkownika
+## 8. Jak usunąć zapisane dane
 
-Ponieważ Administrator nie posiada ani nie przetwarza danych osobowych
-użytkownika poza jego urządzeniem:
+Masz pełną kontrolę nad zawartością bazy na swoim urządzeniu. Pojedynczego zawodnika skasujesz ikoną kosza w oknie bazy klubowej, pojedynczy trening usuniesz w oknie statystyk, a wyczyszczenie danych przeglądarki lub odinstalowanie aplikacji z telefonu bezpowrotnie usuwa wszystkie zapisane informacje.
 
-- użytkownik ma pełną kontrolę nad swoimi danymi w każdej chwili,
-- dane można w dowolnym momencie usunąć: przez funkcję „Usuń zawodnika"
-  w Aplikacji lub przez odinstalowanie Aplikacji,
-- odinstalowanie Aplikacji powoduje trwałe usunięcie wszystkich lokalnych
-  danych związanych z Aplikacją.
+## 9. Zmiany dokumentu i kontakt
 
-## 9. Zmiany Polityki Prywatności
+Jeśli w przyszłości zmieni się zakres działania programu, zaktualizowana treść polityki prywatności pojawi się pod stałym adresem [https://znimnierobie.pl/privacy](https://znimnierobie.pl/privacy). Pytania dotyczące ochrony prywatności kieruj na adres **drozdz.szymon@gmail.com**.
 
-Administrator zastrzega sobie prawo do zmian niniejszej polityki.
-Aktualna wersja będzie zawsze dostępna pod adresem:
-**https://znimnierobie.pl/privacy**
 
-## 10. Kontakt
+# Privacy policy for Z NIM NIE ROBIĘ (English)
 
-W sprawach dotyczących prywatności prosimy o kontakt pod adresem:
-**drozdz.szymon@gmail.com**
+Effective April 17, 2026, last updated November 18, 2026.
 
----
+## 1. Who runs this app
 
-# Privacy Policy — Z NIM NIE ROBIĘ (English)
+The mobile and web app "Z NIM NIE ROBIĘ" helps Brazilian jiu-jitsu and grappling coaches match pairs, run round timers, and manage group rotations on the mat.
 
-**Effective date:** April 17, 2026  
-**Last updated:** April 17, 2026
+The app is maintained by its author, Szymon Drożdż. If you have any privacy questions, email **drozdz.szymon@gmail.com**.
 
-## 1. General information
+## 2. What data is stored and where it stays
 
-The mobile application **"Z NIM NIE ROBIĘ"** (hereinafter: the "App") is
-a tool for managing pairs, rounds and rotations during Brazilian jiu-jitsu
-(BJJ), grappling and drill training.
+The app doesn't collect, upload, or share any personal data off your device. There are no user accounts and no cloud database behind it.
 
-The App is administered by its author (hereinafter: the "Administrator").
-Contact: **drozdz.szymon@gmail.com**.
+Everything you type in before class, including athlete nicknames, weights, skill levels, age groups, round settings, and past session logs, stays strictly on your device inside local app storage (`AsyncStorage`).
 
-## 2. Data collection
+## 3. No analytics, ads, or trackers
 
-The App **does not collect, transmit or share** any personal data of the
-user with external servers.
+We don't ship Google Analytics, Firebase Analytics, Crashlytics, Sentry, ad networks, advertising IDs, or third-party marketing SDKs. The app runs offline from start to finish without sign-up or internet access.
 
-All data entered by the user (player names, weight, skill level, age,
-training settings) is stored **exclusively locally**, on the user's device,
-in the application storage (`AsyncStorage` mechanism of the operating
-system).
+## 4. Android system permissions
 
-## 3. Automatically collected data
+The Android build only uses system capabilities needed to keep the mat timer audible and visible during rounds.
 
-The App **does not use**:
-
-- usage analytics (no Google Analytics, Firebase Analytics, etc.),
-- tracking tools (trackers, advertising identifiers),
-- third-party crash reporting (no Crashlytics, Sentry, etc.),
-- advertisements,
-- third-party marketing SDKs.
-
-The App **does not require** login, account registration or an internet
-connection to operate.
-
-## 4. System permissions
-
-The App may request the following Android permissions:
-
-| Permission | Purpose |
+| Permission | Why the app uses it |
 |---|---|
-| Application storage access | Saving the local player database and settings |
-| Audio playback | Gong and countdown sound signals |
-| Vibration / haptics | Tactile feedback |
-| Keep screen on | Prevents the timer from dimming during a round |
+| Local app storage | Saves your club roster, session history, and round timer settings on the device |
+| Audio playback and audio focus | Plays the round bell, 10-second clapper, and ducks background gym music |
+| Vibration | Provides tactile feedback on controls |
+| Keep screen awake | Stops the tablet or phone display from dimming mid-round |
 
-The App **does not request** access to: location, contacts, camera,
-microphone, photos, SMS, or any other personal data.
+The app never asks for your location, contacts, camera, microphone, photo library, or text messages.
 
-## 5. Cookies and identifiers
+## 5. Browser storage and cookies
 
-The mobile version of the App does not use cookies or advertising
-identifiers.
+The mobile app doesn't use cookies or advertising identifiers.
 
-The web version (znimnierobie.pl) uses only the browser's `localStorage`
-to save settings — this data never leaves the user's device.
+The browser version at `znimnierobie.pl` stores your roster and timer preferences in standard browser `localStorage`. None of that data is sent over the network.
 
-## 6. Sharing with third parties
+## 6. Sharing data with third parties
 
-The Administrator **does not share** any data with third parties, as no
-such data is collected.
+Because no user data ever reaches our servers, nothing is sold, shared, or handed over to third parties.
 
-## 7. Children
+## 7. Kids classes
 
-The App is intended for BJJ and combat sports instructors and coaches.
-It is not directed at children under the age of 13. Although it allows
-managing players in the KID category, this data is entered by an adult
-instructor and remains on their device.
+This app is built for adult BJJ and combat sports coaches, not for children under 13. Although coaches can tag athletes with the `KID` group to keep youth pairs separate from adults, those entries are managed locally by the instructor on their own device.
 
-## 8. User rights
+## 8. Deleting your data
 
-Since the Administrator does not own or process the user's personal data
-outside of the user's device:
+You can delete individual athletes at any time using the trash icon inside the Club Database window, remove past sessions in the Statistics view, clear site data in your browser, or uninstall the app to wipe all stored data from the device.
 
-- the user has full control over their data at any time,
-- data can be deleted at any moment via the "Delete player" function in
-  the App, or by uninstalling the App,
-- uninstalling the App permanently removes all local data associated
-  with it.
+## 9. Policy updates and contact
 
-## 9. Changes to this Privacy Policy
+Whenever app changes require an update to this notice, the current text is published at [https://znimnierobie.pl/privacy](https://znimnierobie.pl/privacy). For any privacy questions, write to **drozdz.szymon@gmail.com**.
 
-The Administrator reserves the right to modify this policy. The current
-version will always be available at:
-**https://znimnierobie.pl/privacy**
 
-## 10. Contact
+# Política de privacidade do aplicativo Z NIM NIE ROBIĘ (Português)
 
-For privacy-related matters, please contact:
-**drozdz.szymon@gmail.com**
+Vigente desde 17 de abril de 2026, atualizado em 18 de novembro de 2026.
+
+## 1. Responsável pelo aplicativo
+
+O aplicativo móvel e web "Z NIM NIE ROBIĘ" ajuda professores de jiu-jitsu brasileiro e grappling a montar duplas, controlar o cronômetro das rodadas e organizar o rodízio no tatame.
+
+O aplicativo é mantido por seu autor, Szymon Drożdż. Para qualquer dúvida sobre privacidade, envie um e-mail para **drozdz.szymon@gmail.com**.
+
+## 2. Quais dados ficam salvos
+
+O aplicativo não coleta, não envia nem compartilha dados pessoais para servidores externos. Não existe cadastro de conta nem banco de dados na nuvem.
+
+Todas as informações preenchidas pelo professor, como apelidos dos lutadores, peso, nível técnico, categoria etária, histórico de treinos e tempos de rodada, ficam gravadas apenas no próprio aparelho por meio do `AsyncStorage`.
+
+## 3. Sem rastreadores nem anúncios
+
+O código não inclui Google Analytics, Firebase Analytics, Crashlytics, Sentry, redes de anúncios, identificadores publicitários nem SDKs de marketing. Tudo funciona offline no tatame sem precisar de login ou internet.
+
+## 4. Permissões no Android
+
+A versão Android usa apenas recursos técnicos necessários para tocar o gongo e manter o cronômetro aceso durante o treino.
+
+| Permissão | Uso durante a aula |
+|---|---|
+| Armazenamento interno do app | Grava o banco local da academia, o histórico e os tempos configurados |
+| Áudio e controle de foco sonoro | Toca o gongo, o aviso de 10 segundos e abaixa o volume da música de fundo |
+| Vibração | Confirmação tátil ao tocar nos controles |
+| Manter tela acesa | Impede que a tela do tablet ou celular apague no meio do rola |
+
+O aplicativo nunca pede acesso à localização, agenda de contatos, câmera, microfone, fotos ou mensagens SMS.
+
+## 5. Armazenamento no navegador e cookies
+
+O aplicativo móvel não usa cookies nem identificadores de publicidade.
+
+Na versão web em `znimnierobie.pl`, os lutadores e ajustes ficam salvos apenas no `localStorage` do próprio navegador, sem envio para servidores externos.
+
+## 6. Compartilhamento com terceiros
+
+Como nenhum dado sai do seu aparelho, nenhuma informação é repassada ou vendida a terceiros.
+
+## 7. Turmas infantis
+
+A ferramenta foi feita para instrutores e treinadores adultos, e não para uso direto por menores de 13 anos. A marcação `KID` serve apenas para o professor separar a turma infantil dos adultos no próprio tablet da academia.
+
+## 8. Como apagar os dados
+
+Você pode apagar qualquer atleta pelo ícone de lixeira no Banco do Clube, excluir sessões antigas na tela de Estatísticas, limpar os dados do navegador ou desinstalar o aplicativo para remover tudo do aparelho.
+
+## 9. Atualizações desta política e contato
+
+Se o funcionamento do aplicativo mudar no futuro, a versão atualizada deste documento ficará sempre publicada em [https://znimnierobie.pl/privacy](https://znimnierobie.pl/privacy). Em caso de dúvidas, escreva para **drozdz.szymon@gmail.com**.
+

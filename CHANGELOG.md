@@ -1,128 +1,120 @@
-# Changelog
+# Historia zmian w projekcie Z NIM NIE ROBIĘ
 
-Wszystkie istotne zmiany w projekcie **Z NIM NIE ROBIĘ** dokumentowane są w tym pliku.
+Zestawienie zmian wprowadzanych w kolejnych wydaniach aplikacji według konwencji [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/) oraz [Semantic Versioning](https://semver.org/lang/pl/).
 
-Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), wersjonowanie wg [Semantic Versioning](https://semver.org/lang/pl/).
+Pozostałe wersje językowe znajdziesz w plikach [English](CHANGELOG.en.md) oraz [Português (BR)](CHANGELOG.pt-BR.md).
 
-🌐 **Inne języki:** [🇬🇧 English](CHANGELOG.en.md) · [🇧🇷 Português (BR)](CHANGELOG.pt-BR.md)
+## [2.3.0] (2026-11-18)
 
----
+Przejście na Expo SDK 58, React Native 0.88.1 oraz nowy silnik dźwięku `expo-audio`, połączone z redakcją komunikatów interfejsu, strony polityki prywatności i dokumentacji projektu.
 
-## [2.2.0] - 2026-11-15 - Szybszy matchmaker, poprawki logiki i mobilnego UI
+### Zmienione
+- Podniesiono główny stos uruchomieniowy do Expo SDK 58 (`58.0.23`), Expo Router `58.0.30`, React Native `0.88.1`, React `19.3.1`, AsyncStorage `3.1.1`, Gesture Handler `3.5.0`, Reanimated `4.7.1` oraz TypeScript `6.0.3`.
+- Zastąpiono wycofany pakiet `expo-av` biblioteką `expo-audio` (`58.0.12`) skonfigurowaną bez uprawnienia dostępu do mikrofonu (`RECORD_AUDIO`), z zachowaniem odtwarzania gongu, podwójnego sygnału na 10 sekund przed końcem i przyciszenia muzyki w tle.
+- Przebudowano obsługę przejść między fazami zegara z użyciem `useEffectEvent` oraz wykrywanie motywu w przeglądarce z użyciem `useSyncExternalStore`.
+- Uproszczono komunikaty błędów walidacji, podpowiedzi opcji sparingowych, treść strony `/privacy` oraz dokumentację w trzech językach.
+- Wersja aplikacji podniesiona do `2.3.0`, `android.versionCode` z `13` na `14`, `ios.buildNumber` z `2` na `3`.
 
-Duża aktualizacja stabilności i wydajności silnika, uzupełnienie brakujących funkcji w bazie klubowej oraz poprawki widoków na wąskich ekranach i w przeglądarce.
+## [2.2.0] (2026-11-15)
+
+Przyspieszenie solvera dobierającego pary, rozbudowa okna bazy klubowej oraz poprawki układu na wąskich telefonach i w przeglądarce.
 
 ### Dodane
-- Trwałe usuwanie zawodników z bazy klubowej (ikona kosza w oknie bazy klubowej z potwierdzeniem).
-- Przycisk anulowania edycji zawodnika oraz czytelny komunikat błędu pod formularzem składu.
-- Obsługa klawiatury w wersji webowej: `Spacja` pauzuje i wznawia zegar, `Escape` zamyka otwarte okna i podpowiedzi, `Enter` zatwierdza formularz zawodnika, strzałki sterują suwakiem priorytetu.
-- Portugalska wersja językowa (PT-BR) strony polityki prywatności pod `/privacy`.
-- Zestaw testów jednostkowych silnika doboru par, rotacji trójek i walidacji danych (`npm test`).
+- Trwałe usuwanie zawodników bezpośrednio w oknie bazy klubowej za pomocą ikony kosza z potwierdzeniem.
+- Przycisk anulowania edycji zawodnika i pasek błędu walidacji pod formularzem składu.
+- Skróty klawiaturowe w przeglądarce (`Spacja` zatrzymuje i wznawia zegar, `Escape` zamyka otwarte okna i dymki pomocy, `Enter` zatwierdza formularz zawodnika, strzałki przesuwają suwak priorytetu).
+- Pełne tłumaczenie strony polityki prywatności `/privacy` na brazylijski portugalski.
+- Zestaw testów jednostkowych sprawdzających dobór par, rotację trójek i walidację danych (`npm test`).
 
 ### Zmienione
-- Zoptymalizowany silnik matchmakera (programowanie dynamiczne na maskach bitowych i preindeksacja par): dokładny solver obsługuje teraz grupy do 12 osób (zamiast 10), a dobór dla sali 46 zawodników działa ok. 13x szybciej.
-- Zegar rundy oparty na realnym czasie systemowym zamiast zwykłego interwału sekundowego, bez opóźnień przy przełączaniu kart i długich rundach.
-- Układ ekranów na wąskich telefonach (360 px): podział wagowy układa się pionowo, a przyciski i wiersze w oknach modalnych nie wychodzą poza ekran.
-- Skrypt wdrożeniowy WWW wykonuje selektywną kopię zapasową plików aplikacji i weryfikuje certyfikat TLS hostingu.
-- Android `versionCode`: 12 -> 13; iOS `buildNumber`: 1 -> 2; wersja aplikacji: 2.1.0 -> 2.2.0.
+- Solver par oparto na programowaniu dynamicznym na maskach bitowych i tablicach indeksowanych, dzięki czemu dokładne wyliczenie obejmuje grupy do 12 osób zamiast 10, a pełna mata na 46 osób liczy się około 13 razy szybciej.
+- Odliczanie rund spięto bezpośrednio z zegarem systemowym, co usuwa gubienie sekund na długich rundach i w nieaktywnych kartach przeglądarki.
+- Na wąskich ekranach telefonów (360 px) podział wagowy układa się pionowo, a przyciski w oknach modalnych mieszczą się bez przycinania tekstu.
+- Skrypt publikacji WWW pobiera kopię zapasową wyłącznie nadpisywanych plików aplikacji i weryfikuje certyfikat TLS serwera.
+- Wersja aplikacji podniesiona z `2.1.0` do `2.2.0`, `android.versionCode` z `12` na `13`, `ios.buildNumber` z `1` na `2`.
 
 ### Naprawione
-- Pary mieszane (`KID + ADULT`) wyświetlają się poprawnie w trybach `ZADANIÓWKI (DWÓJKI)` oraz `DRILLE`.
-- Pojedynczy dorosły przy grupie dzieci w `ZADANIÓWKACH (TRÓJKI)` jest zawsze dołączany do grupy zamiast znikać z siatki.
-- Walki wg płci w trybie `PRIORYTET` sprawdzają rozegrane pary osobno dla `KID` i `ADULT`, współpracują z podziałem wagowym i respektują oznaczenie `BEZ PAUZY (VIP)`.
-- Promowane dziecko w `GI` zachowuje priorytet doboru z dorosłym w `GI` w kolejnych rundach.
-- Okno `KTOŚ WYPADŁ?` działa również w trybie podziału wagowego i w trakcie fazy pracy, a opcja `ODPOCZYWA 1 RUNDĘ` przywraca zawodnika we wszystkich trybach treningu.
-- W trybie `DRILLE` przerwa pokazuje właściwy nagłówek `PRZERWA` oraz role `PRACA / ASYSTA` na następną rundę, a start respektuje ustawiony czas przygotowania.
-- Pole wagi obsługuje przecinek (np. `82,5`), pilnuje zakresu `10-300 kg` i blokuje duplikaty nazw także przy edycji zawodnika.
-- Wersja webowa nie rzuca błędu `WakeLock` w nieaktywnej karcie i automatycznie odnawia blokadę ekranu po powrocie do karty.
-- Brak wycieku instancji `Audio.Sound` przy kolejnych startach treningu.
+- Pary mieszane (`KID + ADULT`) wyświetlają się na siatce w trybach zadaniówek dwójkowych oraz drilli.
+- Samotny dorosły trenujący z grupą dzieci w zadaniówkach trójkowych trafia zawsze do grupy zamiast znikać z widoku.
+- Priorytet walk kobiecych zlicza zamknięte kolejki osobno dla dzieci i dorosłych, działa razem z podziałem wagowym i szanuje listę zawodników bez pauzy.
+- Dziecko w kimonie `GI` dołączone do grupy dorosłych zachowuje pierwszeństwo parowania z dorosłym w `GI` także w dalszych rundach.
+- Okno wypisywania zawodnika w trakcie zajęć działa w podziale wagowym i w fazie walki, a odpoczynek na jedną rundę przywraca osobę we wszystkich trybach treningu.
+- Przerwa w trybie drilli wyświetla nagłówek `PRZERWA` oraz role `PRACA` i `ASYSTA` na kolejną rundę, a start sesji uwzględnia ustawiony czas przygotowania.
+- Pole wagi przyjmuje ułamki z przecinkiem (np. `82,5`), pilnuje przedziału od 10 do 300 kg i blokuje powielenie pseudonimu przy edycji.
+- Wersja przeglądarkowa nie zgłasza błędu `WakeLock` w ukrytej karcie i sama wznawia blokadę ekranu po powrocie na kartę.
+- Usunięto wyciek obiektów dźwiękowych przy wielokrotnym uruchamianiu treningu.
 
-## [2.1.0] — 2026-05-29 — Dokończona lokalizacja EN / PT
+## [2.1.0] (2026-05-29)
 
-Wersja finalna. Domknięcie tłumaczeń — ostatnie napisy zaszyte po polsku na ekranie treningu / timera są teraz w pełni przetłumaczone na EN i PT-BR.
+Domknięcie tłumaczeń angielskich i portugalskich na ekranie aktywnego zegara oraz rozdzielenie zrzutów ekranu na wersje językowe.
 
 ### Naprawione
-- Etykieta fazy **PRZERWA** → `BREAK` / `INTERVALO`.
-- Etykieta grupy **MIESZANE** → `MIXED` / `MISTO`.
-- Podpowiedzi rotacji w TRÓJKACH (**WALCZY / ZMIANA GRUP / WCHODZĄ / NASTĘPNI**) → pełne tłumaczenia EN/PT.
-- Etykieta **ZMIANA GRUP** → `GROUP SWITCH` / `TROCA DE GRUPOS`.
-- Licznik postępu **Etap X/Y** → `Stage` / `Etapa`.
+- Przetłumaczono zaszyte wcześniej po polsku napisy na ekranie zegara, w tym fazy `BREAK` i `INTERVALO`, nagłówki grup mieszanych (`MIXED` oraz `MISTO`), komunikaty zmiany grup w trójkach i licznik etapu (`Stage` oraz `Etapa`).
 
 ### Zmienione
-- Zrzuty ekranu w README rozdzielone na osobne katalogi językowe (`Screenshots/pl|en|pt`).
-- Android `versionCode`: 10 → 11; wersja aplikacji: 2.0.5 → 2.1.0.
+- Zrzuty ekranu w plikach `README` rozdzielono na osobne podkatalogi `Screenshots/pl`, `Screenshots/en` oraz `Screenshots/pt`.
+- Wersja aplikacji podniesiona z `2.0.5` do `2.1.0`, a `android.versionCode` do `11` i `12`.
 
-## [2.0.5] — 2026-05-25 — Wydanie produkcyjne (Google Play)
+## [2.0.5] (2026-05-25)
 
-Pierwsza wersja zaakceptowana przez Google Play. Aplikacja dostępna na Androida w 3 językach (PL / EN / PT-BR).
+Pierwsze wydanie zaakceptowane i opublikowane w sklepie Google Play w trzech językach (polskim, angielskim i portugalskim).
 
 ### Zmienione
-- Odświeżony wygląd ekranu ustawień w stylu „Apple/iOS minimal": cieńsze fonty (500/600), większe paddingi, płaskie przyciski bez cieni.
-- Przycisk **GOŚĆ** ujednolicony z innymi przełącznikami (M/K, ADULT/KID, GI/NO-GI) — fioletowe podświetlenie zamiast okrągłego znacznika.
-- Subtelniejsze pigułki badge (ADULT, NO-GI, ♂/♀) bez cieni.
-- Android `versionCode`: 9 → 10; `autoIncrement` wyłączony (kontrola ręczna).
+- Uspokojono wygląd ekranu ustawień przez lżejsze kroje pisma (500 i 600), większe odstępy między sekcjami oraz płaskie karty czasu i przełączniki bez ciężkich cieni.
+- Przełącznik `GOŚĆ` zyskał ten sam kształt co przyciski kategorii, płci i stroju, z fioletowym podświetleniem po kliknięciu.
+- `android.versionCode` podniesiony z `9` na `10`.
 
 ### Naprawione
-- Outer ScrollView ekranu ustawień wraca na górę przy każdej zmianie orientacji (portrait ↔ landscape).
+- Po obróceniu ekranu z pionu do poziomu (lub z powrotem) główna lista ustawień przewija się automatycznie na samą górę zamiast zatrzymywać się w połowie składu.
 
-## [2.0.4-beta] — 2026-05-07 — Goście z innego klubu
+## [2.0.4-beta] (2026-05-07)
 
 ### Dodane
-- Przełącznik **`GOŚĆ`** w karcie zawodnika (`○ GOŚĆ` / `✈ GOŚĆ`), fioletowa ikona ✈ przed pseudonimem.
-- Matchmaker unika par **GOŚĆ–GOŚĆ** z priorytetem wyższym niż strój/waga/poziom; łamane tylko gdy brak alternatywy.
-- Status gościa per-trening (nie zapisuje się w bazie klubowej).
+- Przełącznik `GOŚĆ` na karcie zawodnika oznaczany fioletową ikoną samolotu przed pseudonimem.
+- Algorytm unika zestawiania dwóch gości ze sobą z priorytetem wyższym niż strój, waga i staż, łącząc ich w parę wyłącznie wtedy, gdy matematycznie nie ma innego wyjścia.
+- Oznaczenie gościa działa tylko w bieżącej sesji i nie zapisuje się na stałe w bazie klubowej.
 
-## [2.0.3-beta] — 2026-04-22 — Lista odpoczywających w PRZERWIE
-
-### Naprawione
-- Lista **„KTO ODPOCZYWA"** widoczna w obu fazach (PRZYGOTOWANIE oraz PRZERWA) — wcześniej tylko PRP.
-
-## [2.0.2-beta] — 2026-04-20 — Keep awake
+## [2.0.3-beta] (2026-04-22)
 
 ### Naprawione
-- Ekran nie wyłącza się podczas timera: `useKeepAwake` na poziomie root layout + jawne `activateKeepAwakeAsync` (belt-and-suspenders).
+- Pasek z listą osób odpoczywających wyświetla się w fazie przygotowania oraz w trakcie przerwy między rundami.
 
-## [2.0.1-beta] — 2026-04-20 — Zunifikowany ekran PRZYGOTOWANIE
+## [2.0.2-beta] (2026-04-20)
+
+### Naprawione
+- Blokada wygaszania ekranu przeniesiona do głównego układu aplikacji i wzmocniona jawnym wywołaniem `activateKeepAwakeAsync`, dzięki czemu tablet na ścianie nie gaśnie podczas rundy.
+
+## [2.0.1-beta] (2026-04-20)
 
 ### Zmienione
-- Zlikwidowany podział na osobne kolumny KID / ADULT / ODPOCZYWA — wszystkie pary w jednym, gęstym gridzie.
-- Kolorowanie wg kategorii: KID GI (niebieski), KID NO-GI (cyan), ADULT GI (pomarańczowy), ADULT NO-GI (czerwony), MIESZANE (gradient). Legenda w topbarze.
-- Reguła GI dla pary: liczy się jako GI tylko gdy **obaj** w GI.
-- „ODPOCZYWA" inline obok napisu PRZYGOTOWANIE (zamiast osobnej kolumny).
+- Wspólna siatka par na ekranie przygotowania zamiast osobnych kolumn z kolorowym oznaczeniem kategorii (`KID GI`, `KID NO-GI`, `ADULT GI`, `ADULT NO-GI` oraz pary mieszane) i legendą na górnym pasku.
+- Para dostaje oznaczenie `GI` tylko wtedy, gdy obie osoby trenują w kimonie.
+- Lista pauzujących wyświetla się bezpośrednio obok nagłówka fazy, zostawiając więcej miejsca na kafelki par.
 
 ### Dodane
-- Modal „Kto wypadł?" — dwa tryby per zawodnik: **WYPADŁ** (na stałe) lub **ODPOCZYWA 1 RUNDĘ** (wraca w kolejnej).
+- Dwa tryby w oknie wypisywania z treningu pozwalające zdjąć zawodnika do końca zajęć albo dać mu jedną rundę odpoczynku z automatycznym powrotem.
 
-## [2.0.0-beta] — 2026-04-20 — Nowe tryby + matchmaker 2.0
+## [2.0.0-beta] (2026-04-20)
 
 ### Dodane
-- Tryb **DRILLE** — pary stałe na cały trening, rotacja ról A/B co rundę.
-- **ZADANIÓWKI** rozdzielone na **TRÓJKI** (6 etapów rotacji) i **DWÓJKI** (zamiana A↔B).
-- Pole **płeć (M / K)** w karcie zawodnika.
-- **Walki wg płci** — WYŁ / PRIORYTET / ZAWSZE.
-- Suwak **Priorytet doboru** — UMIEJĘTNOŚCI ↔ WAGA (4 snapy).
-- **Podział wagowy** — opcjonalne dzielenie maty na dwie grupy.
-- **Kolejność walk** — ZBLIŻONE / RÓŻNE / LOSOWO.
-- Ekran wyboru języka przy starcie (PL / EN / PT).
-- Modal **„Bez pauzy (VIP)"** z pigułkami imion zawodników.
-- Ekran końcowy **„DZIĘKUJĘ — DOBRA ROBOTA!"**.
-- Panel **WERSJA V2** (kontakt, GitHub, sklep).
-- Podgląd nowych par już w trakcie przerwy.
+- Nowy tryb drilli ze stałymi parami na cały trening i zamianą ról A oraz B co rundę.
+- Podział zadaniówek na trójki (sześć etapów rotacji) oraz dwójki (zamiana ról w połowie rundy).
+- Wybór płci na karcie zawodnika oraz filtr walk kobiecych (wyłączony, priorytet lub osobne grupy).
+- Czterostopniowy suwak ważący między stażem a wagą, opcjonalny podział maty na dwie grupy wagowe oraz wybór kolejności walk.
+- Ekran wyboru języka przy pierwszym uruchomieniu, okno zawodników bez pauzy, ekran końcowy z podziękowaniem, karta informacyjna o wersji i podgląd nowych par już w czasie przerwy.
 
 ### Zmienione
-- Zoptymalizowane karty trójek i dwójek pod tablety 10.5" — bez przewijania.
-- Stabilniejszy audio focus na Androidzie.
+- Rozmiar kart w trójkach i dwójkach dopasowany do tabletów o przekątnej 10,5 cala bez przewijania widoku.
+- Poprawione utrzymanie priorytetu dźwięku na Androidzie.
 
 ### Naprawione
-- Dźwięk 10 sekund przed końcem nie powtarza się.
-- Poprawiona rotacja pauz w trybie DWÓJKI.
+- Pojedyncze wyzwalanie ostrzeżenia na 10 sekund przed końcem rundy oraz równiejsza rotacja pauz w trybie dwójek.
 
-## [1.0.0] — 2026-04-18 — Pierwsze wydanie
+## [1.0.0] (2026-04-18)
 
-Pierwsza zamknięta wersja (development, dystrybucja przez APK). Nieobecna w Google Play.
+Pierwsze zamknięte wydanie testowe rozpowszechniane bezpośrednio w pliku APK poza sklepem Google Play.
 
----
-
+[2.3.0]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.3
 [2.2.0]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.2
 [2.1.0]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.1
 [2.0.5]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.0.5
@@ -132,3 +124,4 @@ Pierwsza zamknięta wersja (development, dystrybucja przez APK). Nieobecna w Goo
 [2.0.1-beta]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.0.1-beta
 [2.0.0-beta]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.0.0-beta
 [1.0.0]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v1.0.0
+

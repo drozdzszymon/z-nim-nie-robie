@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import * as SplashScreen from 'expo-splash-screen';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import { Alert, Dimensions, Image, Linking, Modal, PixelRatio, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import {
@@ -209,17 +209,15 @@ const BEEP_SOUND = require('../../assets/short-beep.mp3');
 const KLAPS_SOUND = require('../../assets/side_stick_1.mp3');
 const FINISH_SOUND = require('../../assets/applause.mp3');
 const AUDIO_MODE = {
-  allowsRecordingIOS: false,
-  playsInSilentModeIOS: true,
-  staysActiveInBackground: true,
-  shouldDuckAndroid: true,
-  interruptionModeIOS: InterruptionModeIOS.DuckOthers,
-  interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+  allowsRecording: false,
+  playsInSilentMode: true,
+  shouldPlayInBackground: true,
+  interruptionMode: 'duckOthers',
 } as const;
 
 const ensureAudioFocus = async () => {
   try {
-    await Audio.setAudioModeAsync(AUDIO_MODE);
+    await setAudioModeAsync(AUDIO_MODE);
   } catch {}
 };
 
@@ -1195,6 +1193,7 @@ export default function App() {
   const [trainingHistory, setTrainingHistory] = useState<TrainingSession[]>([]);
   const [statsTab, setStatsTab] = useState<'TRENINGI' | 'FREKWENCJA' | 'PARY'>('TRENINGI');
   const [statsFilter, setStatsFilter] = useState<'TYDZIEŃ' | 'MIESIĄC' | 'WSZYSTKO'>('WSZYSTKO');
+  const [statsReferenceNow, setStatsReferenceNow] = useState(() => Date.now());
   const trainingPairsLog = useRef<TrainingSessionPair[][]>([]);
   const [timeLeft, setTimeLeft] = useState(0); 
   const [isActive, setIsActive] = useState(false); 
@@ -1283,8 +1282,13 @@ export default function App() {
   const weightGroupMatchesBRef = useRef<Match[]>([]);
   const noRestPlayersRef = useRef<string[]>([]);
   const oneRoundRestPlayerIdsRef = useRef<string[]>([]);
-  const soundsRef = useRef<any>({});
-  const audioDuckHoldRef = useRef<Audio.Sound | null>(null);
+  const soundsRef = useRef<{
+    bell?: AudioPlayer;
+    warning?: AudioPlayer;
+    tenSec?: AudioPlayer;
+    finish?: AudioPlayer;
+  }>({});
+  const audioDuckHoldRef = useRef<AudioPlayer | null>(null);
   const tenSecSoundFiredRef = useRef(false);
   const tenSecTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dropoutShouldResumeRef = useRef(false);
@@ -1299,7 +1303,7 @@ export default function App() {
 
   // Outer settings ScrollView ref — used to reset scroll on orientation change
   // (otherwise after portrait → landscape the user may see roster instead of the menu header).
-  const settingsScrollRef = useRef<ScrollView | null>(null);
+  const settingsScrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
   const prevOrientationRef = useRef<'P' | 'L' | null>(null);
   useEffect(() => {
     const isLandscape = screenWidth > screenHeight;
@@ -1333,10 +1337,6 @@ export default function App() {
   useEffect(() => {
     timeLeftRef.current = timeLeft;
   }, [timeLeft]);
-
-  useEffect(() => {
-    setWeightThresholdInput(String(sparringOptions.weightDivisionThreshold));
-  }, [sparringOptions.weightDivisionThreshold]);
 
   useEffect(() => {
     noRestPlayersRef.current = noRestPlayers;
@@ -1497,12 +1497,12 @@ export default function App() {
   const unloadAllSounds = useCallback(async () => {
     const current = soundsRef.current;
     soundsRef.current = {};
-    await Promise.allSettled([
-      current.bell?.unloadAsync?.(),
-      current.warning?.unloadAsync?.(),
-      current.tenSec?.unloadAsync?.(),
-      current.finish?.unloadAsync?.(),
-    ]);
+    for (const player of [current.bell, current.warning, current.tenSec, current.finish]) {
+      try {
+        player?.pause();
+        player?.remove();
+      } catch {}
+    }
   }, []);
 
   const initAudio = async () => {
@@ -1517,18 +1517,15 @@ export default function App() {
         return;
       }
       await unloadAllSounds();
-      const [bellRes, beepRes, klapsRes, finishRes] = await Promise.all([
-        Audio.Sound.createAsync(BELL_SOUND, { volume: 1 }),
-        Audio.Sound.createAsync(BEEP_SOUND, { volume: 1 }),
-        Audio.Sound.createAsync(KLAPS_SOUND, { volume: 1 }),
-        Audio.Sound.createAsync(FINISH_SOUND, { volume: 0.96 }),
-      ]);
-      soundsRef.current = {
-        bell: bellRes.sound,
-        warning: beepRes.sound,
-        tenSec: klapsRes.sound,
-        finish: finishRes.sound,
-      };
+      const bell = createAudioPlayer(BELL_SOUND);
+      bell.volume = 1;
+      const warning = createAudioPlayer(BEEP_SOUND);
+      warning.volume = 1;
+      const tenSec = createAudioPlayer(KLAPS_SOUND);
+      tenSec.volume = 1;
+      const finish = createAudioPlayer(FINISH_SOUND);
+      finish.volume = 0.96;
+      soundsRef.current = { bell, warning, tenSec, finish };
     } catch {}
   };
 
@@ -1540,8 +1537,11 @@ export default function App() {
           }
           unloadAllSounds();
           if (audioDuckHoldRef.current) {
-            audioDuckHoldRef.current.stopAsync().catch(() => {});
-            audioDuckHoldRef.current.unloadAsync().catch(() => {});
+            try {
+              audioDuckHoldRef.current.pause();
+              audioDuckHoldRef.current.remove();
+            } catch {}
+            audioDuckHoldRef.current = null;
           }
       }
   }, [unloadAllSounds]);
@@ -1549,22 +1549,22 @@ export default function App() {
   const playSound = useCallback(async (type: 'start' | 'end' | 'warning' | 'tenSeconds' | 'finish') => {
     try {
       await ensureAudioFocus();
-      let s;
+      let s: AudioPlayer | undefined;
       if (type === 'start' || type === 'end') s = soundsRef.current.bell;
       else if (type === 'warning') s = soundsRef.current.warning;
       else if (type === 'tenSeconds') s = soundsRef.current.tenSec;
       else if (type === 'finish') s = soundsRef.current.finish;
       if (s) {
-        await s.setPositionAsync(0);
-        await s.replayAsync(); 
+        await s.seekTo(0);
+        s.play();
         if (type === 'tenSeconds') {
           if (tenSecTimeoutRef.current) clearTimeout(tenSecTimeoutRef.current);
           tenSecTimeoutRef.current = setTimeout(async () => {
             tenSecTimeoutRef.current = null;
             try {
               await ensureAudioFocus();
-              await s.setPositionAsync(0);
-              await s.replayAsync();
+              await s.seekTo(0);
+              s.play();
             } catch {}
           }, 180);
         }
@@ -1576,12 +1576,11 @@ export default function App() {
     try {
       if (audioDuckHoldRef.current) return;
       await ensureAudioFocus();
-      const { sound } = await Audio.Sound.createAsync(KLAPS_SOUND, {
-        isLooping: true,
-        volume: 0,
-      });
+      const sound = createAudioPlayer(KLAPS_SOUND, { keepAudioSessionActive: true });
+      sound.loop = true;
+      sound.volume = 0;
       audioDuckHoldRef.current = sound;
-      await sound.playAsync();
+      sound.play();
     } catch {}
   }, []);
 
@@ -1590,8 +1589,8 @@ export default function App() {
       const hold = audioDuckHoldRef.current;
       if (hold) {
         audioDuckHoldRef.current = null;
-        await hold.stopAsync();
-        await hold.unloadAsync();
+        hold.pause();
+        hold.remove();
       }
     } catch {}
   }, []);
@@ -2358,41 +2357,9 @@ export default function App() {
     handleRemovePlayersFromTraining(fullIds);
   };
 
-  // Monotonic wall-clock ticker — eliminates drift across long rounds and tab throttling
-  useEffect(() => {
-    if (!isActive) {
-      if (phaseEndTimeRef.current !== null) {
-        remainingMsOnPauseRef.current = Math.max(0, phaseEndTimeRef.current - Date.now());
-        phaseEndTimeRef.current = null;
-      }
-      if (tenSecTimeoutRef.current) {
-        clearTimeout(tenSecTimeoutRef.current);
-        tenSecTimeoutRef.current = null;
-      }
-      return;
-    }
-
-    if (phaseEndTimeRef.current === null) {
-      const resumeMs = remainingMsOnPauseRef.current ?? timeLeftRef.current * 1000;
-      phaseEndTimeRef.current = Date.now() + Math.max(0, resumeMs);
-    }
-
-    const syncClock = () => {
-      if (phaseEndTimeRef.current === null) return;
-      const remainingMs = phaseEndTimeRef.current - Date.now();
-      const nextSec = Math.max(0, Math.ceil(remainingMs / 1000));
-      timeLeftRef.current = nextSec;
-      setTimeLeft(prev => (prev !== nextSec ? nextSec : prev));
-    };
-
-    syncClock();
-    const interval = setInterval(syncClock, 200);
-    return () => clearInterval(interval);
-  }, [isActive]);
-
   // Phase transitions when countdown hits 0
-  useEffect(() => {
-    if (!isActive || timeLeft > 0) return;
+  const handlePhaseTimeout = useEffectEvent(() => {
+    if (!isActive) return;
 
     phaseEndTimeRef.current = null;
     remainingMsOnPauseRef.current = null;
@@ -2400,6 +2367,14 @@ export default function App() {
     const restSeconds = Math.max(1, Math.floor(parseFloat(restTime)));
     const prepSeconds = Math.max(1, Math.floor(parseFloat(prepTime)));
     const totalRds = Math.max(1, parseInt(roundsTotal, 10) || 1);
+
+    const finishTraining = () => {
+      timeLeftRef.current = 0;
+      setTimeLeft(0);
+      playSound('finish');
+      setIsActive(false);
+      setCurrentScreen('finished');
+    };
 
     if (trainingMode === 'ZADANIOWKI') {
         if (zadaniowkiType === 'TRÓJKI') {
@@ -2422,7 +2397,7 @@ export default function App() {
                         setCurrentRound(prev => prev + 1);
                         setCurrentStep(1);
                     } else {
-                        playSound('finish'); setIsActive(false); setCurrentScreen('finished'); 
+                        finishTraining();
                     }
                 }
             }
@@ -2448,7 +2423,7 @@ export default function App() {
                         const { matches, resting } = generateRound(activePlayersRef.current, historyRef.current, currentRound + 1, noRestPlayersRef.current, sparringOptionsRef.current, totalRds);
                         setCurrentMatches(matches); currentMatchesRef.current = matches; updateCurrentResting(resting);
                     } else {
-                        playSound('finish'); setIsActive(false); setCurrentScreen('finished'); 
+                        finishTraining();
                     }
                 }
             }
@@ -2461,7 +2436,7 @@ export default function App() {
             if (currentRound < totalRds) {
                 playSound('end'); setPhase('REST'); startPhaseCountdown(restSeconds);
             } else {
-                playSound('finish'); setIsActive(false); setCurrentScreen('finished');
+                finishTraining();
             }
         } else if (phase === 'REST') {
             const nextRound = currentRound + 1;
@@ -2499,9 +2474,7 @@ export default function App() {
           const actualRoundIndex = (currentRound - 1) * 2 + (curGroup === 'A' ? 1 : 2);
           
           if (actualRoundIndex >= totalWeightRounds) {
-            playSound('finish');
-            setIsActive(false);
-            setCurrentScreen('finished');
+            finishTraining();
           } else {
             playSound('end');
             setPhase('PREP');
@@ -2559,9 +2532,7 @@ export default function App() {
             const { matches, resting } = generateRound(activePlayersRef.current, historyRef.current, currentRound + 1, noRestPlayersRef.current, sparringOptionsRef.current, totalRds);
             setCurrentMatches(matches); currentMatchesRef.current = matches; updateCurrentResting(resting);
           } else {
-            playSound('finish'); 
-            setIsActive(false); 
-            setCurrentScreen('finished'); 
+            finishTraining();
           }
         } else if (phase === 'REST') {
           const nextRound = currentRound + 1;
@@ -2571,7 +2542,46 @@ export default function App() {
           setActivePlayers(updated);
         }
     }
-  }, [isActive, timeLeft, phase, currentRound, roundsTotal, roundTime, restTime, prepTime, trainingMode, zadaniowkiType, currentStep, currentWeightGroup, weightGroupRestingA, weightGroupRestingB, playSound, startPhaseCountdown, updateCurrentResting, updateZadaniowkiGroups]);
+  });
+
+  // Monotonic wall-clock ticker — eliminates drift across long rounds and tab throttling
+  useEffect(() => {
+    if (!isActive) {
+      if (phaseEndTimeRef.current !== null) {
+        remainingMsOnPauseRef.current = Math.max(0, phaseEndTimeRef.current - Date.now());
+        phaseEndTimeRef.current = null;
+      }
+      if (tenSecTimeoutRef.current) {
+        clearTimeout(tenSecTimeoutRef.current);
+        tenSecTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    if (phaseEndTimeRef.current === null) {
+      const resumeMs = remainingMsOnPauseRef.current ?? timeLeftRef.current * 1000;
+      phaseEndTimeRef.current = Date.now() + Math.max(0, resumeMs);
+    }
+
+    const syncClock = () => {
+      if (phaseEndTimeRef.current === null) return;
+      const remainingMs = phaseEndTimeRef.current - Date.now();
+      const nextSec = Math.max(0, Math.ceil(remainingMs / 1000));
+      if (nextSec <= 0) {
+        handlePhaseTimeout();
+        return;
+      }
+      timeLeftRef.current = nextSec;
+      setTimeLeft(prev => (prev !== nextSec ? nextSec : prev));
+    };
+
+    const immediateTick = setTimeout(syncClock, 0);
+    const interval = setInterval(syncClock, 200);
+    return () => {
+      clearTimeout(immediateTick);
+      clearInterval(interval);
+    };
+  }, [isActive]);
 
   const formatTime = (seconds: number) => {
     const safe = Math.max(0, Math.floor(seconds));
@@ -3649,7 +3659,7 @@ export default function App() {
                 const cB = roster.filter(p => p.weight > thresholdVal).length;
                 return (
                   <Text style={{ color: COLORS.textMuted, fontSize: isCompactSettingsUI ? 10 : 11, marginTop: 2 }}>
-                    ≤{thresholdVal} kg: {cA} {t('weightPlayers', lang)} ({Math.floor(cA / 2)} {t('weightPairs', lang)}) — {'>'}{thresholdVal} kg: {cB} {t('weightPlayers', lang)} ({Math.floor(cB / 2)} {t('weightPairs', lang)})
+                    ≤{thresholdVal} kg: {cA} {t('weightPlayers', lang)} ({Math.floor(cA / 2)} {t('weightPairs', lang)}) · {'>'}{thresholdVal} kg: {cB} {t('weightPlayers', lang)} ({Math.floor(cB / 2)} {t('weightPairs', lang)})
                   </Text>
                 );
               })()}
@@ -3738,7 +3748,7 @@ export default function App() {
           <TouchableOpacity style={[styles.aboutButtonInline, { marginTop: 0 }]} onPress={() => setIsAboutModalVisible(true)}>
             <Text style={styles.aboutButtonFixedText}>ℹ️</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.aboutButtonInline, { marginTop: 0 }]} onPress={() => setIsStatsModalVisible(true)}>
+          <TouchableOpacity style={[styles.aboutButtonInline, { marginTop: 0 }]} onPress={() => { setStatsReferenceNow(Date.now()); setIsStatsModalVisible(true); }}>
             <Text style={styles.statsButtonText}>📊</Text>
           </TouchableOpacity>
           <View style={styles.langSwitchRow}>
@@ -4609,7 +4619,7 @@ export default function App() {
                 <View style={{width: '100%', alignItems: 'center', paddingTop: 4, paddingHorizontal: 8}}>
                   <Text style={[styles.roundInfoGigantic, {marginTop: 0, fontSize: phaseHeaderFont}]}>
                       <Text style={{color: COLORS.textPrimary}}>{t('roundOf', lang)} {isDrille && isRest ? currentRound + 1 : currentRound} / {roundsTotal} </Text>
-                      {!isDrille && <Text style={{color: COLORS.textMuted}}>({t('stage', lang)} {step}/{stepsTotal}) - </Text>}
+                      {!isDrille && <Text style={{color: COLORS.textMuted}}>({t('stage', lang)} {step}/{stepsTotal}) · </Text>}
                       {isDrille && <Text style={{color: COLORS.textMuted}}>- </Text>}
                       <Text style={{color: activePhaseColor}}>
                           {activePhaseTitle}
@@ -5401,7 +5411,7 @@ export default function App() {
       const wdDisplayMatches = phase === 'WORK' ? wdNextMatches : wdActiveMatches;
       const wdDisplayResting = phase === 'WORK' ? wdNextResting : wdActiveResting;
       const wdDisplayLabel = phase === 'WORK' ? wdNextGroupLabel : wdGroupLabel;
-      const wdDisplayTitle = phase === 'WORK' ? `⏳ ${wdDisplayLabel} — ${t('wdNext', lang)}` : `🥊 ${wdDisplayLabel} — ${t('wdEntering', lang)}`;
+      const wdDisplayTitle = phase === 'WORK' ? `⏳ ${wdDisplayLabel} · ${t('wdNext', lang)}` : `🥊 ${wdDisplayLabel} · ${t('wdEntering', lang)}`;
       const wdTotalRows = Math.max(1, wdDisplayMatches.length + 1 + (wdDisplayResting.length > 0 ? 1 : 0));
       const wdRowHeight = isCompactWdLayout
         ? clamp(34, Math.floor(wdAvailableHeight / wdTotalRows) - 3, 48)
@@ -6745,7 +6755,7 @@ export default function App() {
                   onPress={() => Linking.openURL('https://github.com/drozdzszymon/z-nim-nie-robie').catch(() => {})}
                 >
                   <Text style={styles.aboutLinkIcon}>🔗</Text>
-                  <Text style={styles.aboutLinkText}>GitHub — z-nim-nie-robie</Text>
+                  <Text style={styles.aboutLinkText}>github.com/drozdzszymon/z-nim-nie-robie</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -6845,14 +6855,14 @@ export default function App() {
         </View>
         <View style={styles.statsFilterBar}>
           {([{ key: 'TYDZIEŃ' as const, label: t('statsFilterWeek', lang) }, { key: 'MIESIĄC' as const, label: t('statsFilterMonth', lang) }, { key: 'WSZYSTKO' as const, label: t('statsFilterAll', lang) }]).map(f => (
-            <TouchableOpacity key={f.key} style={[styles.statsFilterBtn, statsFilter === f.key && styles.statsFilterBtnActive]} onPress={() => setStatsFilter(f.key)}>
+            <TouchableOpacity key={f.key} style={[styles.statsFilterBtn, statsFilter === f.key && styles.statsFilterBtnActive]} onPress={() => { setStatsReferenceNow(Date.now()); setStatsFilter(f.key); }}>
               <Text style={[styles.statsFilterText, statsFilter === f.key && styles.statsFilterTextActive]}>{f.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
           {(() => {
-            const now = Date.now();
+            const now = statsReferenceNow;
             const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
             const monthAgo = now - 30 * 24 * 60 * 60 * 1000;
             const filtered = trainingHistory.filter(s => {

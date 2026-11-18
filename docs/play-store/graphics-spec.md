@@ -1,98 +1,24 @@
-# Graphics Specification — Google Play
+# Wymagania graficzne karty sklepu Google Play
 
-## Wymagane grafiki
+W katalogu `docs/play-store/assets/` trzymamy gotowe grafiki wgrane do Google Play Console oraz zrzuty ekranu przygotowane pod tablety dziesięciocalowe.
 
-### 1. App icon
-- **Rozmiar:** 512 × 512 px
-- **Format:** PNG, 32-bit, z kanałem alpha
-- **Max rozmiar pliku:** 1024 KB
-- **Status:** ✅ Mamy `assets/images/icon.png` (1024×1024) — Play automatycznie zresizuje,
-  ale warto wyeksportować czystą wersję 512×512 dla pewności
-- **Plik docelowy:** `docs/play-store/assets/icon-512.png`
+## Parametry plików wymaganych przez Google Play
 
-### 2. Feature graphic (banner nad screenshotami)
-- **Rozmiar:** 1024 × 500 px
-- **Format:** PNG lub JPG (bez przezroczystości)
-- **Max rozmiar pliku:** 1024 KB
-- **Status:** ❌ Nie mamy — trzeba zaprojektować
-- **Plik docelowy:** `docs/play-store/assets/feature-graphic-1024x500.png`
+| Materiał graficzny | Wymiary i format | Ścieżka w repozytorium |
+|---|---|---|
+| Ikona aplikacji w sklepie | 512 x 512 px, PNG 32-bit, do 1024 KB | `docs/play-store/assets/icon-512.png` (źródło 1024 x 1024 px w `assets/images/icon.png`) |
+| Grafika promocyjna (Feature Graphic) | 1024 x 500 px, PNG lub JPG bez kanału alpha, do 1024 KB | `docs/play-store/assets/feature-graphic-1024x500.png` |
+| Zrzuty na tablet 10 cali | Od 2 do 8 plików, proporcje poziome 16 do 10 lub 16 do 9, bok minimum 1080 px | `docs/play-store/assets/screenshots-tablet/` |
+| Zrzuty na telefon i wersje językowe | Od 2 do 8 plików na język (PL, EN, PT-BR), PNG 24-bit bez przezroczystości | `Screenshots/pl/`, `Screenshots/en/`, `Screenshots/pt/` |
 
-**Sugerowana zawartość feature graphic:**
-```
-┌──────────────────────────────────────────────┐
-│  [LEWA 40%]          [PRAWA 60%]             │
-│  Logo + nazwa        Mockup tabletu z app    │
-│  Slogan: "Koniec     (screen z dużym         │
-│  kartek na macie"    timerem lub parami)     │
-│                      Na tle: gradient navy   │
-│                      #07111F → #0F2541       │
-└──────────────────────────────────────────────┘
-```
+## Dobór kadrów na karcie produktu
 
-### 3. Phone screenshots
-- **Wymagane:** min. 2, max. 8
-- **Proporcje:** 16:9 lub 9:16 (portrait/landscape)
-- **Rozmiar:** min. bok 320 px, max. bok 3840 px
-- **Zalecany rozmiar:** 1080 × 1920 (portrait) lub 1920 × 1080 (landscape)
-- **Format:** PNG lub JPG, 24-bit, bez przezroczystości
-- **Status:** ⚠️ Mamy w `docs/screenshots/` — trzeba sprawdzić rozmiary
+Karta w sklepie najlepiej konwertuje wtedy, gdy pierwsze cztery zrzuty pokazują pełny przebieg zajęć z perspektywy trenera stojącego przy macie. Jako pierwszy obraz ustawiamy widok wypełnionego składu z kafelkami zawodników, zaraz po nim siatkę dobranych par w fazie przygotowania, na trzecim miejscu duży zegar odliczający czas walki, a dalej widok rotacji w trójkach oraz okno szybkiego wypisywania osoby schodzącej z maty.
 
-### 4. 7-inch tablet screenshots (opcjonalne ale zalecane)
-- **Wymagane:** min. 1, max. 8
-- **Proporcje:** min. 1:1, zalecane 16:10
-- **Rozmiar:** min. 320 px bok, max. 3840 px bok
+Przy eksporcie nowych zrzutów z przeglądarki lub z tabletu przez ADB sprawdzaj, czy wokół ciemnego tła `#07111F` nie zostały białe marginesy okna przeglądarki i czy żaden plik nie przekracza limitu 1 MB narzuconego przez Play Console.
 
-### 5. 10-inch tablet screenshots (KLUCZOWE dla nas!)
-- **Wymagane:** min. 1, max. 8
-- **Rozmiar:** 1920 × 1200 lub podobne
-- **Plany:** aplikacja JEST projektowana pod tablet 10" — tu pokazujemy
-  jej prawdziwe oblicze
-
-**Sugerowane ekrany do screenshotów:**
-1. **Ekran ustawień z listą zawodników** (hero shot — pokazuje "o co chodzi")
-2. **PREP phase** — grid par ze zdjęciami kart
-3. **WORK phase** — wielki timer + informacja o parach
-4. **Zadaniówki trójki — grid rotacji** (pokazuje zaawansowanie)
-5. **REST phase** — kto pauzuje, kto walczy dalej
-6. **Ekran finished** (opcjonalnie)
-
-### 6. Promo video (opcjonalne)
-- **Platforma:** YouTube (publiczny lub unlisted)
-- **Długość:** 30 sek - 2 min
-- **Sugestia:** 30-45 sek, nagrane z tabletu pokazujące pełny cykl rundy
-
----
-
-## Narzędzia i workflow
-
-### Generowanie feature graphic
-Opcje:
-- **Figma / Canva** — szablony 1024×500 (szybko)
-- **Expo orbit snapshot** + compose w Figmie
-- AI (np. Midjourney / DALL-E) dla tła, potem kompozycja
-
-### Generowanie screenshotów
 ```powershell
-# Z urządzenia przez ADB (jeśli masz podłączony tablet):
 adb shell screencap -p /sdcard/screen1.png
-adb pull /sdcard/screen1.png docs/play-store/assets/
-
-# Lub z Expo Go / preview build, tryb "developer menu" → screenshot
+adb pull /sdcard/screen1.png docs/play-store/assets/screenshots-tablet/
 ```
 
-### Device frames (ramki urządzeń wokół screenshotów)
-Google Play **nie wymaga** ramek, ale poprawiają CTR:
-- https://appmockup.com (darmowe, web)
-- https://mockuphone.com
-
----
-
-## ✅ Checklist grafik przed submit
-
-- [ ] Icon 512×512 wyeksportowane
-- [ ] Feature graphic 1024×500 zaprojektowane
-- [ ] Min. 2 zrzuty telefon (portrait, 1080×1920)
-- [ ] Min. 2 zrzuty tablet 10" (landscape, 1920×1200)
-- [ ] Wszystkie pliki ≤ 1024 KB
-- [ ] Brak tekstu angielskiego na grafikach (jeśli karta PL-only)
-- [ ] (Opcjonalnie) Video 30-45s na YouTube

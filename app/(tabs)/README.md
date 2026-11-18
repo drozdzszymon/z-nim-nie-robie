@@ -1,16 +1,8 @@
-# Z NIM NIE ROBIĘ — moduł aplikacji
+# Moduł główny aplikacji Z NIM NIE ROBIĘ
 
-Ta część repozytorium zawiera główny interfejs i silnik działania aplikacji **Z NIM NIE ROBIĘ V1**.
+W katalogu `app/(tabs)` leżą ekrany treningowe, słownik trzech wersji językowych oraz algorytm dobierania par na matę.
 
-## Najważniejsze pliki
+Najważniejsze pliki w tym miejscu to główny widok i zegar rund w `index.tsx`, tłumaczenia polskie, angielskie i portugalskie w `i18n.ts`, definicje struktur danych w `types.ts` oraz solver par i rotacji pauz w `engine/matchmaker.ts`. Pomocnicze funkcje walidacji formularza i podziału na trójki znajdują się piętro wyżej w `constants/training-helpers.ts`, a odpowiadające im testy jednostkowe w `tests/engine-and-helpers.test.mjs`.
 
-- `index.tsx` — główny ekran aplikacji,
-- `engine/matchmaker.ts` — logika doboru par i rotacji,
-- `types.ts` — typy domenowe.
+Opis wszystkich trybów treningowych, zrzuty ekranu i instrukcję uruchomienia znajdziesz w głównym pliku [README](../../README.md).
 
-## Status
-
-To nie jest wersja beta.  
-To jest **pierwsza oficjalna wersja produkcyjna V1**.
-
-Pełna dokumentacja projektu znajduje się w głównym pliku [README](../../README.md).

@@ -1,128 +1,118 @@
-# Changelog
+# Changelog for Z NIM NIE ROBIĘ
 
-All notable changes to **Z NIM NIE ROBIĘ** are documented in this file.
+Notable changes across releases of **Z NIM NIE ROBIĘ**, following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/).
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/).
+Other languages are available in [Polski](CHANGELOG.md) and [Português (BR)](CHANGELOG.pt-BR.md).
 
-🌐 **Other languages:** [🇵🇱 Polski](CHANGELOG.md) · [🇧🇷 Português (BR)](CHANGELOG.pt-BR.md)
+## [2.3.0] (2026-11-18)
 
----
+Upgrade to Expo SDK 58, React Native 0.88.1, and `expo-audio`, paired with a full editorial pass over interface copy, privacy pages, and repository docs.
 
-## [2.2.0] - 2026-11-15 - Faster matchmaker, logic fixes and mobile UI polish
+### Changed
+- Upgraded the runtime stack to Expo SDK 58 (`58.0.23`), Expo Router `58.0.30`, React Native `0.88.1`, React `19.3.1`, AsyncStorage `3.1.1`, Gesture Handler `3.5.0`, Reanimated `4.7.1`, and TypeScript `6.0.3`.
+- Replaced deprecated `expo-av` with `expo-audio` (`58.0.12`) configured without `RECORD_AUDIO` microphone permissions while keeping the round bell, double 10-second clapper, and background music ducking intact.
+- Refactored round phase transitions to `useEffectEvent` and web color-scheme hydration to `useSyncExternalStore`.
+- Cleaned up validation messages, option tooltips, `/privacy` copy, and project documentation across Polish, English, and Brazilian Portuguese.
+- Bumped app version to `2.3.0`, `android.versionCode` from `13` to `14`, and `ios.buildNumber` from `2` to `3`.
 
-Major engine performance and reliability update, permanent deletion from the club database, and responsive fixes for narrow phones and web browsers.
+## [2.2.0] (2026-11-15)
+
+Faster matchmaking solver, permanent athlete deletion in the club database, and layout fixes for narrow phones and web browsers.
 
 ### Added
-- Permanent player deletion in the club database modal (trash icon with confirmation).
-- Cancel button while editing a player and inline validation error banner under the lineup form.
-- Web keyboard shortcuts: `Space` pauses and resumes the timer, `Escape` closes open modals and tooltips, `Enter` submits the player form, arrow keys adjust the priority slider.
-- Full Brazilian Portuguese (PT-BR) translation on the `/privacy` policy page.
-- Automated unit test suite covering matchmaking, triad rotation and data validation (`npm test`).
+- Permanent player deletion inside the Club Database modal via a trash icon with confirmation.
+- Edit cancel button and inline validation message right under the lineup form.
+- Browser keyboard shortcuts (`Space` pauses and resumes the clock, `Escape` closes open modals and tooltips, `Enter` submits the athlete form, arrow keys move the priority slider).
+- Full Brazilian Portuguese translation on the `/privacy` policy page.
+- Automated unit tests covering pair matching, triad rotation, and input sanitizers (`npm test`).
 
 ### Changed
-- Reworked matchmaking solver using bitmask dynamic programming and pre-indexed pair tables: exact solver now covers up to 12 players per group (up from 10) and full-mat 46-player rounds run ~13x faster.
-- Wall-clock timer tracking prevents drift on long rounds and backgrounded browser tabs.
-- Improved narrow mobile layouts (360 px): weight division stacks vertically and modal action buttons fit cleanly without clipping.
-- Web deploy script now backs up only app-owned paths and validates the hosting TLS certificate.
-- Android `versionCode`: 12 -> 13; iOS `buildNumber`: 1 -> 2; app version: 2.1.0 -> 2.2.0.
+- Rebuilt the matchmaking solver with bitmask dynamic programming and pre-indexed pair tables so the exact solver handles groups up to 12 athletes (up from 10) and 46-athlete mats run roughly 13x faster.
+- Switched the round countdown to system wall-clock time to prevent drift during long rounds and backgrounded browser tabs.
+- Stacked the weight-division view vertically on 360 px phone screens and adjusted modal buttons so labels never clip.
+- Scoped FTPS web deploy backups strictly to app-owned files and verified hosting TLS certificates.
+- Bumped app version from `2.1.0` to `2.2.0`, `android.versionCode` from `12` to `13`, and `ios.buildNumber` from `1` to `2`.
 
 ### Fixed
-- Mixed pairs (`KID + ADULT`) now render properly in `POSITIONAL (PAIRS)` and `DRILLS` modes.
-- A single adult training alongside kids in `POSITIONAL (TRIADS)` is now always placed into a group instead of disappearing from the grid.
-- Gender matching in `PREFER` mode now tracks round-robin completion separately for `KID` and `ADULT`, composes with weight division, and respects `NO REST (VIP)`.
-- Promoted `GI` kids keep their `GI` adult pairing preference in later rounds.
-- The `DROPOUT?` modal now works in weight division mode and during active `WORK` phases, and `RESTS 1 ROUND` restores players across all training modes.
-- `DRILLS` break screen now shows `BREAK` and upcoming `WORK / ASSIST` roles, and respects the configured prep time on start.
-- Weight input accepts comma decimals (e.g. `82,5`), enforces the `10-300 kg` range, and blocks duplicate nicknames when editing a player.
-- Web version no longer throws an uncaught `WakeLock` error in hidden tabs and re-acquires screen wake lock when returning to the tab.
-- Fixed `Audio.Sound` instance leak across repeated session starts.
+- Mixed `KID + ADULT` pairs now render in positional pairs and drills modes.
+- A single adult training alongside kids in positional triads is always placed into a group instead of dropping off the grid.
+- `PREFER` gender matching tracks round-robin completion independently for `KID` and `ADULT`, composes with weight division, and respects `NO REST (VIP)`.
+- Promoted `GI` kids retain their `GI` adult pairing preference in later rounds.
+- The `DROPOUT?` modal works during weight division and active `WORK` phases, and `RESTS 1 ROUND` brings athletes back across every training mode.
+- Drills breaks now show the `BREAK` header and upcoming `WORK` and `ASSIST` roles, while session start honors configured prep time.
+- Weight input accepts comma decimals such as `82,5`, enforces the 10 to 300 kg range, and blocks duplicate nicknames when editing.
+- Browser tabs no longer throw uncaught `WakeLock` errors when opened in the background and re-acquire screen wake lock upon returning.
+- Fixed sound instance leaks across repeated session starts.
 
-## [2.1.0] — 2026-05-29 — Complete EN / PT localisation
+## [2.1.0] (2026-05-29)
 
-Final release. Localisation wrap-up — the last strings still hard-coded in Polish on the training / timer screen are now fully translated into EN and PT-BR.
+Completed English and Brazilian Portuguese translations on the live timer screen and separated screenshots per language.
 
 ### Fixed
-- **BREAK** phase label → translated (was `PRZERWA`).
-- **MIXED** group label → translated (was `MIESZANE`).
-- TRIAD rotation hints (**FIGHTING NOW / GROUP SWITCH / ENTERING / NEXT**) → full EN/PT translations.
-- **GROUP SWITCH** label → `GROUP SWITCH` / `TROCA DE GRUPOS`.
-- **Stage X/Y** progress label (was `Etap`).
+- Translated the last Polish strings on the live timer view, including `BREAK`, `MIXED`, triad rotation prompts, `GROUP SWITCH`, and the `Stage` counter.
 
 ### Changed
-- README screenshots split into per-language folders (`Screenshots/pl|en|pt`).
-- Android `versionCode`: 10 → 11; app version: 2.0.5 → 2.1.0.
+- Split documentation screenshots into `Screenshots/pl`, `Screenshots/en`, and `Screenshots/pt`.
+- Bumped app version from `2.0.5` to `2.1.0` and `android.versionCode` to `11` and `12`.
 
-## [2.0.5] — 2026-05-25 — Production release (Google Play)
+## [2.0.5] (2026-05-25)
 
-First version accepted by Google Play. Available on Android in 3 languages (PL / EN / PT-BR).
+First production release live on Google Play in Polish, English, and Brazilian Portuguese.
 
 ### Changed
-- Refreshed settings screen design in "Apple/iOS minimal" style: thinner fonts (500/600), bigger paddings, flat buttons without heavy shadows.
-- **GUEST** button unified with other toggles (M/F, ADULT/KID, GI/NO-GI) — purple highlight instead of an odd circular marker.
-- Subtler player-type pills (ADULT, NO-GI, ♂/♀) without shadows.
-- Android `versionCode`: 9 → 10; `autoIncrement` disabled (manual control).
+- Calmed down the settings screen with lighter font weights (500 and 600), wider spacing between panels, and flat time cards without heavy drop shadows.
+- Matched the `GUEST` toggle to the category, gender, and gear switches with a purple active highlight.
+- Bumped `android.versionCode` from `9` to `10`.
 
 ### Fixed
-- Outer ScrollView of the settings screen returns to the top on every orientation change (portrait ↔ landscape).
+- Rotating between portrait and landscape resets the outer settings scroll container back to the top.
 
-## [2.0.4-beta] — 2026-05-07 — Visiting players from another gym
+## [2.0.4-beta] (2026-05-07)
 
 ### Added
-- **`GUEST`** toggle on the player card (`○ GUEST` / `✈ GUEST`), purple ✈ icon before the nickname.
-- Matchmaker avoids **GUEST–GUEST** pairs with priority higher than gear/weight/skill; broken only when no mathematical alternative exists.
-- Guest status is per-session (not stored in the club database).
+- `GUEST` switch on the athlete form marked with a purple airplane icon before the nickname.
+- Matchmaker avoids pairing two guests together at a higher priority than gear, weight, and skill, pairing them only when mathematically unavoidable.
+- Guest status resets between sessions and isn't saved to the permanent club database.
 
-## [2.0.3-beta] — 2026-04-22 — Resting list during BREAK
-
-### Fixed
-- **"WHO'S RESTING"** list visible in both phases (PREP and BREAK) — previously only in PREP.
-
-## [2.0.2-beta] — 2026-04-20 — Keep awake
+## [2.0.3-beta] (2026-04-22)
 
 ### Fixed
-- Screen no longer turns off during the timer: `useKeepAwake` moved to the root layout + explicit `activateKeepAwakeAsync` call (belt-and-suspenders).
+- Resting athletes stay visible in the top bar during both `PREPARATION` and `BREAK` phases.
 
-## [2.0.1-beta] — 2026-04-20 — Unified PREP screen
+## [2.0.2-beta] (2026-04-20)
+
+### Fixed
+- Moved `useKeepAwake` to the root layout and added explicit `activateKeepAwakeAsync` calls so wall-mounted tablets stay awake throughout rounds.
+
+## [2.0.1-beta] (2026-04-20)
 
 ### Changed
-- Removed split into separate KID / ADULT / RESTING columns — all pairs in a single dense grid.
-- Category color-coding: KID GI (blue), KID NO-GI (cyan), ADULT GI (orange), ADULT NO-GI (red), MIXED (gradient). Legend in the topbar.
-- Pair GI rule: counts as GI only when **both** are in GI.
-- "RESTING" inline next to the PREP label (instead of a separate column).
+- Combined preparation cards into a single color-coded grid (`KID GI`, `KID NO-GI`, `ADULT GI`, `ADULT NO-GI`, and `MIXED`) with a top-bar legend and inline resting names.
+- Pairs count as `GI` only when both athletes wear a gi.
 
 ### Added
-- "Who's out?" modal — two modes per player: **OUT** (permanently) or **REST 1 ROUND** (returns next round).
+- Two dropout options per athlete in the mid-session modal (`OUT` for the rest of class or `RESTS 1 ROUND` with automatic return).
 
-## [2.0.0-beta] — 2026-04-20 — New modes + matchmaker 2.0
+## [2.0.0-beta] (2026-04-20)
 
 ### Added
-- **DRILLS** mode — fixed pairs for the whole session, A/B role swap each round.
-- **TASK DRILLS** split into **TRIADS** (6-stage rotation) and **DUOS** (A↔B swap).
-- **Gender (M / F)** field on the player card.
-- **Gender-based fights** — OFF / PRIORITY / ALWAYS.
-- **Matchmaking priority** slider — SKILL ↔ WEIGHT (4 snaps).
-- **Weight split** — optional split of the mat into two weight groups.
-- **Fight order** — SIMILAR / DIFFERENT / RANDOM.
-- Language picker at app start (PL / EN / PT).
-- **"No-rest (VIP)"** modal with player-name pills.
-- End screen **"THANK YOU — GOOD WORK!"**.
-- **VERSION V2** panel (contact, GitHub, store).
-- Preview of next pairs already during the break.
+- `DRILLS` mode with fixed partners for the entire class and alternating A and B roles each round.
+- Positional mode split into `TRIADS` (6-stage rotation) and `PAIRS` (mid-round role swap).
+- Gender selector on athlete cards and women's pairing modes (`OFF`, `PREFER`, `ALWAYS`).
+- Four-step skill-versus-weight slider, optional two-group weight division, and round fight order selector.
+- First-launch language picker, `NO REST (VIP)` pill modal, end-of-training screen, version info dialog, and next-round pair preview during breaks.
 
 ### Changed
-- Optimized triad and duo cards for 10.5" tablets — no scrolling.
-- More stable audio focus on Android.
+- Sized triad and pair cards to fit 10.5-inch tablets without scrolling and improved Android audio focus stability.
 
 ### Fixed
-- 10-second warning sound no longer repeats.
-- Improved rest rotation in DUOS mode.
+- Stopped the 10-second warning clapper from firing twice and balanced rest rotation in pair drills.
 
-## [1.0.0] — 2026-04-18 — First release
+## [1.0.0] (2026-04-18)
 
-First closed version (development, APK distribution). Not on Google Play.
+Initial internal APK release prior to Google Play publication.
 
----
-
+[2.3.0]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.3
 [2.2.0]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.2
 [2.1.0]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.1
 [2.0.5]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.0.5
@@ -132,3 +122,4 @@ First closed version (development, APK distribution). Not on Google Play.
 [2.0.1-beta]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.0.1-beta
 [2.0.0-beta]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v2.0.0-beta
 [1.0.0]: https://github.com/drozdzszymon/z-nim-nie-robie/releases/tag/v1.0.0
+

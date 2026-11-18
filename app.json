@@ -3,13 +3,12 @@
     "name": "Z NIM NIE ROBIĘ",
     "slug": "z-nim-nie-robie",
     "owner": "simon_on",
-    "version": "2.2.0",
+    "version": "2.3.0",
     "icon": "./assets/images/icon.png",
     "orientation": "default",
     "scheme": "znimnierobie",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "description": "Oficjalna aplikacja treningowa do zarządzania parami, rundami i rotacją zawodników podczas treningów BJJ, grapplingu i zadaniówek.",
+    "description": "Timer i dobór par na treningi BJJ oraz grapplingu. Układa sparingi, pilnuje rund i rotuje trójki bez kartek przy macie.",
     "platforms": [
       "android",
       "ios",
@@ -26,6 +25,14 @@
     ],
     "plugins": [
       "expo-router",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": true
+        }
+      ],
       "./plugins/with-adi-registration",
       [
         "expo-splash-screen",
@@ -38,8 +45,7 @@
     ],
     "android": {
       "package": "pl.znimnierobie.app",
-      "versionCode": 13,
-      "edgeToEdgeEnabled": true,
+      "versionCode": 14,
       "permissions": [],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -49,7 +55,7 @@
     },
     "ios": {
       "bundleIdentifier": "pl.znimnierobie.app",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "supportsTablet": true
     },
     "web": {

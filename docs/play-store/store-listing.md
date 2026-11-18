@@ -1,292 +1,151 @@
-# Google Play — Store Listing
+# Opisy karty aplikacji w Google Play
 
-## 🇵🇱 Wersja polska (domyślna)
+## Wersja polska (domyślna)
 
-### Tytuł aplikacji (max 30 znaków)
+### Tytuł aplikacji (do 30 znaków)
 ```
-Z NIM NIE ROBIĘ — BJJ Timer
+Z NIM NIE ROBIĘ · BJJ Timer
 ```
-*(26 znaków)*
+*(27 znaków)*
 
-### Krótki opis (max 80 znaków)
+### Krótki opis (do 80 znaków)
 ```
-Timer BJJ z inteligentnym doborem par. Sparingi, zadaniówki, rotacja pauz.
+Timer na treningi BJJ i grapplingu z automatycznym doborem par i rotacją trójek.
 ```
-*(74 znaki)*
+*(80 znaków)*
 
-### Pełny opis (max 4000 znaków)
+### Pełny opis (do 4000 znaków)
 ```
-Z NIM NIE ROBIĘ to aplikacja treningowa stworzona przez instruktorów BJJ dla instruktorów BJJ. Koniec z kartkami, zegarkiem na ręce i zgadywaniem, kto z kim jeszcze nie walczył.
+Z NIM NIE ROBIĘ zastępuje kartkę, długopis i zwykły stoper na sali brazylijskiego jiu-jitsu oraz grapplingu. Stawiasz tablet na ławce albo wieszasz go na ścianie, zaznaczasz obecnych z bazy klubowej i odpalasz rundy bez ręcznego rozstawiania par co sześć minut.
 
-🥋 INTELIGENTNY DOBÓR PAR
-Matchmaker dobiera pary automatycznie, uwzględniając:
-• wagę i różnicę wagową
-• poziom umiejętności (POCZ. / ŚR.ZAAW. / ZAAW. / PRO)
-• strój (GI / NO-GI)
-• kategorię wiekową (KID / ADULT)
-• historię walk — żadnych powtórek, dopóki każdy nie sparuje z każdym
+DOBÓR PAR BEZ POWTÓREK
+Algorytm układa zestawienia na kolejną rundę na podstawie wagi, stażu na macie (POCZ., ŚR.ZAAW., ZAAW., PRO), stroju (GI lub NO-GI), płci oraz kategorii wiekowej (KID i ADULT). Pamięta wszystkie stoczone już walki z danej sesji i unika powtórek, dopóki każdy nie przejdzie rundy z każdym. Zawodników przyjezdnych oznaczysz przełącznikiem GOŚĆ, dzięki czemu przyjezdni sparują z gospodarzami zamiast trafiać na siebie nawzajem.
 
-⏱️ TRYBY TRENINGOWE
-• SPARING — klasyczne pary, faza PRZYGOTOWANIE → WALKA → PRZERWA
-• ZADANIÓWKI W TRÓJKACH — 6-etapowa rotacja z rolami DÓŁ / GÓRA / PAUZA
-• ZADANIÓWKI W DWÓJKACH — zamiana ról A / B po każdym etapie
+CZTERY TRYBY PRACY NA MACIE
+W klasycznych sparingach zegar prowadzi grupę przez przygotowanie, walkę i przerwę, a nowe pary wyświetlają się na ekranie już w trakcie odpoczynku. W zadaniówkach w trójkach program dzieli grupę na trzyosobowe składy i pilnuje sześciu etapów rotacji z rolami DÓŁ, GÓRA oraz PAUZA. Zadaniówki w dwójkach zamieniają górę z dołem w połowie rundy, natomiast tryb drilli trzyma stałe pary przez cały trening i przełącza strony A oraz B co kolejną rundę.
 
-🎯 CZYTELNOŚĆ Z DYSTANSU
-Wielkie cyfry, duże karty par, system kolorów faz treningu — widoczne z drugiego końca sali. Zoptymalizowane pod tablety 10". Ustawiasz na ławce lub wieszasz na ścianie.
+OPCJE POD DUŻĄ SALĘ
+Przy pełnej macie możesz włączyć podział wagowy na lżejszą i cięższą połowę sali z krótką zmianą co rundę. Masz też pod ręką suwak ważący między stażem a masą ciała, wybór kolejności walk, priorytet walk kobiecych oraz listę osób trenujących bez pauzy przy nieparzystym składzie. Gdy ktoś złapie kontuzję albo musi zejść na jedną rundę, przycisk KTOŚ WYPADŁ przelicza układ par na żywo bez przerywania całego treningu.
 
-🔔 SYGNAŁY DŹWIĘKOWE
-• Gong rozpoczęcia rundy
-• Alarm 10 sekund przed końcem
-• Gong przerwy
-• Automatyczne ściszanie muzyki w tle (ducking)
+CZYTELNY EKRAN I SYGNAŁY GONGU
+Duże cyfry zegara i kolorowe oznaczenia grup widać z drugiego końca maty. Gong otwiera i kończy rundę, klaśnięcie ostrzega na 10 sekund przed końcem czasu, a aplikacja sama przycisza na chwilę muzykę grającą w tle na tym samym urządzeniu.
 
-👥 ZARZĄDZANIE GRUPĄ
-• Szybkie dodawanie i edycja zawodników
-• Kafelkowy widok z bierzącym statusem (walczy / pauza)
-• Oznaczanie zawodników bez pauzy (np. najbardziej zaawansowanych)
-• Usuwanie zawodników w trakcie treningu z automatycznym przeliczeniem par
-• Sprawiedliwa rotacja pauz przy nieparzystej liczbie
+PRYWATNOŚĆ I DZIAŁANIE BEZ INTERNETU
+Program nie wymaga zakładania konta, podawania adresu e-mail ani dostępu do sieci na sali. Nie zawiera reklam, statystyk śledzących ani zewnętrznych skryptów marketingowych. Cała baza klubowa i historia treningów leżą wyłącznie w pamięci Twojego tabletu lub telefonu.
 
-⚙️ KONFIGURACJA TRENINGU
-• Czas rundy, przygotowania, przerwy, liczba rund
-• Tryb treningu zapisywany między sesjami
-• Cała baza zawodników zapisywana lokalnie
+WERSJA W PRZEGLĄDARCE
+Z tego samego zegara skorzystasz też na komputerze pod adresem znimnierobie.pl
 
-🔒 PRYWATNOŚĆ
-• ZERO kont, loginów, maili
-• ZERO reklam
-• ZERO trackerów i analityki
-• ZERO internetu — aplikacja działa w pełni offline
-• Wszystkie dane zapisywane lokalnie na urządzeniu
+WYMAGANIA TECHNICZNE
+Urządzenie z systemem Android 7.0 lub nowszym. Najwygodniej pracuje się na tablecie o przekątnej około 10,5 cala ustawionym poziomo przy macie, ale układ dopasowuje się również do pionowego ekranu telefonu.
 
-🌐 WERSJA WEBOWA
-Dostępna też online: znimnierobie.pl
-
----
-
-DLA KOGO TA APLIKACJA?
-• Instruktorów brazylijskiego jiu-jitsu
-• Trenerów grapplingu i zapasów
-• Klubów i akademii prowadzących treningi grupowe
-• Każdego, kto prowadzi zajęcia z rotacją par
-
-WYMAGANIA
-• Android 7.0 lub nowszy
-• Zalecane: tablet 10" (ustawiany na ławce lub mocowany na ścianie)
-• Działa też na telefonie w trybie stacjonarnym
-
----
-
-Masz pomysł na funkcję? Napisz: drozdz.szymon@gmail.com
-GitHub: github.com/drozdzszymon/z-nim-nie-robie
+Kontakt i zgłoszenia uwag pod adresem drozdz.szymon@gmail.com
+Kod źródłowy na github.com/drozdzszymon/z-nim-nie-robie
 ```
 
-### Kategoria
-- **Główna:** Zdrowie i fitness (Health & Fitness)
-- **Alternatywnie:** Sport (Sports)
+### Kategoria i tagi wyszukiwania w konsoli
+Kategoria główna to Zdrowie i fitness (Health & Fitness) lub Sport (Sports).
 
-### Tagi / słowa kluczowe (store)
+Tagi wyszukiwania w sklepie:
 ```
-BJJ, jiu-jitsu, grappling, sparring, timer, trening, matchmaker, klub, akademia, MMA
+BJJ, jiu-jitsu, grappling, sparring, timer, trening, zadaniówki, klub, akademia, MMA
 ```
 
----
+## Wersja angielska (English US)
 
-## 🇬🇧 English version (secondary locale)
-
-### Title (max 30 chars)
-```
-BJJ Timer — Smart Sparring Pairs
-```
-*(32 chars — trim to:)*
-```
-BJJ Sparring Timer & Matchmaker
-```
-*(31 chars — trim to:)*
+### App title (up to 30 chars)
 ```
 BJJ Sparring Timer
 ```
 *(18 chars)*
 
-### Short description (max 80 chars)
+### Short description (up to 80 chars)
 ```
-Smart BJJ sparring timer with automatic pair matching and rest rotation.
+BJJ mat timer with automatic pair matching, triad rotation, and rest tracking.
 ```
-*(72 chars)*
+*(78 chars)*
 
-### Full description (max 4000 chars)
+### Full description (up to 4000 chars)
 ```
-BJJ Sparring Timer is a training app built by BJJ coaches for BJJ coaches. No more paper lists, wristwatches, or guessing who hasn't rolled with whom yet.
+Z NIM NIE ROBIĘ replaces paper lists and basic wall clocks in Brazilian jiu-jitsu and grappling rooms. Prop a tablet on the bench or mount it on the wall, check off who showed up from your club roster, and run rounds without scrambling to match pairs by hand between bells.
 
-🥋 SMART PAIR MATCHING
-The matchmaker pairs players automatically, taking into account:
-• weight and weight gap
-• skill level (BEGINNER / INTERMEDIATE / ADVANCED / PRO)
-• kimono (GI / NO-GI)
-• age category (KID / ADULT)
-• match history — no repeats until everyone has rolled with everyone
+PAIR MATCHING WITHOUT REPEATS
+The matchmaker builds each round around weight, mat experience (BEG, INTERM, ADV, PRO), gear (GI or NO-GI), gender, and age group (KID and ADULT). It tracks every pairing from the current class so nobody repeats a partner until the whole group has rotated through. Visiting drop-ins can be flagged with the GUEST switch so visitors roll with home-gym members instead of each other.
 
-⏱️ TRAINING MODES
-• SPARRING — classic pairs, PREP → WORK → REST phases
-• DRILL TRIADS — 6-step rotation with BOTTOM / TOP / REST roles
-• DRILL DUOS — A / B role swap after each step
+FOUR MAT MODES
+Standard sparring steps through prep, work, and break, showing the next round's pairs right on the break screen so athletes find their partners before the bell. Positional triads split the room into groups of three and run all six rotation stages across BOTTOM, TOP, and REST roles. Positional pairs swap top and bottom halfway through each round, while Drills locks partners for the whole class and alternates A and B roles every round.
 
-🎯 READABLE FROM ACROSS THE ROOM
-Huge digits, large pair cards, color-coded phases — visible from the other end of the mat. Optimized for 10" tablets. Put it on the bench or mount it on the wall.
+BUILT FOR CROWDED MATS
+When the mat is packed, turn on weight division to alternate lighter and heavier groups with a 20-second transition window. You can tune the skill-versus-weight slider, pick round progression, prioritize women's rounds, and mark ironman athletes who never sit out on odd numbers. If someone tweaks a rib or needs one round off, tap DROPOUT to rebuild pairs on the spot without restarting the clock.
 
-🔔 AUDIO SIGNALS
-• Round start gong
-• 10-second warning
-• Break gong
-• Automatic music ducking
+ACROSS-THE-ROOM VISIBILITY AND BELLS
+Oversized digits and color-coded pair cards stay legible from the far corner of the mat. A boxing bell starts and ends each round, a double clapper warns at 10 seconds left, and background gym music playing on the same tablet ducks down automatically for every cue.
 
-👥 GROUP MANAGEMENT
-• Fast player add and edit
-• Tile view with current status (fighting / rest)
-• Flag players who skip rest (e.g. most advanced)
-• Remove players mid-training with automatic pair recalculation
-• Fair rest rotation for odd player counts
+OFFLINE AND PRIVATE BY DESIGN
+No accounts, no logins, no ads, and no analytics trackers. The app works completely offline and keeps your club roster and training history locally on your device.
 
-⚙️ TRAINING CONFIG
-• Round time, prep time, break time, number of rounds
-• Training mode saved between sessions
-• Full player database stored locally
-
-🔒 PRIVACY
-• ZERO accounts, logins, emails
-• ZERO ads
-• ZERO trackers or analytics
-• ZERO internet required — fully offline
-• All data stored locally on your device
-
-🌐 WEB VERSION
-Also available online: znimnierobie.pl
-
----
-
-WHO IS THIS FOR?
-• Brazilian jiu-jitsu instructors
-• Grappling and wrestling coaches
-• Clubs and academies running group classes
-• Anyone running drills with partner rotation
+WEB VERSION
+You can also run the timer directly in a browser at znimnierobie.pl
 
 REQUIREMENTS
-• Android 7.0 or newer
-• Recommended: 10" tablet (bench or wall mount)
-• Also works on a phone in stationary mode
+Android 7.0 or newer. Works best in landscape on a 10-inch tablet by the mat, with full support for phones in portrait mode.
 
----
-
-Feature request? Email: drozdz.szymon@gmail.com
-GitHub: github.com/drozdzszymon/z-nim-nie-robie
+Questions or feedback at drozdz.szymon@gmail.com
+Source repository at github.com/drozdzszymon/z-nim-nie-robie
 ```
 
----
+## Wersja portugalska (Português do Brasil)
 
-## 🇧🇷 Versão em português (Brasil)
-
-### Título (max 30 caracteres)
-```
-BJJ Timer — Duplas Inteligentes
-```
-*(31 chars — encurtar para:)*
+### Título do app (até 30 caracteres)
 ```
 BJJ Timer & Formador de Duplas
 ```
-*(30 chars)*
+*(30 caracteres)*
 
-### Descrição curta (max 80 caracteres)
+### Descrição curta (até 80 caracteres)
 ```
-Timer de BJJ com formação automática de duplas, sparring e drills.
+Cronômetro de BJJ com montagem automática de duplas, rolas e rodízio em trios.
 ```
-*(66 chars)*
+*(78 caracteres)*
 
-### Descrição completa (max 4000 caracteres)
+### Descrição completa (até 4000 caracteres)
 ```
-BJJ Timer é um app de treino feito por professores de jiu-jítsu brasileiro para professores de jiu-jítsu brasileiro. Chega de papel, relógio no pulso e tentar lembrar quem ainda não rolou com quem.
+Z NIM NIE ROBIĘ tira o papel, a caneta e o improviso da beira do tatame nas aulas de jiu-jitsu brasileiro e grappling. Apoie o tablet no banco ou prenda na parede, marque no banco do clube quem veio treinar hoje e solte os rolas sem perder tempo casando duplas no grito a cada intervalo.
 
-🥋 FORMAÇÃO INTELIGENTE DE DUPLAS
-O formador de duplas monta os pares automaticamente, levando em conta:
-• peso e diferença de peso
-• nível técnico (INICIANTE / INTERMEDIÁRIO / AVANÇADO / PRO)
-• kimono (GI / NO-GI)
-• faixa etária (KID / ADULT)
-• histórico de rolagens — sem repetir até que todos tenham rolado com todos
+DUPLAS EQUILIBRADAS E SEM REPETIÇÃO
+O algoritmo monta cada rodada levando em conta peso, nível técnico (INIC., INTERM., AVANÇ., PRO), traje (GI ou NO-GI), gênero e faixa etária (KID e ADULT). Ele guarda quem já rolou com quem na aula para evitar repetições até fechar o rodízio da turma. Atletas de fora podem receber a marcação VISITANTE para rolar com o pessoal da casa em vez de caírem juntos.
 
-⏱️ MODOS DE TREINO
-• SPARRING — duplas clássicas, fases PREPARAÇÃO → ROLA → DESCANSO
-• DRILLS EM TRIOS — rotação de 6 etapas com papéis EMBAIXO / EM CIMA / DESCANSO
-• DRILLS EM DUPLAS — troca de papéis A / B após cada etapa
+QUATRO MODOS DE AULA
+No sparring tradicional o relógio conduz preparação, luta e intervalo, já mostrando na tela de descanso as duplas da rodada seguinte. No treino posicional em trios o app organiza grupos de três pessoas e controla as seis etapas de troca entre BAIXO, CIMA e DESCANSO. O modo posicional em duplas inverte quem joga por cima na metade do tempo, e o modo Drills mantém o mesmo parceiro até o fim da aula alternando os lados A e B a cada rodada.
 
-🎯 LEGÍVEL DO OUTRO LADO DO TATAME
-Números enormes, cartas de dupla grandes, fases coloridas — visíveis de longe. Otimizado para tablets de 10". Coloque no banco ou fixe na parede.
+RECURSOS PARA TATAME CHEIO
+Quando a academia lota, a divisão de peso separa leves e pesados em baterias alternadas com 20 segundos de troca. Você ajusta o peso entre técnica e balança no controle deslizante, define a ordem das lutas, prioriza lutas femininas e marca quem treina sem descanso quando sobra número ímpar. Se alguém cansar ou sair mais cedo, o botão ALGUÉM SAIU recalcula as chaves na hora sem zerar o treino.
 
-🔔 SINAIS SONOROS
-• Gongo de início de round
-• Aviso de 10 segundos
-• Gongo de descanso
-• Redução automática do volume da música (ducking)
+LEITURA DE LONGE E SINAIS SONOROS
+Dígitos grandes e cartões coloridos por categoria permitem ler as duplas do outro lado do tatame. O gongo marca início e fim do rola, duas batidas avisam quando faltam 10 segundos e o app abaixa sozinho o volume da música de fundo durante os avisos.
 
-👥 GESTÃO DO GRUPO
-• Adicionar e editar atletas rápido
-• Visualização em cartões com status atual (rolando / descansando)
-• Marcar atletas que pulam o descanso (ex. faixas mais altas)
-• Remover atletas durante o treino com recálculo automático das duplas
-• Rotação justa do descanso para número ímpar de atletas
+OFFLINE E SEM COLETA DE DADOS
+Sem criação de conta, sem anúncios e sem rastreadores de uso. O aplicativo roda 100% offline e grava o cadastro de alunos apenas na memória do seu próprio aparelho.
 
-⚙️ CONFIGURAÇÃO DO TREINO
-• Tempo de round, preparação, descanso e número de rounds
-• Modo de treino salvo entre as sessões
-• Base completa de atletas salva localmente
-
-🔒 PRIVACIDADE
-• ZERO contas, logins, emails
-• ZERO anúncios
-• ZERO rastreadores ou analytics
-• ZERO internet — funciona 100% offline
-• Todos os dados ficam salvos localmente no dispositivo
-
-🌐 VERSÃO WEB
-Também disponível online: znimnierobie.pl
-
----
-
-PARA QUEM É ESSE APP?
-• Professores de jiu-jítsu brasileiro
-• Treinadores de grappling e luta livre
-• Academias e clubes que dão aulas em grupo
-• Qualquer pessoa que conduz drills com rotação de duplas
+VERSÃO NO NAVEGADOR
+Também disponível pelo navegador em znimnierobie.pl
 
 REQUISITOS
-• Android 7.0 ou mais novo
-• Recomendado: tablet 10" (no banco ou fixado na parede)
-• Também funciona em celular em modo estacionário
+Android 7.0 ou superior. Recomendado para tablets de 10 polegadas na horizontal ao lado do tatame, funcionando também em celulares na vertical.
 
----
-
-Sugestão de funcionalidade? Email: drozdz.szymon@gmail.com
-GitHub: github.com/drozdzszymon/z-nim-nie-robie
+Contato e sugestões pelo e-mail drozdz.szymon@gmail.com
+Código no GitHub em github.com/drozdzszymon/z-nim-nie-robie
 ```
 
-### Categoria
-- **Principal:** Saúde e fitness (Health & Fitness)
-- **Alternativa:** Esportes (Sports)
+## Dane kontaktowe i ustawienia w Play Console
 
-### Tags / palavras-chave (store)
-```
-BJJ, jiu-jitsu, grappling, sparring, timer, treino, duplas, academia, MMA, drill
-```
-
----
-
-## 📞 Dane kontaktowe dla Play Console
-
-| Pole | Wartość |
+| Pole w konsoli | Wartość produkcyjna |
 |---|---|
-| Email | drozdz.szymon@gmail.com |
-| Strona | https://znimnierobie.pl |
+| Adres e-mail pomocy | drozdz.szymon@gmail.com |
+| Strona internetowa | https://znimnierobie.pl |
 | Polityka prywatności | https://znimnierobie.pl/privacy |
-| Kraj dystrybucji | Cały świat (lub tylko PL na start) |
-| Cena | Bezpłatna |
-| Zawiera reklamy | NIE |
-| Zakupy w aplikacji | NIE |
+| Dystrybucja geograficzna | Wszystkie dostępne kraje |
+| Model cenowy | Aplikacja bezpłatna |
+| Reklamy w aplikacji | Nie |
+| Zakupy wewnątrz aplikacji | Nie |
+
