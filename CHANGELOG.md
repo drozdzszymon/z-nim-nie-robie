@@ -13,7 +13,7 @@ Przejście na Expo SDK 58, React Native 0.88.1 oraz nowy silnik dźwięku `expo-
 - Zastąpiono wycofany pakiet `expo-av` biblioteką `expo-audio` (`58.0.12`) skonfigurowaną bez uprawnienia dostępu do mikrofonu (`RECORD_AUDIO`), z zachowaniem odtwarzania gongu, podwójnego sygnału na 10 sekund przed końcem i przyciszenia muzyki w tle.
 - Przebudowano obsługę przejść między fazami zegara z użyciem `useEffectEvent` oraz wykrywanie motywu w przeglądarce z użyciem `useSyncExternalStore`.
 - Uproszczono komunikaty błędów walidacji, podpowiedzi opcji sparingowych, treść strony `/privacy` oraz dokumentację w trzech językach.
-- Wersja aplikacji podniesiona do `2.3.0`, `android.versionCode` z `13` na `14`, `ios.buildNumber` z `2` na `3`.
+- Wersja aplikacji podniesiona do `2.3.0`, `android.versionCode` z `13` na `15`, `ios.buildNumber` z `2` na `3`.
 
 ## [2.2.0] (2026-11-15)
 

@@ -13,7 +13,7 @@ Upgrade to Expo SDK 58, React Native 0.88.1, and `expo-audio`, paired with a ful
 - Replaced deprecated `expo-av` with `expo-audio` (`58.0.12`) configured without `RECORD_AUDIO` microphone permissions while keeping the round bell, double 10-second clapper, and background music ducking intact.
 - Refactored round phase transitions to `useEffectEvent` and web color-scheme hydration to `useSyncExternalStore`.
 - Cleaned up validation messages, option tooltips, `/privacy` copy, and project documentation across Polish, English, and Brazilian Portuguese.
-- Bumped app version to `2.3.0`, `android.versionCode` from `13` to `14`, and `ios.buildNumber` from `2` to `3`.
+- Bumped app version to `2.3.0`, `android.versionCode` from `13` to `15`, and `ios.buildNumber` from `2` to `3`.
 
 ## [2.2.0] (2026-11-15)
 

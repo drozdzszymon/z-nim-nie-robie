@@ -45,7 +45,7 @@
     ],
     "android": {
       "package": "pl.znimnierobie.app",
-      "versionCode": 14,
+      "versionCode": 15,
       "permissions": [],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",

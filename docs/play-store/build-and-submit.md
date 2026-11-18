@@ -9,7 +9,7 @@ Przed zbudowaniem nowej paczki podbij numer wersji w plikach [package.json](../.
 ```json
 "version": "2.3.0",
 "android": {
-  "versionCode": 14
+  "versionCode": 15
 }
 ```
 

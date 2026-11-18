@@ -13,7 +13,7 @@ Atualização da base para Expo SDK 58, React Native 0.88.1 e `expo-audio`, junt
 - Substituído o pacote descontinuado `expo-av` pelo `expo-audio` (`58.0.12`) configurado sem permissão de microfone (`RECORD_AUDIO`), mantendo o gongo, o aviso duplo de 10 segundos e a redução automática da música de fundo.
 - Refatoradas as transições de fase do cronômetro com `useEffectEvent` e a leitura do tema no navegador com `useSyncExternalStore`.
 - Revisados os avisos de validação, dicas de opções, página `/privacy` e documentação nos três idiomas.
-- Versão do aplicativo elevada para `2.3.0`, `android.versionCode` de `13` para `14` e `ios.buildNumber` de `2` para `3`.
+- Versão do aplicativo elevada para `2.3.0`, `android.versionCode` de `13` para `15` e `ios.buildNumber` de `2` para `3`.
 
 ## [2.2.0] (2026-11-15)
 
